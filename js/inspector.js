@@ -235,13 +235,13 @@ function syncInspectorUI(){
   const isSpeaker = !!currentIt && isSpeakerItem(catalogFor(currentIt.typeId));
   const otherByVolunteer = otherAssignmentsByVolunteer(inspectorUid);
   // normally anyone assigned elsewhere is excluded so nobody's double-
-  // booked — but for a speaker item, someone already covering exactly
-  // one OTHER speaker (and nothing else) is still offered, as a second
-  // speaker for the same person
+  // booked — but for a speaker item, someone already covering any number
+  // of OTHER speakers (and nothing but speakers) is still offered, so
+  // one person can run all of them if the crew's short-handed
   const available = STATE.roster.filter(v=>{
     const others = otherByVolunteer.get(v.id) || [];
     if(!others.length) return true;
-    return isSpeaker && others.length===1 && isSpeakerItem(catalogFor(others[0].typeId));
+    return isSpeaker && others.every(o=>isSpeakerItem(catalogFor(o.typeId)));
   });
   if(!STATE.roster.length){
     inspVolunteers.innerHTML = '';
@@ -268,8 +268,8 @@ function syncInspectorUI(){
     }
     const checkRow = v => {
       const others = otherByVolunteer.get(v.id) || [];
-      const preferred = isSpeaker && others.length===1;
-      const preferredTag = preferred ? `<span class="preferred-tag">Also on ${others[0].label}</span>` : '';
+      const preferred = isSpeaker && others.length>0;
+      const preferredTag = preferred ? `<span class="preferred-tag">Also on ${others.map(o=>o.label).join(', ')}</span>` : '';
       return `
       <label class="volunteer-check${preferred ? ' volunteer-check-preferred' : ''}">
         <input type="checkbox" value="${v.id}" ${inspectorDraft.assignedIds.includes(v.id)?'checked':''}>

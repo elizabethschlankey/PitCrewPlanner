@@ -167,6 +167,7 @@ function renderField(){
     dropLayer.appendChild(el);
   });
   renderPaletteCounts();
+  updateOffscreenArrows();
 }
 
 // the badge (if any) currently checked out to a given volunteer

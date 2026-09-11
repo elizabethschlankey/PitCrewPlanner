@@ -179,7 +179,55 @@ function applyFieldTransform(){
   isZoomed = curScale > 1.001;
   btnZoomPit.style.display = isZoomed ? 'none' : 'inline-block';
   btnZoomReset.style.display = isZoomed ? 'inline-block' : 'none';
+  updateOffscreenArrows();
 }
+
+/* ---------------------------------------------------------------
+   OFF-SCREEN ARROWS — zoomed into the Pit Box, a Needs a Hand item can
+   end up entirely outside the crop. Points toward each one from the
+   edge of the viewport instead of leaving it silently out of view.
+   Tapping an arrow re-centers the (still-zoomed) view on that item.
+---------------------------------------------------------------- */
+const offscreenArrowsLayer = document.getElementById('offscreen-arrows');
+function updateOffscreenArrows(){
+  offscreenArrowsLayer.innerHTML = '';
+  if(!isZoomed) return;
+  const vRect = fieldViewport.getBoundingClientRect();
+  if(!vRect.width || !vRect.height) return;
+  const margin = 34;
+  const cx = vRect.width/2, cy = vRect.height/2;
+  const halfW = Math.max(cx-margin, 10), halfH = Math.max(cy-margin, 10);
+  currentItemsCtx().items.filter(it=>it.needsHelp).forEach(it=>{
+    const screenX = curTx + (it.xPct/100)*vRect.width*curScale;
+    const screenY = curTy + (it.yPct/100)*vRect.height*curScale;
+    if(screenX>=0 && screenX<=vRect.width && screenY>=0 && screenY<=vRect.height) return; // already visible
+    const dx = screenX-cx, dy = screenY-cy;
+    const angle = Math.atan2(dy, dx);
+    const ux = Math.cos(angle), uy = Math.sin(angle);
+    // clamp the direction vector to the viewport rectangle's edge
+    const scale = (Math.abs(ux)*halfH > Math.abs(uy)*halfW) ? halfW/Math.abs(ux) : halfH/Math.abs(uy);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'offscreen-arrow';
+    btn.style.left = (cx+ux*scale)+'px';
+    btn.style.top = (cy+uy*scale)+'px';
+    btn.style.setProperty('--arrow-rot', (angle*180/Math.PI)+'deg');
+    btn.title = `${it.label} needs a hand — off screen, tap to jump to it`;
+    btn.dataset.jumpTo = it.uid;
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M4 4L20 12L4 20Z" fill="currentColor"/></svg>`;
+    offscreenArrowsLayer.appendChild(btn);
+  });
+}
+offscreenArrowsLayer.addEventListener('click', e=>{
+  const btn = e.target.closest('[data-jump-to]');
+  if(!btn) return;
+  const it = currentItemsCtx().items.find(i=>i.uid===btn.dataset.jumpTo);
+  if(!it) return;
+  const vRect = fieldViewport.getBoundingClientRect();
+  curTx = vRect.width/2 - (it.xPct/100)*vRect.width*curScale;
+  curTy = vRect.height/2 - (it.yPct/100)*vRect.height*curScale;
+  applyFieldTransform();
+});
 function zoomToPit(){
   const vRect = fieldViewport.getBoundingClientRect();
   const scaleX = vRect.width / W, scaleY = vRect.height / H;

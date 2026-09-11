@@ -184,6 +184,15 @@
   .field-wrap.pinching{transition:none;}
   #field{display:block;width:100%;height:100%;}
   #drop-layer{position:absolute;inset:0;}
+  /* zoomed into the Pit Box, a Needs a Hand item can end up outside the
+     crop entirely — these point toward it from the nearest edge instead
+     of leaving it silently out of view. Sits OUTSIDE .field-wrap (not
+     panned/scaled with it) so the arrows stay fixed to the viewport
+     edge regardless of zoom/pan. */
+  #offscreen-arrows{position:absolute;inset:0;z-index:35;pointer-events:none;}
+  .offscreen-arrow{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:var(--help);border:2px solid rgba(255,255,255,.75);box-shadow:0 2px 8px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;padding:0;pointer-events:auto;animation:offscreen-arrow-pulse 1.6s ease-in-out infinite;}
+  .offscreen-arrow svg{width:16px;height:16px;transform:rotate(var(--arrow-rot,0deg));}
+  @keyframes offscreen-arrow-pulse{0%,100%{box-shadow:0 2px 8px rgba(0,0,0,.5),0 0 0 0 rgba(217,119,46,.55);}50%{box-shadow:0 2px 8px rgba(0,0,0,.5),0 0 0 7px rgba(217,119,46,0);}}
   .zoom-controls{position:absolute;top:10px;right:10px;left:10px;z-index:30;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;}
   .zoom-controls button{background:rgba(12,15,19,.72);backdrop-filter:blur(2px);font-size:11.5px;padding:8px 12px;border-color:rgba(255,255,255,.18);}
   .zoom-controls button.primary{background:var(--navy-2);}

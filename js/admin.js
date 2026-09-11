@@ -79,16 +79,21 @@ function openEventForm(kind){
 }
 // shared by "Duplicate Event" and "New Event from Template" — copies a
 // source items array onto a freshly-created event with no assignments
-// (a fresh event never inherits helper assignments). Returns the number
-// of items that failed to copy (0 = every item copied cleanly) so
-// callers can surface a warning instead of silently reporting success —
-// each insert's error used to only go to console.error, so a copy that
-// failed outright (e.g. a stale/expired session) looked identical to one
-// that worked, just with an empty result.
+// EXCEPT anchored ones ("📌 pinned" helpers — someone reliable enough to
+// carry over automatically) — everyone else starts unassigned, since a
+// fresh event shouldn't assume last game's volunteer availability.
+// Template items never carry anchoredIds (templates have no assignment
+// table at all — see copyItemsToTemplate below), so this is a no-op for
+// "New Event from Template", only "Duplicate Event" actually has any to
+// carry. Returns the number of items that failed to copy (0 = every item
+// copied cleanly) so callers can surface a warning instead of silently
+// reporting success — each insert's error used to only go to
+// console.error, so a copy that failed outright (e.g. a stale/expired
+// session) looked identical to one that worked, just with an empty result.
 async function copyItemsToEvent(srcItems, eventId){
   let failed = 0;
   for(const it of srcItems){
-    const {error:ie} = await sb.from('items').insert({
+    const {data:newItem, error:ie} = await sb.from('items').insert({
       event_id:eventId, type_id:it.typeId, label:it.label, x_pct:it.xPct, y_pct:it.yPct,
       needs_help:it.needsHelp, helpers_needed:it.helpersNeeded, notes:it.notes, timing:it.timing,
       student_name:it.studentName, teardown_notes:it.teardownNotes,
@@ -98,8 +103,12 @@ async function copyItemsToEvent(srcItems, eventId){
       // column the first time that item gets copied anywhere
       setup_media_url:it.setupMediaUrl, setup_media_type:it.setupMediaType,
       teardown_media_url:it.teardownMediaUrl, teardown_media_type:it.teardownMediaType
-    });
-    if(ie){ failed++; console.error(ie); }
+    }).select().single();
+    if(ie){ failed++; console.error(ie); continue; }
+    for(const volunteerId of (it.anchoredIds || [])){
+      const {error:ae} = await sb.from('item_assignments').insert({item_id:newItem.id, volunteer_id:volunteerId, anchored:true});
+      if(ae) console.error(ae);
+    }
   }
   return failed;
 }

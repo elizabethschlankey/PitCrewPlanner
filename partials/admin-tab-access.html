@@ -1,0 +1,19 @@
+    <div class="tab-panel" id="admin-tab-access" style="display:none;" data-admin-only>
+      <p class="hint">Director and Lead Volunteer sign in with a shared PIN instead of an email/password — set or change either one here. Anyone with the PIN can sign in as that role, so treat it like a door code and change it if it's ever shared more widely than intended.</p>
+      <div class="roster-admin-actions">
+        <div class="roster-add">
+          <h2 style="margin:0;">Director PIN</h2>
+          <input id="access-pin-director" type="password" inputmode="numeric" placeholder="New PIN (4+ digits)" maxlength="12">
+          <input id="access-pin-director-confirm" type="password" inputmode="numeric" placeholder="Confirm PIN" maxlength="12">
+          <button id="access-pin-director-save">Save Director PIN</button>
+          <div class="inline-error" id="access-pin-director-error"></div>
+        </div>
+        <div class="roster-add">
+          <h2 style="margin:0;">Lead Volunteer PIN</h2>
+          <input id="access-pin-lead_volunteer" type="password" inputmode="numeric" placeholder="New PIN (4+ digits)" maxlength="12">
+          <input id="access-pin-lead_volunteer-confirm" type="password" inputmode="numeric" placeholder="Confirm PIN" maxlength="12">
+          <button id="access-pin-lead_volunteer-save">Save Lead Volunteer PIN</button>
+          <div class="inline-error" id="access-pin-lead_volunteer-error"></div>
+        </div>
+      </div>
+    </div>

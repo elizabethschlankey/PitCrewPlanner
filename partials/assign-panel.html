@@ -1,0 +1,15 @@
+    <aside class="assign-panel" id="assign-panel" data-event-only>
+      <div class="assign-panel-header">
+        <button type="button" class="assign-panel-toggle" id="assign-panel-toggle" title="Show/hide Needs a Hand — more room for the field while you're placing instruments">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="assign-panel-label">Needs a Hand</span>
+          <span class="count" id="assign-count">0</span>
+        </button>
+        <button id="btn-clear-volunteers" class="small danger" data-edit-only type="button" title="Unassign everyone except anchored helpers">Clear Volunteers</button>
+      </div>
+      <div class="assign-panel-body" id="assign-panel-body">
+        <p class="hint">Items tagged below need extra people to carry them into place. Click an item on the field (in Edit Mode) to tag it.
+          <span data-edit-only>Pin 📌 a reliable helper as an anchor so Clear Volunteers leaves them assigned.</span></p>
+        <div id="assign-list"></div>
+      </div>
+    </aside>

@@ -1,0 +1,31 @@
+<div id="login-overlay" class="overlay" style="display:none;">
+  <div class="card">
+    <h3>Sign In</h3>
+    <p class="sub">Volunteers never need this — only Director, Lead Volunteer, or Admin.</p>
+    <div class="tab-row">
+      <button class="tab-btn" data-login-role="director" type="button">Director</button>
+      <button class="tab-btn" data-login-role="lead_volunteer" type="button">Lead Volunteer</button>
+      <button class="tab-btn active" data-login-role="admin" type="button">Admin</button>
+    </div>
+    <div id="login-admin-form">
+      <label for="login-email">Email</label>
+      <input type="email" id="login-email" autocomplete="username">
+      <label for="login-password">Password</label>
+      <input type="password" id="login-password" autocomplete="current-password">
+      <div class="error" id="login-error"></div>
+      <div class="row" style="margin-top:12px;">
+        <button id="login-cancel">Cancel</button>
+        <button id="login-submit" class="primary">Sign In</button>
+      </div>
+    </div>
+    <div id="login-pin-form" style="display:none;">
+      <label for="login-pin">PIN</label>
+      <input type="password" id="login-pin" inputmode="numeric" autocomplete="off">
+      <div class="error" id="login-pin-error"></div>
+      <div class="row" style="margin-top:12px;">
+        <button id="login-cancel-pin">Cancel</button>
+        <button id="login-pin-submit" class="primary">Sign In</button>
+      </div>
+    </div>
+  </div>
+</div>

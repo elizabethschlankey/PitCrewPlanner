@@ -1,0 +1,33 @@
+  <div class="event-bar" data-event-only>
+    <label for="event-select">Event</label>
+    <select id="event-select"></select>
+    <span class="pill template" id="hdr-template-pill" title="Template this event follows"></span>
+    <button id="btn-set-current" class="small" data-edit-only title="Make this the event volunteers see by default">🔴 Go Live</button>
+    <button id="btn-rename-event" class="small" data-edit-only>✎ Rename</button>
+    <button id="btn-new-event" class="small" data-edit-only>+ New Event</button>
+    <button id="btn-dup-event" class="small" data-edit-only>⧉ Duplicate</button>
+    <button id="btn-switch-template" class="small" data-edit-only>⇄ Switch Template</button>
+    <button id="btn-save-as-template" class="small" data-edit-only>💾 Save as Template</button>
+    <button id="btn-del-event" class="small danger" data-edit-only>Delete Event</button>
+    <div class="inline-form" id="event-form">
+      <div class="form-label" id="event-form-label">New Event</div>
+      <input type="text" name="name" id="event-form-name" placeholder="Event name, e.g. Homecoming vs. Ridgeview" maxlength="60">
+      <input type="date" name="date" id="event-form-date">
+      <select id="event-form-template" title="Start from a template"></select>
+      <button id="event-form-create" class="small primary" type="button">Create</button>
+      <button id="event-form-cancel" class="small ghost" type="button">Cancel</button>
+    </div>
+    <div class="inline-form" id="switch-template-form">
+      <div class="form-label">Switch which template this event follows</div>
+      <select id="switch-template-select"></select>
+      <button id="switch-template-apply" class="small primary" type="button">Apply</button>
+      <button id="switch-template-cancel" class="small ghost" type="button">Cancel</button>
+    </div>
+    <div class="inline-form" id="save-as-template-form">
+      <div class="form-label">Save “<span id="save-as-template-source"></span>” as a new template — layout, tags, and notes carry over; nobody starts pre-assigned to help.</div>
+      <input type="text" name="name" id="save-as-template-name" placeholder="Template name, e.g. Homecoming Layout" maxlength="60">
+      <input type="text" name="description" id="save-as-template-description" placeholder="Description (optional)" maxlength="120">
+      <button id="save-as-template-create" class="small primary" type="button">Save Template</button>
+      <button id="save-as-template-cancel" class="small ghost" type="button">Cancel</button>
+    </div>
+  </div>

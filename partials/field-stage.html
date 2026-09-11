@@ -1,0 +1,22 @@
+    <main class="stage">
+      <div class="field-viewport" id="field-viewport">
+        <div class="field-wrap" id="field-wrap">
+          <svg id="field" viewBox="0 0 1200 620" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div id="drop-layer"></div>
+        </div>
+        <div class="zoom-controls">
+          <button id="btn-zoom-pit" class="primary">Zoom to Pit Box</button>
+          <button id="btn-zoom-reset" style="display:none;">Zoom to Full Field</button>
+          <button id="btn-toggle-labels" type="button">Hide Labels</button>
+        </div>
+        <div class="readonly-badge">View only</div>
+        <div class="pit-badge">White box = pit equipment area · Blue line = speaker back-wheel line</div>
+      </div>
+      <div class="legend-wrap">
+        <button type="button" class="legend-toggle" id="legend-toggle">
+          <span>Legend</span>
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="legend" id="legend"></div>
+      </div>
+    </main>

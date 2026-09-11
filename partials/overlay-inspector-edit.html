@@ -1,0 +1,110 @@
+    <div id="insp-edit-body" style="display:none;flex-direction:column;gap:14px;">
+      <div class="tab-row">
+        <button type="button" class="tab-btn active" data-edit-tab="assignment">Assignment</button>
+        <button type="button" class="tab-btn" data-edit-tab="placement">Placement</button>
+        <button type="button" class="tab-btn" data-edit-tab="whattodo">What to Do</button>
+        <button type="button" class="tab-btn" data-edit-tab="wrapup">Wrap It Up</button>
+      </div>
+
+      <div class="insp-tab-panel" id="edit-tab-assignment">
+        <!-- always available for an instrument item, whether or not it's
+             tagged as needing a helper — recording which student plays it
+             shouldn't require also flagging it for volunteer help -->
+        <div class="field-group" id="insp-student-group" style="display:none;">
+          <label>Student's Name (who plays it)</label>
+          <input type="text" id="insp-student" maxlength="60" placeholder="e.g. Jordan Smith">
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">Needs a helper to move this</div>
+          <label class="switch">
+            <input type="checkbox" id="insp-needs-help">
+            <span class="track"></span>
+            <span class="knob"></span>
+          </label>
+        </div>
+        <div id="insp-help-fields" style="display:none;flex-direction:column;gap:14px;">
+          <div class="field-group">
+            <label>Helpers Needed</label>
+            <div class="stepper">
+              <button id="insp-helpers-minus" type="button">−</button>
+              <span class="val" id="insp-helpers-val">1</span>
+              <button id="insp-helpers-plus" type="button">+</button>
+            </div>
+          </div>
+          <div class="field-group">
+            <label>When It Needs to Move</label>
+            <select id="insp-timing"></select>
+          </div>
+          <div class="field-group" id="insp-assign-volunteers-group">
+            <label>Assign Volunteers</label>
+            <div class="volunteer-check-list" id="insp-volunteers"></div>
+            <div class="no-roster-note" id="insp-no-roster" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="insp-tab-panel" id="edit-tab-placement" style="display:none;">
+        <div class="field-group">
+          <div class="mini-map-wrap">
+            <svg id="edit-mini-map" xmlns="http://www.w3.org/2000/svg"></svg>
+          </div>
+          <p class="hint" style="margin:0;">Drag the item on the field itself to reposition it — this is just for reference.</p>
+        </div>
+      </div>
+
+      <div class="insp-tab-panel" id="edit-tab-whattodo" style="display:none;">
+        <div class="field-group">
+          <label>What to Do (setup steps)</label>
+          <textarea id="insp-notes" rows="4" maxlength="500" placeholder="e.g. Connects to the sub with the brown/orange cable, plus a power cord"></textarea>
+        </div>
+        <div class="field-group">
+          <label>Setup Clip or Photo (optional — keep a clip short, under ~15 seconds)</label>
+          <div class="photo-capture">
+            <button type="button" id="insp-setup-media-capture-btn" class="photo-btn">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" stroke="currentColor" stroke-width="1.6"/></svg>
+              <span>Record / Take Photo</span>
+            </button>
+            <button type="button" id="insp-setup-media-choose-btn" class="photo-btn ghost">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="15" rx="1.6" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="9.5" r="1.6" stroke="currentColor" stroke-width="1.6"/><path d="M4 16l5-5 3.5 3.5L16 11l4 5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>
+              <span>Choose Existing</span>
+            </button>
+            <input type="file" accept="video/*,image/*" capture="environment" id="insp-setup-media-capture-input" style="display:none;">
+            <input type="file" accept="video/*,image/*" id="insp-setup-media-choose-input" style="display:none;">
+          </div>
+          <div id="insp-setup-media-preview" style="display:none;"></div>
+          <button type="button" id="insp-setup-media-remove-btn" class="danger" style="display:none;align-self:flex-start;">Remove</button>
+        </div>
+      </div>
+
+      <div class="insp-tab-panel" id="edit-tab-wrapup" style="display:none;">
+        <div class="field-group">
+          <label>Wrap It Up (teardown steps)</label>
+          <textarea id="insp-teardown" rows="2" maxlength="200" placeholder="e.g. Unplug power first, then audio cable, coil and secure with velcro"></textarea>
+        </div>
+        <div class="field-group">
+          <label>Teardown Clip or Photo (optional — keep a clip short, under ~15 seconds)</label>
+          <div class="photo-capture">
+            <button type="button" id="insp-teardown-media-capture-btn" class="photo-btn">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" stroke="currentColor" stroke-width="1.6"/></svg>
+              <span>Record / Take Photo</span>
+            </button>
+            <button type="button" id="insp-teardown-media-choose-btn" class="photo-btn ghost">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="15" rx="1.6" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="9.5" r="1.6" stroke="currentColor" stroke-width="1.6"/><path d="M4 16l5-5 3.5 3.5L16 11l4 5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>
+              <span>Choose Existing</span>
+            </button>
+            <input type="file" accept="video/*,image/*" capture="environment" id="insp-teardown-media-capture-input" style="display:none;">
+            <input type="file" accept="video/*,image/*" id="insp-teardown-media-choose-input" style="display:none;">
+          </div>
+          <div id="insp-teardown-media-preview" style="display:none;"></div>
+          <button type="button" id="insp-teardown-media-remove-btn" class="danger" style="display:none;align-self:flex-start;">Remove</button>
+        </div>
+      </div>
+
+      <div class="row-end">
+        <button id="insp-delete" class="danger">Delete Item</button>
+        <div style="display:flex;gap:8px;">
+          <button id="insp-cancel">Cancel</button>
+          <button id="insp-save" class="primary">Save</button>
+        </div>
+      </div>
+    </div>

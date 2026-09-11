@@ -1,0 +1,549 @@
+<!-- GENERATED FILE. Do not edit directly -- edit index.template.html and partials/*.html, then run `node build.js`. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Field Setup Planner</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 100 100"><polygon points="20,15 40,15 40,42 60,42 60,15 80,15 80,50 65,50 50,70 35,50 20,50" fill="#2c3f8f" stroke="#0c1230" stroke-width="3"/><polygon points="46,55 54,55 50,72" fill="#e0b13c"/></svg>
+      <div>
+        <h1>Field Setup Planner <span class="beta-badge">Beta</span></h1>
+        <div class="subtitle">
+          <span class="evt-name" id="hdr-evt-name">Loading…</span>
+          <span class="pill" id="hdr-evt-pill"></span>
+          <span class="pill" id="hdr-mode-pill"></span>
+        </div>
+      </div>
+    </div>
+    <div class="controls">
+      <span id="save-status">Connecting…</span>
+      <span class="pill" id="hdr-role-pill" style="display:none;"></span>
+      <button id="btn-mode-toggle">Sign In</button>
+      <button id="btn-admin" class="ghost" data-edit-only>Admin</button>
+      <button id="btn-signout" class="ghost" data-signed-in-only>Sign Out</button>
+      <button id="btn-export" data-event-only>Export PNG</button>
+      <button id="btn-export-data" data-edit-only data-event-only>Export Season Data</button>
+      <button id="btn-clear" class="danger" data-edit-only>Clear Items</button>
+    </div>
+  </header>
+
+
+  <div class="template-edit-bar" data-edit-only>
+    <span class="sub">Editing Template</span>
+    <span class="name" id="template-edit-name"></span>
+    <button id="btn-template-edit-done" class="small primary" type="button">← Back to Templates</button>
+  </div>
+
+
+  <div class="event-bar" data-event-only>
+    <label for="event-select">Event</label>
+    <select id="event-select"></select>
+    <span class="pill template" id="hdr-template-pill" title="Template this event follows"></span>
+    <button id="btn-set-current" class="small" data-edit-only title="Make this the event volunteers see by default">🔴 Go Live</button>
+    <button id="btn-rename-event" class="small" data-edit-only>✎ Rename</button>
+    <button id="btn-new-event" class="small" data-edit-only>+ New Event</button>
+    <button id="btn-dup-event" class="small" data-edit-only>⧉ Duplicate</button>
+    <button id="btn-switch-template" class="small" data-edit-only>⇄ Switch Template</button>
+    <button id="btn-save-as-template" class="small" data-edit-only>💾 Save as Template</button>
+    <button id="btn-del-event" class="small danger" data-edit-only>Delete Event</button>
+    <div class="inline-form" id="event-form">
+      <div class="form-label" id="event-form-label">New Event</div>
+      <input type="text" name="name" id="event-form-name" placeholder="Event name, e.g. Homecoming vs. Ridgeview" maxlength="60">
+      <input type="date" name="date" id="event-form-date">
+      <select id="event-form-template" title="Start from a template"></select>
+      <button id="event-form-create" class="small primary" type="button">Create</button>
+      <button id="event-form-cancel" class="small ghost" type="button">Cancel</button>
+    </div>
+    <div class="inline-form" id="switch-template-form">
+      <div class="form-label">Switch which template this event follows</div>
+      <select id="switch-template-select"></select>
+      <button id="switch-template-apply" class="small primary" type="button">Apply</button>
+      <button id="switch-template-cancel" class="small ghost" type="button">Cancel</button>
+    </div>
+    <div class="inline-form" id="save-as-template-form">
+      <div class="form-label">Save “<span id="save-as-template-source"></span>” as a new template — layout, tags, and notes carry over; nobody starts pre-assigned to help.</div>
+      <input type="text" name="name" id="save-as-template-name" placeholder="Template name, e.g. Homecoming Layout" maxlength="60">
+      <input type="text" name="description" id="save-as-template-description" placeholder="Description (optional)" maxlength="120">
+      <button id="save-as-template-create" class="small primary" type="button">Save Template</button>
+      <button id="save-as-template-cancel" class="small ghost" type="button">Cancel</button>
+    </div>
+  </div>
+
+
+  <div class="layout">
+    <aside class="palette" id="palette" data-badges-only>
+      <div class="toggle-row palette-lock-row" data-event-only data-edit-only title="Lock Equipment/Instruments so a drag on your phone can't accidentally move or add anything while you're just checking badges in/out">
+        <div class="toggle-label">🔒 Lock Equipment/Instruments</div>
+        <label class="switch">
+          <input type="checkbox" id="field-lock-toggle">
+          <span class="track"></span>
+          <span class="knob"></span>
+        </label>
+      </div>
+      <div class="tab-row">
+        <button class="tab-btn" data-tab="badges" type="button" data-event-only>Badges</button>
+        <button class="tab-btn active" data-tab="crew" type="button" data-edit-only>Equipment</button>
+        <button class="tab-btn" data-tab="instruments" type="button" data-edit-only>Instruments</button>
+      </div>
+      <div class="tab-panel" id="tab-crew" data-edit-only>
+        <p class="hint">Press and drag any item onto the field. Drop the same item multiple times if you need more than one.</p>
+        <div id="pal-list"></div>
+      </div>
+      <div class="tab-panel" id="tab-instruments" style="display:none;" data-edit-only>
+        <p class="hint">Drag out vibes, marimbas, timpani, drum set pieces, and synths.</p>
+        <div id="pal-list-instruments"></div>
+      </div>
+      <div id="custom-add-wrap" data-edit-only>
+        <h2 style="margin-top:14px;">Add Custom Item</h2>
+        <div class="custom-add">
+          <input id="custom-label" type="text" placeholder="e.g. Water Table" maxlength="24">
+          <button id="custom-add-btn">Add</button>
+        </div>
+      </div>
+      <div class="tab-panel" id="tab-badges" style="display:none;" data-event-only>
+        <p class="hint">Check a badge out to a volunteer with a photo of the badge and the person — check it back in the same way, so you always know who had it last. The switch on each badge marks whether it's on hand for this event.</p>
+        <div id="badge-list"></div>
+        <h2 style="margin-top:14px;">New Badge</h2>
+        <div class="roster-add">
+          <input id="badge-label" type="text" placeholder="e.g. Sideline Pass 3" maxlength="40">
+          <div class="inline-error" id="badge-label-error"></div>
+          <button id="badge-add-btn">Add Badge</button>
+        </div>
+      </div>
+    </aside>
+
+
+    <main class="stage">
+      <div class="field-viewport" id="field-viewport">
+        <div class="field-wrap" id="field-wrap">
+          <svg id="field" viewBox="0 0 1200 620" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div id="drop-layer"></div>
+        </div>
+        <div class="zoom-controls">
+          <button id="btn-zoom-pit" class="primary">Zoom to Pit Box</button>
+          <button id="btn-zoom-reset" style="display:none;">Zoom to Full Field</button>
+          <button id="btn-toggle-labels" type="button">Hide Labels</button>
+        </div>
+        <div class="readonly-badge">View only</div>
+        <div class="pit-badge">White box = pit equipment area · Blue line = speaker back-wheel line</div>
+      </div>
+      <div class="legend-wrap">
+        <button type="button" class="legend-toggle" id="legend-toggle">
+          <span>Legend</span>
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="legend" id="legend"></div>
+      </div>
+    </main>
+
+
+    <aside class="assign-panel" id="assign-panel" data-event-only>
+      <div class="assign-panel-header">
+        <button type="button" class="assign-panel-toggle" id="assign-panel-toggle" title="Show/hide Needs a Hand — more room for the field while you're placing instruments">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="assign-panel-label">Needs a Hand</span>
+          <span class="count" id="assign-count">0</span>
+        </button>
+        <button id="btn-clear-volunteers" class="small danger" data-edit-only type="button" title="Unassign everyone except anchored helpers">Clear Volunteers</button>
+      </div>
+      <div class="assign-panel-body" id="assign-panel-body">
+        <p class="hint">Items tagged below need extra people to carry them into place. Click an item on the field (in Edit Mode) to tag it.
+          <span data-edit-only>Pin 📌 a reliable helper as an anchor so Clear Volunteers leaves them assigned.</span></p>
+        <div id="assign-list"></div>
+      </div>
+    </aside>
+
+  </div>
+
+
+  <div id="admin-screen" data-edit-only>
+    <div class="admin-header">
+      <h2>Admin</h2>
+      <button id="btn-admin-back" class="small ghost" type="button">← Back to Event</button>
+    </div>
+    <div class="tab-row">
+      <button class="tab-btn admin-tab-btn active" data-admin-tab="templates" type="button">Templates</button>
+      <button class="tab-btn admin-tab-btn" data-admin-tab="roster" type="button">Crew Roster</button>
+      <button class="tab-btn admin-tab-btn" data-admin-tab="access" type="button" data-admin-only>Access</button>
+    </div>
+
+    <div class="tab-panel" id="admin-tab-templates">
+      <p class="hint">Reusable starting layouts (Football, BOA Comp, UIL Comp, ...). Pick one when creating a new event, or start blank.</p>
+      <div class="template-list" id="template-list"></div>
+      <div style="margin-top:8px;">
+        <button id="btn-new-template" class="small primary" type="button">+ New Template</button>
+      </div>
+      <div class="inline-form" id="template-form">
+        <div class="form-label" id="template-form-label">New Template</div>
+        <input type="text" name="name" id="template-form-name" placeholder="Template name, e.g. Football" maxlength="60">
+        <input type="text" name="description" id="template-form-description" placeholder="Description (optional)" maxlength="120">
+        <button id="template-form-create" class="small primary" type="button">Create</button>
+        <button id="template-form-cancel" class="small ghost" type="button">Cancel</button>
+      </div>
+    </div>
+
+
+    <div class="tab-panel" id="admin-tab-roster" style="display:none;">
+      <div class="roster-admin">
+        <p class="hint">Your reusable volunteer list. Add everyone once — assign them to items from the Assignment tab at any event.</p>
+
+        <div class="roster-admin-actions">
+          <div class="roster-add">
+            <h2 style="margin:0;">Import Signed-Up Volunteers</h2>
+            <p class="hint" style="margin:0;">Signup.com doesn't offer a direct integration, so copy the participant
+              list straight off the Signup.com page and paste it here as-is — the multi-column layout with "(1)"
+              slot counts (e.g. "Wayne Canfield (1)") works with no reformatting, and so does a plain one-name-per-line
+              or Excel-column paste. Anyone not already on your roster gets added automatically, and everyone pasted
+              is marked Signed Up for the event below.</p>
+            <select id="import-event-select"></select>
+            <textarea id="import-names-input" rows="5" placeholder="Jordan Smith&#10;Alex Rivera&#10;Taylor Chen&#10;..."></textarea>
+            <button id="import-names-btn">Import &amp; Mark Signed Up</button>
+            <div class="inline-error" id="import-names-result"></div>
+          </div>
+
+          <div class="roster-add">
+            <h2 style="margin:0;">Add One Volunteer</h2>
+            <input id="roster-name" type="text" placeholder="Volunteer name" maxlength="40">
+            <input id="roster-role" type="text" placeholder="Student / Preference (optional)" maxlength="40">
+            <textarea id="roster-description" rows="2" maxlength="200" placeholder="Information that might be useful to level of involvement.(optional)"></textarea>
+            <div style="display:flex;gap:6px;">
+              <button id="roster-add-btn" style="flex:1;">Add to Roster</button>
+              <button id="roster-cancel-edit-btn" class="ghost" type="button" style="display:none;">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="roster-list"></div>
+      </div>
+    </div>
+
+
+    <div class="tab-panel" id="admin-tab-access" style="display:none;" data-admin-only>
+      <p class="hint">Director and Lead Volunteer sign in with a shared PIN instead of an email/password — set or change either one here. Anyone with the PIN can sign in as that role, so treat it like a door code and change it if it's ever shared more widely than intended.</p>
+      <div class="roster-admin-actions">
+        <div class="roster-add">
+          <h2 style="margin:0;">Director PIN</h2>
+          <input id="access-pin-director" type="password" inputmode="numeric" placeholder="New PIN (4+ digits)" maxlength="12">
+          <input id="access-pin-director-confirm" type="password" inputmode="numeric" placeholder="Confirm PIN" maxlength="12">
+          <button id="access-pin-director-save">Save Director PIN</button>
+          <div class="inline-error" id="access-pin-director-error"></div>
+        </div>
+        <div class="roster-add">
+          <h2 style="margin:0;">Lead Volunteer PIN</h2>
+          <input id="access-pin-lead_volunteer" type="password" inputmode="numeric" placeholder="New PIN (4+ digits)" maxlength="12">
+          <input id="access-pin-lead_volunteer-confirm" type="password" inputmode="numeric" placeholder="Confirm PIN" maxlength="12">
+          <button id="access-pin-lead_volunteer-save">Save Lead Volunteer PIN</button>
+          <div class="inline-error" id="access-pin-lead_volunteer-error"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<nav class="mobile-nav" id="mobile-nav" data-badges-only data-event-only>
+  <button type="button" class="active" data-nav="field">
+    <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="12" rx="1.5" stroke="currentColor" stroke-width="1.6"/><line x1="12" y1="6" x2="12" y2="18" stroke="currentColor" stroke-width="1.6"/></svg>
+    <span>Field</span>
+  </button>
+  <button type="button" data-nav="badges">
+    <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="10.5" r="2" stroke="currentColor" stroke-width="1.6"/><path d="M6 16c.5-2 2-3 3-3s2.5 1 3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><line x1="14" y1="9" x2="17" y2="9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><line x1="14" y1="12" x2="17" y2="12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    <span>Badges</span>
+  </button>
+  <button type="button" data-nav="crew" data-edit-only>
+    <svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M3 19c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="17" cy="9" r="2.4" stroke="currentColor" stroke-width="1.4"/><path d="M15.5 13c2.6.2 4.5 2.3 4.5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    <span>Crew</span>
+  </button>
+</nav>
+
+
+<div id="confirm-overlay" class="overlay" style="display:none;">
+  <div class="card">
+    <p id="confirm-msg">Are you sure?</p>
+    <div class="row">
+      <button id="confirm-cancel">Cancel</button>
+      <div id="confirm-actions" style="display:flex;gap:8px;"></div>
+    </div>
+  </div>
+</div>
+
+
+<div id="login-overlay" class="overlay" style="display:none;">
+  <div class="card">
+    <h3>Sign In</h3>
+    <p class="sub">Volunteers never need this — only Director, Lead Volunteer, or Admin.</p>
+    <div class="tab-row">
+      <button class="tab-btn" data-login-role="director" type="button">Director</button>
+      <button class="tab-btn" data-login-role="lead_volunteer" type="button">Lead Volunteer</button>
+      <button class="tab-btn active" data-login-role="admin" type="button">Admin</button>
+    </div>
+    <div id="login-admin-form">
+      <label for="login-email">Email</label>
+      <input type="email" id="login-email" autocomplete="username">
+      <label for="login-password">Password</label>
+      <input type="password" id="login-password" autocomplete="current-password">
+      <div class="error" id="login-error"></div>
+      <div class="row" style="margin-top:12px;">
+        <button id="login-cancel">Cancel</button>
+        <button id="login-submit" class="primary">Sign In</button>
+      </div>
+    </div>
+    <div id="login-pin-form" style="display:none;">
+      <label for="login-pin">PIN</label>
+      <input type="password" id="login-pin" inputmode="numeric" autocomplete="off">
+      <div class="error" id="login-pin-error"></div>
+      <div class="row" style="margin-top:12px;">
+        <button id="login-cancel-pin">Cancel</button>
+        <button id="login-pin-submit" class="primary">Sign In</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div id="badge-overlay" class="overlay" style="display:none;">
+  <div class="inspector-card">
+    <h3 id="badge-title">Badge</h3>
+    <div class="item-sub" id="badge-status-line"></div>
+    <img id="badge-status-photo" style="display:none;width:100%;border-radius:8px;object-fit:cover;max-height:220px;">
+
+    <div id="badge-action-form" style="display:flex;flex-direction:column;gap:14px;"></div>
+
+    <div class="field-group">
+      <label>History</label>
+      <div id="badge-history" style="display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto;"></div>
+    </div>
+
+    <div class="row-end">
+      <button id="badge-delete" class="danger">Delete Badge</button>
+      <button id="badge-close">Close</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="inspector-overlay" class="overlay" style="display:none;">
+  <div class="inspector-card">
+    <div class="insp-header">
+      <div class="insp-icon" id="insp-icon"></div>
+      <div class="insp-header-text">
+        <h3 id="insp-title">Item</h3>
+        <div class="item-sub" id="insp-sub"></div>
+      </div>
+    </div>
+    <div class="pos-readout" id="insp-pos"></div>
+
+    <!-- read-only: what everyone (including volunteers) sees on click —
+         split into three steps: where it goes, how to set it up, how to
+         tear it down -->
+    <div id="insp-view-body" style="display:none;flex-direction:column;gap:14px;">
+      <div class="tab-row">
+        <button type="button" class="tab-btn active" data-insp-tab="placement">Placement</button>
+        <button type="button" class="tab-btn" data-insp-tab="whattodo">What to Do</button>
+        <button type="button" class="tab-btn" data-insp-tab="wrapup">Wrap It Up</button>
+      </div>
+
+      <div class="insp-tab-panel" id="insp-tab-placement">
+        <div class="field-group">
+          <div class="mini-map-wrap">
+            <svg id="view-mini-map" xmlns="http://www.w3.org/2000/svg"></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="insp-tab-panel" id="insp-tab-whattodo" style="display:none;">
+        <div class="field-group" id="view-student-group" style="display:none;">
+          <label>Student</label>
+          <div class="view-text" id="view-student"></div>
+        </div>
+        <div class="field-group">
+          <label>Setup Steps</label>
+          <div class="view-text" id="view-description"></div>
+        </div>
+        <div class="field-group" id="view-setup-media-group" style="display:none;">
+          <label>How to Set It Up</label>
+          <video id="view-setup-clip" controls playsinline style="display:none;width:100%;border-radius:8px;max-height:240px;background:#000;"></video>
+          <img id="view-setup-photo" style="display:none;width:100%;border-radius:8px;max-height:240px;object-fit:contain;background:#000;">
+        </div>
+        <div id="view-help-block" class="field-group" style="display:none;">
+          <label>Needs a Hand</label>
+          <div class="helper-pill" id="view-helper-pill"></div>
+          <div class="who" id="view-who"></div>
+          <div class="timing-tag" id="view-timing" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div class="insp-tab-panel" id="insp-tab-wrapup" style="display:none;">
+        <div class="field-group">
+          <label>Teardown Steps</label>
+          <div class="view-text" id="view-teardown"></div>
+        </div>
+        <div class="field-group">
+          <label id="view-teardown-clip-label">How to Wrap It Up</label>
+          <video id="view-teardown-clip" controls playsinline style="display:none;width:100%;border-radius:8px;max-height:240px;background:#000;"></video>
+          <img id="view-teardown-photo" style="display:none;width:100%;border-radius:8px;max-height:240px;object-fit:contain;background:#000;">
+          <div class="coil-animation-wrap" id="view-teardown-generic">
+            <svg viewBox="0 0 100 100" class="coil-animation">
+              <circle cx="50" cy="50" r="32" fill="none" stroke="var(--panel-edge)" stroke-width="9"/>
+              <circle cx="50" cy="50" r="32" fill="none" stroke="var(--gold)" stroke-width="9" stroke-linecap="round"
+                stroke-dasharray="201" stroke-dashoffset="201" transform="rotate(-90 50 50)">
+                <animate attributeName="stroke-dashoffset" values="201;0;0;201" keyTimes="0;0.6;0.85;1" dur="3s" repeatCount="indefinite"/>
+              </circle>
+              <g>
+                <animateTransform attributeName="transform" type="rotate" values="-90 50 50;270 50 50" dur="3s" repeatCount="indefinite"/>
+                <rect x="45" y="12" width="10" height="7" rx="1.5" fill="var(--paper)"/>
+              </g>
+            </svg>
+            <p class="coil-caption">Coil neatly (over-under if you know how) and secure with a twist-tie or velcro strap before storing.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="row-end" style="justify-content:flex-end;">
+        <button id="insp-view-close">Close</button>
+      </div>
+    </div>
+
+
+    <!-- editable: organizer only — same three-step structure as the
+         volunteer view, so the same tap habits work in both modes -->
+    <div id="insp-edit-body" style="display:none;flex-direction:column;gap:14px;">
+      <div class="tab-row">
+        <button type="button" class="tab-btn active" data-edit-tab="assignment">Assignment</button>
+        <button type="button" class="tab-btn" data-edit-tab="placement">Placement</button>
+        <button type="button" class="tab-btn" data-edit-tab="whattodo">What to Do</button>
+        <button type="button" class="tab-btn" data-edit-tab="wrapup">Wrap It Up</button>
+      </div>
+
+      <div class="insp-tab-panel" id="edit-tab-assignment">
+        <!-- always available for an instrument item, whether or not it's
+             tagged as needing a helper — recording which student plays it
+             shouldn't require also flagging it for volunteer help -->
+        <div class="field-group" id="insp-student-group" style="display:none;">
+          <label>Student's Name (who plays it)</label>
+          <input type="text" id="insp-student" maxlength="60" placeholder="e.g. Jordan Smith">
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label">Needs a helper to move this</div>
+          <label class="switch">
+            <input type="checkbox" id="insp-needs-help">
+            <span class="track"></span>
+            <span class="knob"></span>
+          </label>
+        </div>
+        <div id="insp-help-fields" style="display:none;flex-direction:column;gap:14px;">
+          <div class="field-group">
+            <label>Helpers Needed</label>
+            <div class="stepper">
+              <button id="insp-helpers-minus" type="button">−</button>
+              <span class="val" id="insp-helpers-val">1</span>
+              <button id="insp-helpers-plus" type="button">+</button>
+            </div>
+          </div>
+          <div class="field-group">
+            <label>When It Needs to Move</label>
+            <select id="insp-timing"></select>
+          </div>
+          <div class="field-group" id="insp-assign-volunteers-group">
+            <label>Assign Volunteers</label>
+            <div class="volunteer-check-list" id="insp-volunteers"></div>
+            <div class="no-roster-note" id="insp-no-roster" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="insp-tab-panel" id="edit-tab-placement" style="display:none;">
+        <div class="field-group">
+          <div class="mini-map-wrap">
+            <svg id="edit-mini-map" xmlns="http://www.w3.org/2000/svg"></svg>
+          </div>
+          <p class="hint" style="margin:0;">Drag the item on the field itself to reposition it — this is just for reference.</p>
+        </div>
+      </div>
+
+      <div class="insp-tab-panel" id="edit-tab-whattodo" style="display:none;">
+        <div class="field-group">
+          <label>What to Do (setup steps)</label>
+          <textarea id="insp-notes" rows="4" maxlength="500" placeholder="e.g. Connects to the sub with the brown/orange cable, plus a power cord"></textarea>
+        </div>
+        <div class="field-group">
+          <label>Setup Clip or Photo (optional — keep a clip short, under ~15 seconds)</label>
+          <div class="photo-capture">
+            <button type="button" id="insp-setup-media-capture-btn" class="photo-btn">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" stroke="currentColor" stroke-width="1.6"/></svg>
+              <span>Record / Take Photo</span>
+            </button>
+            <button type="button" id="insp-setup-media-choose-btn" class="photo-btn ghost">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="15" rx="1.6" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="9.5" r="1.6" stroke="currentColor" stroke-width="1.6"/><path d="M4 16l5-5 3.5 3.5L16 11l4 5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>
+              <span>Choose Existing</span>
+            </button>
+            <input type="file" accept="video/*,image/*" capture="environment" id="insp-setup-media-capture-input" style="display:none;">
+            <input type="file" accept="video/*,image/*" id="insp-setup-media-choose-input" style="display:none;">
+          </div>
+          <div id="insp-setup-media-preview" style="display:none;"></div>
+          <button type="button" id="insp-setup-media-remove-btn" class="danger" style="display:none;align-self:flex-start;">Remove</button>
+        </div>
+      </div>
+
+      <div class="insp-tab-panel" id="edit-tab-wrapup" style="display:none;">
+        <div class="field-group">
+          <label>Wrap It Up (teardown steps)</label>
+          <textarea id="insp-teardown" rows="2" maxlength="200" placeholder="e.g. Unplug power first, then audio cable, coil and secure with velcro"></textarea>
+        </div>
+        <div class="field-group">
+          <label>Teardown Clip or Photo (optional — keep a clip short, under ~15 seconds)</label>
+          <div class="photo-capture">
+            <button type="button" id="insp-teardown-media-capture-btn" class="photo-btn">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" stroke="currentColor" stroke-width="1.6"/></svg>
+              <span>Record / Take Photo</span>
+            </button>
+            <button type="button" id="insp-teardown-media-choose-btn" class="photo-btn ghost">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="15" rx="1.6" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="9.5" r="1.6" stroke="currentColor" stroke-width="1.6"/><path d="M4 16l5-5 3.5 3.5L16 11l4 5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>
+              <span>Choose Existing</span>
+            </button>
+            <input type="file" accept="video/*,image/*" capture="environment" id="insp-teardown-media-capture-input" style="display:none;">
+            <input type="file" accept="video/*,image/*" id="insp-teardown-media-choose-input" style="display:none;">
+          </div>
+          <div id="insp-teardown-media-preview" style="display:none;"></div>
+          <button type="button" id="insp-teardown-media-remove-btn" class="danger" style="display:none;align-self:flex-start;">Remove</button>
+        </div>
+      </div>
+
+      <div class="row-end">
+        <button id="insp-delete" class="danger">Delete Item</button>
+        <div style="display:flex;gap:8px;">
+          <button id="insp-cancel">Cancel</button>
+          <button id="insp-save" class="primary">Save</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/catalog.js"></script>
+<script src="js/state.js"></script>
+<script src="js/field.js"></script>
+<script src="js/render.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/badges.js"></script>
+<script src="js/drag-drop.js"></script>
+<script src="js/inspector.js"></script>
+<script src="js/toolbar.js"></script>
+<script src="js/boot.js"></script>
+</body>
+</html>

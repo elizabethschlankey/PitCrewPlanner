@@ -1,0 +1,21 @@
+<div id="inspector-overlay" class="overlay" style="display:none;">
+  <div class="inspector-card">
+    <div class="insp-header">
+      <div class="insp-icon" id="insp-icon"></div>
+      <div class="insp-header-text">
+        <h3 id="insp-title">Item</h3>
+        <div class="item-sub" id="insp-sub"></div>
+      </div>
+    </div>
+    <div class="pos-readout" id="insp-pos"></div>
+
+    <!-- read-only: what everyone (including volunteers) sees on click —
+         split into three steps: where it goes, how to set it up, how to
+         tear it down -->
+<!-- include: overlay-inspector-view.html -->
+
+    <!-- editable: organizer only — same three-step structure as the
+         volunteer view, so the same tap habits work in both modes -->
+<!-- include: overlay-inspector-edit.html -->
+  </div>
+</div>

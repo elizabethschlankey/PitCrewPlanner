@@ -1,0 +1,67 @@
+    <div id="insp-view-body" style="display:none;flex-direction:column;gap:14px;">
+      <div class="tab-row">
+        <button type="button" class="tab-btn active" data-insp-tab="placement">Placement</button>
+        <button type="button" class="tab-btn" data-insp-tab="whattodo">What to Do</button>
+        <button type="button" class="tab-btn" data-insp-tab="wrapup">Wrap It Up</button>
+      </div>
+
+      <div class="insp-tab-panel" id="insp-tab-placement">
+        <div class="field-group">
+          <div class="mini-map-wrap">
+            <svg id="view-mini-map" xmlns="http://www.w3.org/2000/svg"></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="insp-tab-panel" id="insp-tab-whattodo" style="display:none;">
+        <div class="field-group" id="view-student-group" style="display:none;">
+          <label>Student</label>
+          <div class="view-text" id="view-student"></div>
+        </div>
+        <div class="field-group">
+          <label>Setup Steps</label>
+          <div class="view-text" id="view-description"></div>
+        </div>
+        <div class="field-group" id="view-setup-media-group" style="display:none;">
+          <label>How to Set It Up</label>
+          <video id="view-setup-clip" controls playsinline style="display:none;width:100%;border-radius:8px;max-height:240px;background:#000;"></video>
+          <img id="view-setup-photo" style="display:none;width:100%;border-radius:8px;max-height:240px;object-fit:contain;background:#000;">
+        </div>
+        <div id="view-help-block" class="field-group" style="display:none;">
+          <label>Needs a Hand</label>
+          <div class="helper-pill" id="view-helper-pill"></div>
+          <div class="who" id="view-who"></div>
+          <div class="timing-tag" id="view-timing" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div class="insp-tab-panel" id="insp-tab-wrapup" style="display:none;">
+        <div class="field-group">
+          <label>Teardown Steps</label>
+          <div class="view-text" id="view-teardown"></div>
+        </div>
+        <div class="field-group">
+          <label id="view-teardown-clip-label">How to Wrap It Up</label>
+          <video id="view-teardown-clip" controls playsinline style="display:none;width:100%;border-radius:8px;max-height:240px;background:#000;"></video>
+          <img id="view-teardown-photo" style="display:none;width:100%;border-radius:8px;max-height:240px;object-fit:contain;background:#000;">
+          <div class="coil-animation-wrap" id="view-teardown-generic">
+            <svg viewBox="0 0 100 100" class="coil-animation">
+              <circle cx="50" cy="50" r="32" fill="none" stroke="var(--panel-edge)" stroke-width="9"/>
+              <circle cx="50" cy="50" r="32" fill="none" stroke="var(--gold)" stroke-width="9" stroke-linecap="round"
+                stroke-dasharray="201" stroke-dashoffset="201" transform="rotate(-90 50 50)">
+                <animate attributeName="stroke-dashoffset" values="201;0;0;201" keyTimes="0;0.6;0.85;1" dur="3s" repeatCount="indefinite"/>
+              </circle>
+              <g>
+                <animateTransform attributeName="transform" type="rotate" values="-90 50 50;270 50 50" dur="3s" repeatCount="indefinite"/>
+                <rect x="45" y="12" width="10" height="7" rx="1.5" fill="var(--paper)"/>
+              </g>
+            </svg>
+            <p class="coil-caption">Coil neatly (over-under if you know how) and secure with a twist-tie or velcro strap before storing.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="row-end" style="justify-content:flex-end;">
+        <button id="insp-view-close">Close</button>
+      </div>
+    </div>

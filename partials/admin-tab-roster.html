@@ -1,0 +1,33 @@
+    <div class="tab-panel" id="admin-tab-roster" style="display:none;">
+      <div class="roster-admin">
+        <p class="hint">Your reusable volunteer list. Add everyone once — assign them to items from the Assignment tab at any event.</p>
+
+        <div class="roster-admin-actions">
+          <div class="roster-add">
+            <h2 style="margin:0;">Import Signed-Up Volunteers</h2>
+            <p class="hint" style="margin:0;">Signup.com doesn't offer a direct integration, so copy the participant
+              list straight off the Signup.com page and paste it here as-is — the multi-column layout with "(1)"
+              slot counts (e.g. "Wayne Canfield (1)") works with no reformatting, and so does a plain one-name-per-line
+              or Excel-column paste. Anyone not already on your roster gets added automatically, and everyone pasted
+              is marked Signed Up for the event below.</p>
+            <select id="import-event-select"></select>
+            <textarea id="import-names-input" rows="5" placeholder="Jordan Smith&#10;Alex Rivera&#10;Taylor Chen&#10;..."></textarea>
+            <button id="import-names-btn">Import &amp; Mark Signed Up</button>
+            <div class="inline-error" id="import-names-result"></div>
+          </div>
+
+          <div class="roster-add">
+            <h2 style="margin:0;">Add One Volunteer</h2>
+            <input id="roster-name" type="text" placeholder="Volunteer name" maxlength="40">
+            <input id="roster-role" type="text" placeholder="Student / Preference (optional)" maxlength="40">
+            <textarea id="roster-description" rows="2" maxlength="200" placeholder="Information that might be useful to level of involvement.(optional)"></textarea>
+            <div style="display:flex;gap:6px;">
+              <button id="roster-add-btn" style="flex:1;">Add to Roster</button>
+              <button id="roster-cancel-edit-btn" class="ghost" type="button" style="display:none;">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="roster-list"></div>
+      </div>
+    </div>

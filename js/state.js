@@ -1,0 +1,276 @@
+/* ---------------------------------------------------------------
+   STATE (fetched from Supabase, reshaped into the same in-memory
+   shape the UI works with)
+---------------------------------------------------------------- */
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+// {url, type} for the setup ("What to Do") or teardown ("Wrap It Up")
+// media on an items/template_items row. Falls back to the legacy
+// teardown_video_url column (as a 'video') for clips uploaded before
+// setup/teardown media were unified into *_media_url/*_media_type.
+function mediaFromRow(row, prefix){
+  if(row[prefix+'_media_url']) return {url: row[prefix+'_media_url'], type: row[prefix+'_media_type'] || 'video'};
+  if(prefix==='teardown' && row.teardown_video_url) return {url: row.teardown_video_url, type: 'video'};
+  return {url: null, type: null};
+}
+
+let STATE = {roster:[], events:[], activeEventId:null, badges:[], badgeEvents:[], eventVolunteerStatus:[], eventInactiveBadges:[], templates:[]};
+let viewingEventId = null;
+let editingTemplateId = null;
+let session = null;
+let mode = 'view';
+let loaded = false;
+
+// ROLE — 'guest' (no login), 'lead_volunteer'/'director' (shared PIN,
+// signed into one of the two internal accounts below), or 'admin' (the
+// one real organizer login). Re-derived from `session` any time it
+// changes (boot.js), never persisted separately — Supabase's own token
+// storage is what survives a page reload.
+let role = 'guest';
+function roleForSession(sess){
+  if(!sess) return 'guest';
+  const email = (sess.user && sess.user.email || '').toLowerCase();
+  const accounts = (window.SUPABASE_CONFIG || {}).roleAccounts || {};
+  if(accounts.director && accounts.director.email && email === accounts.director.email.toLowerCase()) return 'director';
+  if(accounts.lead_volunteer && accounts.lead_volunteer.email && email === accounts.lead_volunteer.email.toLowerCase()) return 'lead_volunteer';
+  return 'admin';
+}
+
+function currentEvent(){
+  return STATE.events.find(e=>e.id===viewingEventId) || STATE.events[0] || {id:null,name:'',date:'',items:[]};
+}
+
+function currentTemplate(){
+  return STATE.templates.find(t=>t.id===editingTemplateId) || {id:null,name:'',description:'',items:[]};
+}
+
+// Returns which items collection is currently being edited — a normal
+// event's items, or (when editingTemplateId is set, i.e. the Admin
+// screen has a template open) a template's items. Every item-CRUD call
+// site reads this instead of hardcoding the `items` table/event_id, so
+// the same field editor UI works for both without duplicating it.
+function currentItemsCtx(){
+  if(editingTemplateId){
+    const t = currentTemplate();
+    return {items: t.items, table: 'template_items', fk: 'template_id', ownerId: t.id};
+  }
+  const e = currentEvent();
+  return {items: e.items, table: 'items', fk: 'event_id', ownerId: e.id};
+}
+
+async function loadState(){
+  const [rosterRes, eventsRes, itemsRes, assignRes, badgesRes, badgeEventsRes, volStatusRes, templatesRes, templateItemsRes, inactiveBadgesRes] = await Promise.all([
+    sb.from('roster').select('*').order('created_at'),
+    sb.from('events').select('*').order('created_at'),
+    sb.from('items').select('*'),
+    sb.from('item_assignments').select('*'),
+    sb.from('badges').select('*').order('created_at'),
+    sb.from('badge_events').select('*').order('created_at'),
+    sb.from('event_volunteer_status').select('*'),
+    sb.from('templates').select('*').order('created_at'),
+    sb.from('template_items').select('*'),
+    sb.from('event_inactive_badges').select('*')
+  ]);
+  if(rosterRes.error || eventsRes.error || itemsRes.error || assignRes.error || badgesRes.error || badgeEventsRes.error || volStatusRes.error || templatesRes.error || templateItemsRes.error){
+    statusEl.textContent = 'Load error — check config.js and your connection';
+    console.error(rosterRes.error||eventsRes.error||itemsRes.error||assignRes.error||badgesRes.error||badgeEventsRes.error||volStatusRes.error||templatesRes.error||templateItemsRes.error);
+    return false;
+  }
+  // event_inactive_badges is checked separately, not folded into the hard
+  // failure above — if the migration for this table hasn't been run yet,
+  // this feature should degrade to "every badge active" instead of
+  // blocking the whole app from loading
+  if(inactiveBadgesRes.error) console.error(inactiveBadgesRes.error);
+  const assigns = assignRes.data;
+  const itemsByEvent = {};
+  itemsRes.data.forEach(row=>{
+    const setupMedia = mediaFromRow(row, 'setup');
+    const teardownMedia = mediaFromRow(row, 'teardown');
+    (itemsByEvent[row.event_id] ||= []).push({
+      uid: row.id, typeId: row.type_id, label: row.label,
+      xPct: Number(row.x_pct), yPct: Number(row.y_pct),
+      needsHelp: row.needs_help, helpersNeeded: row.helpers_needed,
+      notes: row.notes||'', timing: row.timing||'', studentName: row.student_name||'',
+      teardownNotes: row.teardown_notes||'', teardownVideoUrl: row.teardown_video_url||null,
+      setupMediaUrl: setupMedia.url, setupMediaType: setupMedia.type,
+      teardownMediaUrl: teardownMedia.url, teardownMediaType: teardownMedia.type,
+      assignedIds: assigns.filter(a=>a.item_id===row.id).map(a=>a.volunteer_id),
+      // anchored = a volunteer who reliably runs this spot every game —
+      // "Clear Volunteers" skips these instead of unassigning them
+      anchoredIds: assigns.filter(a=>a.item_id===row.id && a.anchored).map(a=>a.volunteer_id)
+    });
+  });
+  const itemsByTemplate = {};
+  templateItemsRes.data.forEach(row=>{
+    const setupMedia = mediaFromRow(row, 'setup');
+    const teardownMedia = mediaFromRow(row, 'teardown');
+    (itemsByTemplate[row.template_id] ||= []).push({
+      uid: row.id, typeId: row.type_id, label: row.label,
+      xPct: Number(row.x_pct), yPct: Number(row.y_pct),
+      needsHelp: row.needs_help, helpersNeeded: row.helpers_needed,
+      notes: row.notes||'', timing: row.timing||'', studentName: row.student_name||'',
+      teardownNotes: row.teardown_notes||'', teardownVideoUrl: row.teardown_video_url||null,
+      setupMediaUrl: setupMedia.url, setupMediaType: setupMedia.type,
+      teardownMediaUrl: teardownMedia.url, teardownMediaType: teardownMedia.type,
+      assignedIds: []
+    });
+  });
+  STATE = {
+    roster: rosterRes.data.map(r=>({id:r.id, name:r.name, role:r.role||'', description:r.description||''})),
+    events: eventsRes.data.map(e=>({id:e.id, name:e.name, date:e.date||'', templateId: e.template_id||null, items: itemsByEvent[e.id]||[]})),
+    activeEventId: (eventsRes.data.find(e=>e.is_current) || eventsRes.data[0] || {}).id || null,
+    badges: badgesRes.data,
+    badgeEvents: badgeEventsRes.data,
+    eventVolunteerStatus: volStatusRes.data,
+    eventInactiveBadges: inactiveBadgesRes.error ? [] : inactiveBadgesRes.data,
+    templates: templatesRes.data.map(t=>({id:t.id, name:t.name, description:t.description||'', items: itemsByTemplate[t.id]||[]}))
+  };
+  if(!STATE.events.find(e=>e.id===viewingEventId)) viewingEventId = STATE.activeEventId || (STATE.events[0]||{}).id;
+  if(editingTemplateId && !STATE.templates.find(t=>t.id===editingTemplateId)) editingTemplateId = null;
+  loaded = true;
+  return true;
+}
+
+async function reload(){
+  await loadState();
+  renderAll();
+}
+
+async function db(promise, label){
+  statusEl.textContent = 'Saving…';
+  try{
+    const {error} = await promise;
+    if(error){
+      statusEl.textContent = 'Error: '+error.message;
+      console.error(label, error);
+      return false;
+    }
+    await reload();
+    statusEl.textContent = 'All changes saved';
+    return true;
+  }catch(err){
+    // a network failure (offline, blocked request, bad URL/key in
+    // config.js) rejects instead of returning {error} — without this,
+    // that silently killed the save with no visible sign anything failed
+    statusEl.textContent = 'Connection error — check your internet or config.js';
+    console.error(label, err);
+    return false;
+  }
+}
+
+/* ---------------------------------------------------------------
+   MODE / AUTH
+---------------------------------------------------------------- */
+function setMode(next){
+  if(next==='edit' && role!=='director' && role!=='admin') return;
+  mode = next;
+  document.body.classList.toggle('mode-edit', mode==='edit');
+  renderAll();
+}
+
+const btnModeToggle = document.getElementById('btn-mode-toggle');
+btnModeToggle.addEventListener('click', ()=>{
+  if(mode==='edit'){ setMode('view'); return; }
+  if(role==='director' || role==='admin'){ setMode('edit'); return; }
+  openLogin();
+});
+document.getElementById('btn-signout').addEventListener('click', async ()=>{
+  await sb.auth.signOut();
+});
+
+/* ---------------------------------------------------------------
+   LOGIN OVERLAY — one shared overlay for all three logins: Admin
+   (email/password, unchanged) and Director/Lead Volunteer (a shared
+   PIN). Picking Director or Lead Volunteer verifies the PIN server-side
+   first (never sends it anywhere as plain text beyond that RPC call),
+   then signs the browser into that role's internal Supabase Auth
+   account — see roleForSession() above and README.md for why.
+---------------------------------------------------------------- */
+const loginOverlay = document.getElementById('login-overlay');
+const loginError = document.getElementById('login-error');
+const loginPinError = document.getElementById('login-pin-error');
+const loginAdminForm = document.getElementById('login-admin-form');
+const loginPinForm = document.getElementById('login-pin-form');
+let loginRole = 'admin';
+
+function setLoginRole(next){
+  loginRole = next;
+  document.querySelectorAll('[data-login-role]').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.loginRole===next);
+  });
+  loginAdminForm.style.display = next==='admin' ? '' : 'none';
+  loginPinForm.style.display = next==='admin' ? 'none' : '';
+  loginError.textContent = '';
+  loginPinError.textContent = '';
+  if(next==='admin') document.getElementById('login-email').focus();
+  else document.getElementById('login-pin').focus();
+}
+document.querySelectorAll('[data-login-role]').forEach(btn=>{
+  btn.addEventListener('click', ()=>setLoginRole(btn.dataset.loginRole));
+});
+
+function openLogin(){
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-pin').value = '';
+  setLoginRole('admin');
+  loginOverlay.style.display = 'flex';
+}
+document.getElementById('login-cancel').addEventListener('click', ()=>loginOverlay.style.display='none');
+document.getElementById('login-cancel-pin').addEventListener('click', ()=>loginOverlay.style.display='none');
+document.getElementById('login-submit').addEventListener('click', async ()=>{
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if(!email || !password){ loginError.textContent = 'Enter your email and password.'; return; }
+  loginError.textContent = 'Signing in…';
+  const {error} = await sb.auth.signInWithPassword({email, password});
+  if(error){ loginError.textContent = error.message; return; }
+  loginOverlay.style.display = 'none';
+  setMode('edit');
+});
+document.getElementById('login-pin-submit').addEventListener('click', async ()=>{
+  const pin = document.getElementById('login-pin').value.trim();
+  const account = ((window.SUPABASE_CONFIG||{}).roleAccounts||{})[loginRole];
+  if(!account || !account.email || !account.password){
+    loginPinError.textContent = 'Setup incomplete — ask your Admin to finish config.js.';
+    return;
+  }
+  if(!pin){ loginPinError.textContent = 'Enter the PIN.'; return; }
+  loginPinError.textContent = 'Checking…';
+  const {data: ok, error} = await sb.rpc('verify_role_pin', {p_role: loginRole, p_pin: pin});
+  if(error){ loginPinError.textContent = error.message; return; }
+  if(!ok){ loginPinError.textContent = 'Incorrect PIN.'; return; }
+  const {error: signInErr} = await sb.auth.signInWithPassword(account);
+  if(signInErr){ loginPinError.textContent = signInErr.message; return; }
+  loginOverlay.style.display = 'none';
+  // role/session update via the onAuthStateChange listener in boot.js —
+  // one source of truth, no manual assignment here.
+});
+
+/* ---------------------------------------------------------------
+   IDLE AUTO-LOCK — Director/Lead Volunteer only (a shared PIN on a
+   phone left on a table is a real risk in a way Admin's own password
+   session isn't; Admin's session lifecycle is unchanged/out of scope
+   here). Any tap/click/key resets a ~5 minute timer; on expiry, sign
+   out — identical to clicking "Lock" by hand.
+---------------------------------------------------------------- */
+const IDLE_LOCK_MS = 5 * 60 * 1000;
+let idleLockTimer = null;
+function resetIdleLockTimer(){
+  if(idleLockTimer) clearTimeout(idleLockTimer);
+  if(role!=='director' && role!=='lead_volunteer') return;
+  idleLockTimer = setTimeout(()=>{ sb.auth.signOut(); }, IDLE_LOCK_MS);
+}
+['pointerdown','keydown','touchstart'].forEach(evt=>{
+  document.addEventListener(evt, resetIdleLockTimer, {passive:true});
+});
+
+// the sb.auth.onAuthStateChange(...) LISTENER ITSELF is registered from
+// boot.js, not here — Supabase can fire it almost immediately (often via
+// a microtask, before the browser has even started loading the NEXT
+// <script> tag), and its callback calls renderHeader(), which doesn't
+// exist yet this early — that used to throw "renderHeader is not
+// defined" in a real browser. Registering it only after every other
+// file (including render.js) has loaded avoids the race entirely.
+

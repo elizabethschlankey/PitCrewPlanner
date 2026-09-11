@@ -1,5 +1,14 @@
 -- Pit Crew Field Setup Planner — Supabase schema
 -- Run this once in your Supabase project's SQL Editor (Project > SQL Editor > New query > paste > Run).
+--
+-- ALREADY SET UP YOUR PROJECT BEFORE? Do NOT re-run this whole file —
+-- the CREATE TABLE statements below will error with "relation already
+-- exists" on any table you already have (harmless, but it stops the
+-- whole paste partway through, including whatever came after it). Only
+-- run the specific new block(s) called out to you for that change —
+-- each one is self-contained and safe to paste on its own. When in
+-- doubt, search this file for the table/column name being added rather
+-- than running the file top to bottom again.
 
 create extension if not exists pgcrypto;
 
@@ -247,15 +256,28 @@ alter table template_items add column if not exists teardown_media_type text che
 -- "absence is the common case" pattern as event_volunteer_status above —
 -- only badges someone has explicitly marked "not here" for this event
 -- get a row, so the normal case (everything on hand) costs nothing.
-create table event_inactive_badges (
+-- everything below is safe to re-run (unlike the CREATE TABLE blocks
+-- earlier in this file) — if you're not sure whether you already ran
+-- this block, just run it again
+create table if not exists event_inactive_badges (
   event_id uuid not null references events(id) on delete cascade,
   badge_id uuid not null references badges(id) on delete cascade,
   primary key (event_id, badge_id)
 );
 alter table event_inactive_badges enable row level security;
+drop policy if exists "public read event_inactive_badges" on event_inactive_badges;
 create policy "public read event_inactive_badges" on event_inactive_badges for select using (true);
+drop policy if exists "auth write event_inactive_badges" on event_inactive_badges;
 create policy "auth write event_inactive_badges"  on event_inactive_badges for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
-alter publication supabase_realtime add table event_inactive_badges;
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and tablename = 'event_inactive_badges'
+  ) then
+    alter publication supabase_realtime add table event_inactive_badges;
+  end if;
+end $$;
 
 insert into storage.buckets (id, name, public)
   values ('item-media', 'item-media', true)

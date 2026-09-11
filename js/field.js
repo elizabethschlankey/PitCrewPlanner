@@ -141,6 +141,24 @@ function speakerSide(typeId){
   return resolveTypeId(typeId).slice(-1);
 }
 
+// whoever's on the Small Ladder is already up and moving between
+// speakers, so unlike speaker-to-speaker doubling (same side only, see
+// speakerSide above) they can double up onto ANY speaker, either side
+const LADDER_TYPE_ID = 'ladderS';
+function isLadderItem(typeId){
+  return typeId === LADDER_TYPE_ID;
+}
+// true if two items can share the same volunteer as a double-up:
+// same-side speakers, or the ladder with any speaker (either direction)
+function canDoubleUp(typeIdA, typeIdB){
+  const aLadder = isLadderItem(typeIdA), bLadder = isLadderItem(typeIdB);
+  const aSpeaker = isSpeakerItem(catalogFor(typeIdA)), bSpeaker = isSpeakerItem(catalogFor(typeIdB));
+  if(aLadder && bLadder) return true;
+  if(aLadder) return bSpeaker;
+  if(bLadder) return aSpeaker;
+  return aSpeaker && bSpeaker && speakerSide(typeIdA)===speakerSide(typeIdB);
+}
+
 /* ---------------------------------------------------------------
    ZOOM TO PIT BOX
 ---------------------------------------------------------------- */

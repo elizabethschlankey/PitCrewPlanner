@@ -233,18 +233,17 @@ function syncInspectorUI(){
   const noRosterNote = document.getElementById('insp-no-roster');
   const currentIt = currentEvent().items.find(i=>i.uid===inspectorUid);
   const isSpeaker = !!currentIt && isSpeakerItem(catalogFor(currentIt.typeId));
-  const currentSide = isSpeaker ? speakerSide(currentIt.typeId) : null;
+  const isLadder = !!currentIt && isLadderItem(currentIt.typeId);
+  const doubleUpEligible = isSpeaker || isLadder;
   const otherByVolunteer = otherAssignmentsByVolunteer(inspectorUid);
   // normally anyone assigned elsewhere is excluded so nobody's double-
-  // booked — but for a speaker item, someone already covering any number
-  // of OTHER speakers ON THE SAME SIDE (and nothing but those) is still
-  // offered, so one person can run both speakers on their side (small +
-  // large) without also pulling in the opposite side of the field
-  const sameSideSpeaker = o => isSpeakerItem(catalogFor(o.typeId)) && speakerSide(o.typeId)===currentSide;
+  // booked — but for a speaker or the Small Ladder, someone already
+  // covering only compatible items (see canDoubleUp: same-side speakers
+  // with each other, or the ladder with any speaker) is still offered
   const available = STATE.roster.filter(v=>{
     const others = otherByVolunteer.get(v.id) || [];
     if(!others.length) return true;
-    return isSpeaker && others.every(sameSideSpeaker);
+    return doubleUpEligible && others.every(o=>canDoubleUp(currentIt.typeId, o.typeId));
   });
   if(!STATE.roster.length){
     inspVolunteers.innerHTML = '';
@@ -260,18 +259,18 @@ function syncInspectorUI(){
     // signed up for THIS event vs. who's just a potential/backup —
     // signed-up people first, a Backups section only when there are
     // any, then everyone else on the roster. Within each group, anyone
-    // already on another speaker (a double-up candidate) bubbles to the
-    // top as the preferred pick for this second speaker.
+    // already on a compatible item (a double-up candidate) bubbles to
+    // the top as the preferred pick.
     const groups = {signed_up:[], backup:[], potential:[]};
     available.forEach(v=> groups[volunteerStatusFor(v.id)].push(v));
-    if(isSpeaker){
+    if(doubleUpEligible){
       Object.values(groups).forEach(list=>{
         list.sort((a,b)=> (otherByVolunteer.has(b.id)?1:0) - (otherByVolunteer.has(a.id)?1:0));
       });
     }
     const checkRow = v => {
       const others = otherByVolunteer.get(v.id) || [];
-      const preferred = isSpeaker && others.length>0;
+      const preferred = doubleUpEligible && others.length>0;
       const preferredTag = preferred ? `<span class="preferred-tag">Also on ${others.map(o=>o.label).join(', ')}</span>` : '';
       return `
       <label class="volunteer-check${preferred ? ' volunteer-check-preferred' : ''}">

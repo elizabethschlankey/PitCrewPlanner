@@ -192,9 +192,19 @@ async function db(promise, label){
 ---------------------------------------------------------------- */
 function setMode(next){
   if(next==='edit' && role!=='director' && role!=='admin') return;
+  const enteringEdit = next==='edit' && mode!=='edit';
   mode = next;
   document.body.classList.toggle('mode-edit', mode==='edit');
   renderAll();
+  // default the palette to Badges every time Edit Mode is entered —
+  // Equipment/Instruments placement is usually locked in for the season,
+  // Badges is the thing that actually needs attention at each event.
+  // Only fires on the view->edit transition, not every re-render, so it
+  // doesn't fight anyone who deliberately switches to Equipment mid-session.
+  if(enteringEdit){
+    const badgesTabBtn = document.querySelector('.tab-btn[data-tab="badges"]');
+    if(badgesTabBtn) badgesTabBtn.click();
+  }
 }
 
 const btnModeToggle = document.getElementById('btn-mode-toggle');

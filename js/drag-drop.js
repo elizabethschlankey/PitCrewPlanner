@@ -6,8 +6,16 @@
    per device, same as the legend's open/closed state, since "I'm out
    here just doing badges" is an ongoing thing, not a one-tap toggle.
 ---------------------------------------------------------------- */
-let fieldLocked = false;
-try{ fieldLocked = localStorage.getItem('field-locked')==='1'; }catch(e){}
+// defaults to locked — Equipment/Instruments placement is done once a
+// season and rarely touched again, Badges is the thing happening every
+// game, so "locked" is the safer out-of-the-box state. Only applies the
+// first time on a given device; once someone's actually flipped it,
+// that explicit choice (on OR off) sticks.
+let fieldLocked = true;
+try{
+  const saved = localStorage.getItem('field-locked');
+  if(saved!==null) fieldLocked = saved==='1';
+}catch(e){}
 // the lock is meant for badge duty on a live event, not template
 // editing — if it's on from earlier event work and you step into Admin
 // to edit a template (where the toggle itself is hidden, being

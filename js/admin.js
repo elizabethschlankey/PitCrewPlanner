@@ -85,7 +85,10 @@ function openEventForm(kind){
 // Template items never carry anchoredIds (templates have no assignment
 // table at all — see copyItemsToTemplate below), so this is a no-op for
 // "New Event from Template", only "Duplicate Event" actually has any to
-// carry. Returns the number of items that failed to copy (0 = every item
+// carry. What to Do/Wrap It Up text and media are NOT copied here —
+// they're shared per equipment type now (see typeNotesFor in state.js),
+// so every item of that type already shows them with no copy needed.
+// Returns the number of items that failed to copy (0 = every item
 // copied cleanly) so callers can surface a warning instead of silently
 // reporting success — each insert's error used to only go to
 // console.error, so a copy that failed outright (e.g. a stale/expired
@@ -95,14 +98,8 @@ async function copyItemsToEvent(srcItems, eventId){
   for(const it of srcItems){
     const {data:newItem, error:ie} = await sb.from('items').insert({
       event_id:eventId, type_id:it.typeId, label:it.label, x_pct:it.xPct, y_pct:it.yPct,
-      needs_help:it.needsHelp, helpers_needed:it.helpersNeeded, notes:it.notes, timing:it.timing,
-      student_name:it.studentName, teardown_notes:it.teardownNotes,
-      // it.setupMediaUrl/it.teardownMediaUrl already resolve the legacy
-      // teardown_video_url fallback (see mediaFromRow in state.js), so
-      // this also migrates an old teardown-only clip onto the new
-      // column the first time that item gets copied anywhere
-      setup_media_url:it.setupMediaUrl, setup_media_type:it.setupMediaType,
-      teardown_media_url:it.teardownMediaUrl, teardown_media_type:it.teardownMediaType
+      needs_help:it.needsHelp, helpers_needed:it.helpersNeeded, timing:it.timing,
+      student_name:it.studentName
     }).select().single();
     if(ie){ failed++; console.error(ie); continue; }
     for(const volunteerId of (it.anchoredIds || [])){
@@ -120,10 +117,8 @@ async function copyItemsToTemplate(srcItems, templateId){
   for(const it of srcItems){
     const {error:ie} = await sb.from('template_items').insert({
       template_id:templateId, type_id:it.typeId, label:it.label, x_pct:it.xPct, y_pct:it.yPct,
-      needs_help:it.needsHelp, helpers_needed:it.helpersNeeded, notes:it.notes, timing:it.timing,
-      student_name:it.studentName, teardown_notes:it.teardownNotes,
-      setup_media_url:it.setupMediaUrl, setup_media_type:it.setupMediaType,
-      teardown_media_url:it.teardownMediaUrl, teardown_media_type:it.teardownMediaType
+      needs_help:it.needsHelp, helpers_needed:it.helpersNeeded, timing:it.timing,
+      student_name:it.studentName
     });
     if(ie){ failed++; console.error(ie); }
   }
@@ -431,13 +426,16 @@ templateFormCreateBtn.addEventListener('click', async ()=>{
       const {data:newTmpl, error} = await sb.from('templates').insert({name, description}).select().single();
       if(error){ statusEl.textContent = 'Error: '+error.message; return; }
       // give the organizer a real starting point instead of a blank
-      // canvas — the actual Coppell Away layout every time, wiring notes
-      // and helper tags included, not just icons in the right spot
+      // canvas — the actual Coppell Away layout every time, helper tags
+      // included, not just icons in the right spot. No notes field here —
+      // What to Do/Wrap It Up are shared per equipment type (see
+      // typeNotesFor in state.js) and Coppell Away's own items already
+      // seeded those via the item_type_notes backfill in schema.sql.
       const {error: ie} = await sb.from('template_items').insert(
         STARTER_TEMPLATE_ITEMS.map(it=>({
           template_id: newTmpl.id, type_id: it.typeId, label: it.label, x_pct: it.xPct, y_pct: it.yPct,
           needs_help: it.needsHelp || false, helpers_needed: it.helpersNeeded || 1,
-          notes: it.notes || '', timing: it.timing || ''
+          timing: it.timing || ''
         }))
       );
       if(ie) console.error(ie);

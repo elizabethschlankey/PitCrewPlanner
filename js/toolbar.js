@@ -91,7 +91,7 @@ document.getElementById('btn-export').addEventListener('click', ()=>{
     const helpItems = currentEvent().items.filter(it=>it.needsHelp);
     const timingLabel = v => (TIMING_OPTIONS.find(t=>t.v===v)||{}).label || '';
     const rowH = 92, rowHWithNotes = 128, headerH = 76, listPad = 32;
-    const rowHeights = helpItems.map(it=>it.notes ? rowHWithNotes : rowH);
+    const rowHeights = helpItems.map(it=>typeNotesFor(it).notes ? rowHWithNotes : rowH);
     const listH = helpItems.length ? headerH + rowHeights.reduce((a,b)=>a+b,0) + listPad : 0;
 
     const canvas = document.createElement('canvas');
@@ -203,10 +203,11 @@ document.getElementById('btn-export').addEventListener('click', ()=>{
           }
           ctx.textAlign = 'left';
 
-          if(it.notes){
+          const itNotes = typeNotesFor(it).notes;
+          if(itNotes){
             ctx.fillStyle = '#9aa2b2';
             ctx.font = 'italic 400 17px Inter, sans-serif';
-            ctx.fillText(it.notes, 52, rowY+92);
+            ctx.fillText(itNotes, 52, rowY+92);
           }
           rowY += rh;
         });
@@ -236,7 +237,7 @@ document.getElementById('btn-export-data').addEventListener('click', ()=>{
       const names = (it.assignedIds||[]).map(volunteerName).filter(Boolean).join('; ');
       const timingLbl = (TIMING_OPTIONS.find(t=>t.v===it.timing)||{}).label || '';
       rows.push([evt.name, evt.date||'', it.label, cat.name, it.studentName||'', describePosition(it.xPct, it.yPct),
-        it.needsHelp?'Yes':'No', it.needsHelp?(it.helpersNeeded||1):'', names, timingLbl, it.notes||'']);
+        it.needsHelp?'Yes':'No', it.needsHelp?(it.helpersNeeded||1):'', names, timingLbl, typeNotesFor(it).notes]);
     });
   });
   const csv = rows.map(r=>r.map(csvEscape).join(',')).join('\r\n');

@@ -279,6 +279,66 @@ begin
   end if;
 end $$;
 
+-- What to Do / Wrap It Up (setup+teardown notes and their photo/video)
+-- move from "copied once per item, snapshotted at creation time" to one
+-- shared record per equipment TYPE — edit it on any item of that type,
+-- in any event or template, and it updates everywhere, immediately
+-- (realtime, like everything else — see boot.js), because everywhere
+-- reads the same row. items.notes/teardown_notes/*_media_* and
+-- template_items' equivalents are left in place but no longer read or
+-- written by the app — harmless, just historical at this point.
+-- Everything below is safe to re-run.
+create table if not exists item_type_notes (
+  type_id             text primary key,
+  notes               text not null default '',
+  teardown_notes      text not null default '',
+  setup_media_url     text,
+  setup_media_type    text check (setup_media_type in ('video','photo')),
+  teardown_media_url  text,
+  teardown_media_type text check (teardown_media_type in ('video','photo')),
+  updated_at          timestamptz not null default now()
+);
+alter table item_type_notes enable row level security;
+drop policy if exists "public read item_type_notes" on item_type_notes;
+create policy "public read item_type_notes" on item_type_notes for select using (true);
+drop policy if exists "auth write item_type_notes" on item_type_notes;
+create policy "auth write item_type_notes" on item_type_notes for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and tablename = 'item_type_notes'
+  ) then
+    alter publication supabase_realtime add table item_type_notes;
+  end if;
+end $$;
+
+-- One-time backfill from existing per-item notes/media, run once as part
+-- of this same block: for each equipment type, seeds from whichever
+-- existing item (any event OR template) most recently had something
+-- filled in, so the most up-to-date version becomes the shared starting
+-- point instead of an arbitrary/oldest one. ON CONFLICT DO NOTHING makes
+-- this safe to re-run too — it only fills types with no shared record
+-- yet, never overwrites one you've since edited through the app.
+insert into item_type_notes (type_id, notes, teardown_notes, setup_media_url, setup_media_type, teardown_media_url, teardown_media_type)
+select distinct on (type_id)
+  type_id, notes, teardown_notes, setup_media_url, setup_media_type, teardown_media_url, teardown_media_type
+from (
+  select
+    case type_id when 'timpani' then 'inst-timpani' when 'rack' then 'inst-rack' else type_id end as type_id,
+    notes, teardown_notes, setup_media_url, setup_media_type, teardown_media_url, teardown_media_type, created_at
+  from items
+  where notes <> '' or teardown_notes <> '' or setup_media_url is not null or teardown_media_url is not null
+  union all
+  select
+    case type_id when 'timpani' then 'inst-timpani' when 'rack' then 'inst-rack' else type_id end as type_id,
+    notes, teardown_notes, setup_media_url, setup_media_type, teardown_media_url, teardown_media_type, created_at
+  from template_items
+  where notes <> '' or teardown_notes <> '' or setup_media_url is not null or teardown_media_url is not null
+) combined
+order by type_id, created_at desc
+on conflict (type_id) do nothing;
+
 insert into storage.buckets (id, name, public)
   values ('item-media', 'item-media', true)
   on conflict (id) do nothing;

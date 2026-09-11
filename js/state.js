@@ -15,7 +15,7 @@ function mediaFromRow(row, prefix){
   return {url: null, type: null};
 }
 
-let STATE = {roster:[], events:[], activeEventId:null, badges:[], badgeEvents:[], eventVolunteerStatus:[], eventInactiveBadges:[], templates:[]};
+let STATE = {roster:[], events:[], activeEventId:null, badges:[], badgeEvents:[], eventVolunteerStatus:[], eventInactiveBadges:[], itemTypeNotes:{}, templates:[]};
 let viewingEventId = null;
 let editingTemplateId = null;
 let session = null;
@@ -45,6 +45,30 @@ function currentTemplate(){
   return STATE.templates.find(t=>t.id===editingTemplateId) || {id:null,name:'',description:'',items:[]};
 }
 
+// What to Do / Wrap It Up (text + media) is shared per equipment TYPE —
+// edit it once, it's the same on every item of that type, in every
+// event and template, going forward. Legacy type ids (see
+// LEGACY_TYPE_ALIASES in catalog.js) resolve to the same shared record
+// as their renamed equivalent, so old and new events agree.
+// Falls back to the ITEM's own (pre-this-feature) notes/media when no
+// shared record exists yet for its type — before the one-time backfill
+// runs (see schema.sql), or if item_type_notes hasn't been migrated at
+// all, this keeps every item showing exactly what it always showed
+// instead of going blank.
+function typeNotesFor(it){
+  const row = STATE.itemTypeNotes[resolveTypeId(it.typeId)];
+  if(row) return {
+    notes: row.notes||'', teardownNotes: row.teardown_notes||'',
+    setupMediaUrl: row.setup_media_url||null, setupMediaType: row.setup_media_type||null,
+    teardownMediaUrl: row.teardown_media_url||null, teardownMediaType: row.teardown_media_type||null
+  };
+  return {
+    notes: it.notes||'', teardownNotes: it.teardownNotes||'',
+    setupMediaUrl: it.setupMediaUrl||null, setupMediaType: it.setupMediaType||null,
+    teardownMediaUrl: it.teardownMediaUrl||null, teardownMediaType: it.teardownMediaType||null
+  };
+}
+
 // Returns which items collection is currently being edited — a normal
 // event's items, or (when editingTemplateId is set, i.e. the Admin
 // screen has a template open) a template's items. Every item-CRUD call
@@ -60,7 +84,7 @@ function currentItemsCtx(){
 }
 
 async function loadState(){
-  const [rosterRes, eventsRes, itemsRes, assignRes, badgesRes, badgeEventsRes, volStatusRes, templatesRes, templateItemsRes, inactiveBadgesRes] = await Promise.all([
+  const [rosterRes, eventsRes, itemsRes, assignRes, badgesRes, badgeEventsRes, volStatusRes, templatesRes, templateItemsRes, inactiveBadgesRes, typeNotesRes] = await Promise.all([
     sb.from('roster').select('*').order('created_at'),
     sb.from('events').select('*').order('created_at'),
     sb.from('items').select('*'),
@@ -70,18 +94,21 @@ async function loadState(){
     sb.from('event_volunteer_status').select('*'),
     sb.from('templates').select('*').order('created_at'),
     sb.from('template_items').select('*'),
-    sb.from('event_inactive_badges').select('*')
+    sb.from('event_inactive_badges').select('*'),
+    sb.from('item_type_notes').select('*')
   ]);
   if(rosterRes.error || eventsRes.error || itemsRes.error || assignRes.error || badgesRes.error || badgeEventsRes.error || volStatusRes.error || templatesRes.error || templateItemsRes.error){
     statusEl.textContent = 'Load error — check config.js and your connection';
     console.error(rosterRes.error||eventsRes.error||itemsRes.error||assignRes.error||badgesRes.error||badgeEventsRes.error||volStatusRes.error||templatesRes.error||templateItemsRes.error);
     return false;
   }
-  // event_inactive_badges is checked separately, not folded into the hard
-  // failure above — if the migration for this table hasn't been run yet,
-  // this feature should degrade to "every badge active" instead of
-  // blocking the whole app from loading
+  // event_inactive_badges / item_type_notes are checked separately, not
+  // folded into the hard failure above — if either migration hasn't been
+  // run yet, that feature should degrade (every badge active; every item
+  // falls back to its own old per-item notes, see typeNotesFor above)
+  // instead of blocking the whole app from loading
   if(inactiveBadgesRes.error) console.error(inactiveBadgesRes.error);
+  if(typeNotesRes.error) console.error(typeNotesRes.error);
   const assigns = assignRes.data;
   const itemsByEvent = {};
   itemsRes.data.forEach(row=>{
@@ -124,6 +151,7 @@ async function loadState(){
     badgeEvents: badgeEventsRes.data,
     eventVolunteerStatus: volStatusRes.data,
     eventInactiveBadges: inactiveBadgesRes.error ? [] : inactiveBadgesRes.data,
+    itemTypeNotes: typeNotesRes.error ? {} : Object.fromEntries(typeNotesRes.data.map(r=>[r.type_id, r])),
     templates: templatesRes.data.map(t=>({id:t.id, name:t.name, description:t.description||'', items: itemsByTemplate[t.id]||[]}))
   };
   if(!STATE.events.find(e=>e.id===viewingEventId)) viewingEventId = STATE.activeEventId || (STATE.events[0]||{}).id;

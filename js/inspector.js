@@ -70,20 +70,21 @@ function openInspector(itemUid){
   inspIcon.style.background = cat.color + '26'; // ~15% tint of the catalog color, so the reference icon still ties back to its field-chip color
 
   if(mode==='edit'){
+    const typeNotes = typeNotesFor(it);
     inspectorDraft = {
       needsHelp: !!it.needsHelp,
       helpersNeeded: it.helpersNeeded || 1,
       assignedIds: (it.assignedIds||[]).slice(),
-      notes: it.notes || '',
+      notes: typeNotes.notes,
       timing: it.timing || '',
       studentName: it.studentName || '',
-      teardownNotes: it.teardownNotes || ''
+      teardownNotes: typeNotes.teardownNotes
     };
     document.getElementById('insp-student-group').style.display = isInstrumentItem(catalogFor(it.typeId)) ? 'flex' : 'none';
     resetInspEditTabs();
     renderMiniMap(it, 'edit-mini-map');
-    initMediaPreview('setup', it.setupMediaUrl, it.setupMediaType);
-    initMediaPreview('teardown', it.teardownMediaUrl, it.teardownMediaType);
+    initMediaPreview('setup', typeNotes.setupMediaUrl, typeNotes.setupMediaType);
+    initMediaPreview('teardown', typeNotes.teardownMediaUrl, typeNotes.teardownMediaType);
     inspViewBody.style.display = 'none';
     inspEditBody.style.display = 'flex';
     syncInspectorUI();
@@ -138,18 +139,19 @@ function renderViewMedia(videoElId, imgElId, url, type){
 function renderInspectorViewOnly(it){
   resetInspViewTabs();
   renderMiniMap(it);
+  const typeNotes = typeNotesFor(it);
   const teardownEl = document.getElementById('view-teardown');
-  if(it.teardownNotes){
-    teardownEl.textContent = it.teardownNotes;
+  if(typeNotes.teardownNotes){
+    teardownEl.textContent = typeNotes.teardownNotes;
     teardownEl.classList.remove('empty');
   }else{
     teardownEl.textContent = 'No teardown steps provided for this role yet.';
     teardownEl.classList.add('empty');
   }
-  // a real clip/photo for this specific item replaces the generic illustration
+  // a real clip/photo for this equipment type replaces the generic illustration
   const genericEl = document.getElementById('view-teardown-generic');
-  renderViewMedia('view-teardown-clip', 'view-teardown-photo', it.teardownMediaUrl, it.teardownMediaType);
-  genericEl.style.display = it.teardownMediaUrl ? 'none' : 'flex';
+  renderViewMedia('view-teardown-clip', 'view-teardown-photo', typeNotes.teardownMediaUrl, typeNotes.teardownMediaType);
+  genericEl.style.display = typeNotes.teardownMediaUrl ? 'none' : 'flex';
   const studentGroup = document.getElementById('view-student-group');
   if(it.studentName){
     document.getElementById('view-student').textContent = it.studentName;
@@ -158,19 +160,19 @@ function renderInspectorViewOnly(it){
     studentGroup.style.display = 'none';
   }
   const descEl = document.getElementById('view-description');
-  if(it.notes){
-    descEl.textContent = it.notes;
+  if(typeNotes.notes){
+    descEl.textContent = typeNotes.notes;
     descEl.classList.remove('empty');
   }else{
     descEl.textContent = 'No description provided for this role yet.';
     descEl.classList.add('empty');
   }
   // setup media has no generic fallback illustration — just hide the
-  // whole field-group when there's nothing uploaded for this item
+  // whole field-group when there's nothing uploaded for this equipment type
   const setupMediaGroup = document.getElementById('view-setup-media-group');
-  if(it.setupMediaUrl){
+  if(typeNotes.setupMediaUrl){
     setupMediaGroup.style.display = 'flex';
-    renderViewMedia('view-setup-clip', 'view-setup-photo', it.setupMediaUrl, it.setupMediaType);
+    renderViewMedia('view-setup-clip', 'view-setup-photo', typeNotes.setupMediaUrl, typeNotes.setupMediaType);
   }else{
     setupMediaGroup.style.display = 'none';
   }
@@ -355,11 +357,9 @@ async function applyMediaChange(section, itemUid, updatePayload){
     if(upErr) return upErr;
     updatePayload[section+'_media_url'] = sb.storage.from('item-media').getPublicUrl(path).data.publicUrl;
     updatePayload[section+'_media_type'] = state.file.type.startsWith('video/') ? 'video' : 'photo';
-    if(section==='teardown') updatePayload.teardown_video_url = null; // fully move off the legacy column once touched
   }else if(state.removed){
     updatePayload[section+'_media_url'] = null;
     updatePayload[section+'_media_type'] = null;
-    if(section==='teardown') updatePayload.teardown_video_url = null;
   }
   return null;
 }
@@ -367,6 +367,7 @@ async function applyMediaChange(section, itemUid, updatePayload){
 document.getElementById('insp-cancel').addEventListener('click', closeInspector);
 document.getElementById('insp-save').addEventListener('click', async ()=>{
   const itemUid = inspectorUid;
+  const it = currentItemsCtx().items.find(i=>i.uid===itemUid);
   const draft = inspectorDraft;
   const notes = inspNotes.value.trim();
   const teardownNotes = inspTeardown.value.trim();
@@ -381,18 +382,23 @@ document.getElementById('insp-save').addEventListener('click', async ()=>{
   closeInspector();
   statusEl.textContent = uploading ? 'Uploading…' : 'Saving…';
 
-  const updatePayload = {
-    needs_help: draft.needsHelp, helpers_needed: draft.helpersNeeded, notes, timing, student_name: studentName,
-    teardown_notes: teardownNotes
+  // needs_help/helpers/timing/student stay per placed item; What to Do,
+  // Wrap It Up, and their media are shared per equipment type (see
+  // typeNotesFor) — two separate writes, same as reading them
+  const itemPayload = {
+    needs_help: draft.needsHelp, helpers_needed: draft.helpersNeeded, timing, student_name: studentName
   };
-  const setupErr = await applyMediaChange('setup', itemUid, updatePayload);
+  const typeNotesPayload = {type_id: resolveTypeId(it.typeId), notes, teardown_notes: teardownNotes};
+  const setupErr = await applyMediaChange('setup', itemUid, typeNotesPayload);
   if(setupErr){ statusEl.textContent = 'Error: '+setupErr.message; return; }
-  const teardownErr = await applyMediaChange('teardown', itemUid, updatePayload);
+  const teardownErr = await applyMediaChange('teardown', itemUid, typeNotesPayload);
   if(teardownErr){ statusEl.textContent = 'Error: '+teardownErr.message; return; }
   statusEl.textContent = 'Saving…';
   const itemsTable = currentItemsCtx().table;
-  const {error:e1} = await sb.from(itemsTable).update(updatePayload).eq('id', itemUid);
+  const {error:e1} = await sb.from(itemsTable).update(itemPayload).eq('id', itemUid);
   if(e1){ statusEl.textContent = 'Error: '+e1.message; return; }
+  const {error:e2} = await sb.from('item_type_notes').upsert(typeNotesPayload, {onConflict:'type_id'});
+  if(e2){ statusEl.textContent = 'Error: '+e2.message; return; }
   // templates aren't tied to real volunteers — no item_assignments table for them
   if(itemsTable==='items'){
     await sb.from('item_assignments').delete().eq('item_id', itemUid);

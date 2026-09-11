@@ -214,7 +214,7 @@ function renderAssignments(){
       <div class="pos">${describePosition(it.xPct, it.yPct)}</div>
       <div class="who">${whoHTML}</div>
       ${it.timing ? `<div class="timing-tag">${timingLabel(it.timing)}</div>` : ''}
-      ${it.notes ? `<div class="notes">${it.notes}</div>` : ''}
+      ${typeNotesFor(it).notes ? `<div class="notes">${typeNotesFor(it).notes}</div>` : ''}
     </div>`;
   }).join('');
 }

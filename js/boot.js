@@ -11,6 +11,8 @@ sb.channel('planner-changes')
   .on('postgres_changes', {event:'*', schema:'public', table:'event_volunteer_status'}, ()=>reload())
   .on('postgres_changes', {event:'*', schema:'public', table:'templates'}, ()=>reload())
   .on('postgres_changes', {event:'*', schema:'public', table:'template_items'}, ()=>reload())
+  .on('postgres_changes', {event:'*', schema:'public', table:'event_inactive_badges'}, ()=>reload())
+  .on('postgres_changes', {event:'*', schema:'public', table:'item_type_notes'}, ()=>reload())
   .subscribe();
 
 /* ---------------------------------------------------------------

@@ -233,15 +233,18 @@ function syncInspectorUI(){
   const noRosterNote = document.getElementById('insp-no-roster');
   const currentIt = currentEvent().items.find(i=>i.uid===inspectorUid);
   const isSpeaker = !!currentIt && isSpeakerItem(catalogFor(currentIt.typeId));
+  const currentSide = isSpeaker ? speakerSide(currentIt.typeId) : null;
   const otherByVolunteer = otherAssignmentsByVolunteer(inspectorUid);
   // normally anyone assigned elsewhere is excluded so nobody's double-
   // booked — but for a speaker item, someone already covering any number
-  // of OTHER speakers (and nothing but speakers) is still offered, so
-  // one person can run all of them if the crew's short-handed
+  // of OTHER speakers ON THE SAME SIDE (and nothing but those) is still
+  // offered, so one person can run both speakers on their side (small +
+  // large) without also pulling in the opposite side of the field
+  const sameSideSpeaker = o => isSpeakerItem(catalogFor(o.typeId)) && speakerSide(o.typeId)===currentSide;
   const available = STATE.roster.filter(v=>{
     const others = otherByVolunteer.get(v.id) || [];
     if(!others.length) return true;
-    return isSpeaker && others.every(o=>isSpeakerItem(catalogFor(o.typeId)));
+    return isSpeaker && others.every(sameSideSpeaker);
   });
   if(!STATE.roster.length){
     inspVolunteers.innerHTML = '';

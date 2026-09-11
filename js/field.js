@@ -131,6 +131,16 @@ function isSpeakerItem(cat){
   return cat.icon === 'speaker';
 }
 
+// which side of the field a speaker's on — spkSL/spkLL are both Left
+// (small/large), spkSR/spkLR are both Right, so the type id's last
+// letter always carries it. Doubling a volunteer up is only offered
+// within the same side (small+large on their own side is fine, small on
+// one side + small on the other isn't) — they usually stand together,
+// a speaker on the opposite side of the field doesn't.
+function speakerSide(typeId){
+  return resolveTypeId(typeId).slice(-1);
+}
+
 /* ---------------------------------------------------------------
    ZOOM TO PIT BOX
 ---------------------------------------------------------------- */

@@ -233,13 +233,13 @@ function syncInspectorUI(){
   const noRosterNote = document.getElementById('insp-no-roster');
   const currentIt = currentEvent().items.find(i=>i.uid===inspectorUid);
   const isSpeaker = !!currentIt && isSpeakerItem(catalogFor(currentIt.typeId));
-  const isLadder = !!currentIt && isLadderItem(currentIt.typeId);
-  const doubleUpEligible = isSpeaker || isLadder;
+  const isDoubleUpPod = !!currentIt && isDoubleUpPodium(currentIt.typeId);
+  const doubleUpEligible = isSpeaker || isDoubleUpPod;
   const otherByVolunteer = otherAssignmentsByVolunteer(inspectorUid);
   // normally anyone assigned elsewhere is excluded so nobody's double-
-  // booked — but for a speaker or the Small Ladder, someone already
+  // booked — but for a speaker or the Small Podium, someone already
   // covering only compatible items (see canDoubleUp: same-side speakers
-  // with each other, or the ladder with any speaker) is still offered
+  // with each other, or the Small Podium with any speaker) is still offered
   const available = STATE.roster.filter(v=>{
     const others = otherByVolunteer.get(v.id) || [];
     if(!others.length) return true;

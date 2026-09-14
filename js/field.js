@@ -417,6 +417,77 @@ document.querySelectorAll('#mobile-nav [data-nav]').forEach(btn=>{
 });
 setMobileNavView('field');
 
+/* ---------------------------------------------------------------
+   MOBILE FULL SCREEN FIELD — either tapped (btn-field-fullscreen) or
+   automatic on physically rotating the phone to landscape while
+   looking at the Field tab. Two things happen together, with
+   different reliability:
+     1. .landscape-immersive (styles.css) hides the header/event
+        bar/bottom nav and lets .stage fill the entire viewport — pure
+        layout, works everywhere, no permission needed.
+     2. The real Fullscreen API + orientation lock, best-effort. Both
+        are wrapped so a rejection is silent, not an error: iOS Safari
+        has never implemented screen.orientation.lock() at all (their
+        stance is the device's own rotation lock is the one source of
+        truth for that), and any browser will reject a fullscreen
+        request that isn't the direct result of a user tap — which the
+        auto-rotate trigger below inherently isn't. So on iOS, or on
+        auto-rotate anywhere, you still get the maximized layout (#1),
+        just not a hidden address bar. Only the tapped button reliably
+        gets both.
+---------------------------------------------------------------- */
+const btnFieldFullscreen = document.getElementById('btn-field-fullscreen');
+function updateFullscreenBtnLabel(){
+  const active = document.body.classList.contains('landscape-immersive');
+  btnFieldFullscreen.querySelector('span').textContent = active ? 'Exit Full Screen' : 'Full Screen';
+  btnFieldFullscreen.classList.toggle('active', active);
+}
+function enterFieldImmersive(){
+  document.body.classList.add('landscape-immersive');
+  sizeMobileField();
+  if(document.documentElement.requestFullscreen){
+    document.documentElement.requestFullscreen().catch(()=>{});
+  }
+  if(screen.orientation && screen.orientation.lock){
+    screen.orientation.lock('landscape').catch(()=>{});
+  }
+  updateFullscreenBtnLabel();
+}
+function exitFieldImmersive(){
+  document.body.classList.remove('landscape-immersive');
+  sizeMobileField();
+  if(document.fullscreenElement && document.exitFullscreen){
+    document.exitFullscreen().catch(()=>{});
+  }
+  if(screen.orientation && screen.orientation.unlock){
+    try{ screen.orientation.unlock(); }catch(e){}
+  }
+  updateFullscreenBtnLabel();
+}
+btnFieldFullscreen.addEventListener('click', ()=>{
+  if(document.body.classList.contains('landscape-immersive')) exitFieldImmersive();
+  else enterFieldImmersive();
+});
+// leaving fullscreen via the browser's own UI (swipe/back/Esc, not our
+// button) still needs to drop the immersive layout and reset the label
+document.addEventListener('fullscreenchange', ()=>{
+  if(!document.fullscreenElement && document.body.classList.contains('landscape-immersive')){
+    exitFieldImmersive();
+  }
+});
+// physically rotating the phone — matched on height, not width, since
+// a phone's WIDTH becomes large once it's sideways (that's the point);
+// its landscape HEIGHT stays small, which a tablet/desktop's doesn't,
+// making it the reliable way to mean "a phone, now sideways" here
+const landscapePhoneQuery = window.matchMedia('(orientation: landscape) and (max-height: 500px)');
+landscapePhoneQuery.addEventListener('change', e=>{
+  if(document.body.dataset.mobileView !== 'field') return; // only take over the screen while the Field tab is actually what's showing
+  if(e.matches) enterFieldImmersive();
+  else exitFieldImmersive();
+});
+if(landscapePhoneQuery.matches) document.body.classList.add('landscape-immersive'); // layout only — see enterFieldImmersive's comment on why requestFullscreen needs a real tap
+updateFullscreenBtnLabel();
+
 // mobile edit-mode "More" menu — Rename/New Event/Duplicate/Switch
 // Template/Save as Template/Delete Event/Export Season Data/Clear
 // Items all need to see the field at the same time as you use them,

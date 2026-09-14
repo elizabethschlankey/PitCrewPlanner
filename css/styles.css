@@ -200,6 +200,8 @@
   .zoom-controls{position:absolute;top:10px;right:10px;left:10px;z-index:30;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;}
   .zoom-controls button{background:rgba(12,15,19,.72);backdrop-filter:blur(2px);font-size:11.5px;padding:8px 12px;border-color:rgba(255,255,255,.18);}
   .zoom-controls button.primary{background:var(--navy-2);}
+  .field-fullscreen-btn{display:inline-flex;align-items:center;gap:5px;}
+  .field-fullscreen-btn.active{background:var(--navy-2);border-color:var(--navy-2);}
   .pit-badge{position:absolute;left:10px;bottom:10px;z-index:30;font-size:10.5px;color:var(--text-lo);background:rgba(12,15,19,.6);padding:4px 9px;border-radius:5px;letter-spacing:.02em;}
   .readonly-badge{position:absolute;left:10px;top:10px;z-index:30;font-size:10.5px;font-weight:700;color:#12161c;background:var(--gold);padding:5px 10px;border-radius:5px;letter-spacing:.03em;text-transform:uppercase;display:none;}
   body:not(.mode-edit) .readonly-badge{display:block;}
@@ -434,6 +436,27 @@
     /* nav label swap: "Badges" for Lead Volunteer, "Equipment" (via the
        existing data-edit-only utility) once actually signed in to edit */
     body.mode-edit .mobile-nav .nav-label-badges{display:none;}
+  }
+
+  /* --- Mobile: Full Screen field — either tapped (btn-field-fullscreen)
+     or automatic on rotating to landscape (see the matchMedia listener
+     in field.js). Hides everything but the field itself so .stage gets
+     the ENTIRE viewport instead of just what's left under the header/
+     event bar/bottom nav. max-height, not just max-width: a phone's
+     landscape WIDTH commonly exceeds 820px (844, 896, 932...), which
+     would put it outside every OTHER mobile rule above too — this is
+     the one place that actually needs to fire in that exact situation,
+     a phone lying sideways, so it can't only match on width like they do. */
+  @media (max-width:820px), (max-height:500px){
+    /* hiding these lets .layout/.stage's existing flex:1 chain (see the
+       block above) naturally grow to fill the entire .app/100dvh on
+       its own — no extra height overrides needed */
+    body.landscape-immersive header,
+    body.landscape-immersive .template-edit-bar,
+    body.landscape-immersive .event-bar,
+    body.landscape-immersive .mobile-nav,
+    body.landscape-immersive .legend-wrap{display:none !important;}
+    body.landscape-immersive .stage{padding:6px;}
   }
 
   /* the field itself: fill all the height its tab gives it instead of

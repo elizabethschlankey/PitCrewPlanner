@@ -245,10 +245,15 @@ function applyFieldTransform(){
 }
 
 /* ---------------------------------------------------------------
-   OFF-SCREEN ARROWS — zoomed into the Pit Box, a Needs a Hand item can
-   end up entirely outside the crop. Points toward each one from the
-   edge of the viewport instead of leaving it silently out of view.
-   Tapping an arrow re-centers the (still-zoomed) view on that item.
+   OFF-SCREEN ARROWS — zoomed in (Zoom to Pit Box, or a pinch), any
+   placed item can end up entirely outside the crop. Points toward
+   every one of them from the edge of the viewport instead of leaving
+   them silently out of view — Needs a Hand items get the orange
+   "needs attention" treatment already used for them everywhere else,
+   every other item still gets an arrow, just in the plain/neutral
+   color, so nothing placed on the field goes undiscoverable once
+   you've zoomed in. Tapping any arrow re-centers the (still-zoomed)
+   view on that item.
 ---------------------------------------------------------------- */
 const offscreenArrowsLayer = document.getElementById('offscreen-arrows');
 function updateOffscreenArrows(){
@@ -259,7 +264,7 @@ function updateOffscreenArrows(){
   const margin = 34;
   const cx = vRect.width/2, cy = vRect.height/2;
   const halfW = Math.max(cx-margin, 10), halfH = Math.max(cy-margin, 10);
-  currentItemsCtx().items.filter(it=>it.needsHelp).forEach(it=>{
+  currentItemsCtx().items.forEach(it=>{
     const screenX = curTx + (it.xPct/100)*vRect.width*curScale;
     const screenY = curTy + (it.yPct/100)*vRect.height*curScale;
     if(screenX>=0 && screenX<=vRect.width && screenY>=0 && screenY<=vRect.height) return; // already visible
@@ -270,11 +275,11 @@ function updateOffscreenArrows(){
     const scale = (Math.abs(ux)*halfH > Math.abs(uy)*halfW) ? halfW/Math.abs(ux) : halfH/Math.abs(uy);
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'offscreen-arrow';
+    btn.className = 'offscreen-arrow' + (it.needsHelp ? ' offscreen-arrow-needs-help' : '');
     btn.style.left = (cx+ux*scale)+'px';
     btn.style.top = (cy+uy*scale)+'px';
     btn.style.setProperty('--arrow-rot', (angle*180/Math.PI)+'deg');
-    btn.title = `${it.label} needs a hand — off screen, tap to jump to it`;
+    btn.title = it.needsHelp ? `${it.label} needs a hand — off screen, tap to jump to it` : `${it.label} — off screen, tap to jump to it`;
     btn.dataset.jumpTo = it.uid;
     btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M4 4L20 12L4 20Z" fill="currentColor"/></svg>`;
     offscreenArrowsLayer.appendChild(btn);
@@ -509,19 +514,20 @@ if(landscapePhoneQuery.matches) document.body.classList.add('landscape-immersive
 updateFullscreenBtnLabel();
 updateRotateHint();
 
-// Zoom to Pit Box / Hide Labels / Full Screen physically move to a
-// plain toolbar row below the field on phones, instead of floating
-// over it via .zoom-controls (styles.css) — real estate is too tight
-// on a phone to spend any of it covering up the field itself. Full
-// Screen mode is the one exception: with the header/nav already
-// hidden there, floating controls are the only way left to reach
-// zoom/labels or exit Full Screen at all, so they stay put on the
-// field during that specific state. Same physical-move pattern as the
-// mobile "More" menu below, just driven by two conditions (screen
+// Zoom to Pit Box / Hide Labels / Full Screen / the "View only" badge
+// physically move to a plain toolbar row below the field on phones,
+// instead of floating over it via .zoom-controls/.readonly-badge
+// (styles.css) — real estate is too tight on a phone to spend any of
+// it covering up the field itself. Full Screen mode is the one
+// exception: with the header/nav already hidden there, floating
+// controls are the only way left to reach zoom/labels or exit Full
+// Screen at all, so they (and the badge, for consistency) stay put on
+// the field during that specific state. Same physical-move pattern as
+// the mobile "More" menu below, just driven by two conditions (screen
 // size AND immersive state) instead of one.
 const mobileFieldToolbar = document.getElementById('mobile-field-toolbar');
 const mobileFieldToolbarQuery = window.matchMedia('(max-width:820px), (max-height:500px)');
-const mobileToolbarHomes = ['btn-zoom-pit','btn-zoom-reset','btn-toggle-labels','btn-field-fullscreen'].map(id=>{
+const mobileToolbarHomes = ['btn-zoom-pit','btn-zoom-reset','btn-toggle-labels','btn-field-fullscreen','readonly-badge'].map(id=>{
   const el = document.getElementById(id);
   return el ? {el, parent:el.parentNode, next:el.nextSibling} : null;
 }).filter(Boolean);

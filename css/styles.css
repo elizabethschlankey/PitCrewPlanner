@@ -188,14 +188,19 @@
   .field-wrap.pinching{transition:none;}
   #field{display:block;width:100%;height:100%;}
   #drop-layer{position:absolute;inset:0;}
-  /* zoomed into the Pit Box, a Needs a Hand item can end up outside the
-     crop entirely — these point toward it from the nearest edge instead
-     of leaving it silently out of view. Sits OUTSIDE .field-wrap (not
-     panned/scaled with it) so the arrows stay fixed to the viewport
-     edge regardless of zoom/pan. */
+  /* zoomed in, ANY placed item can end up outside the crop entirely —
+     these point toward each one from the nearest edge instead of
+     leaving it silently out of view. Needs a Hand items get the same
+     orange "needs attention" treatment (plus a pulse) they get
+     everywhere else on the field; every other item still gets an
+     arrow, just in the plain neutral color, so nothing gets lost off
+     screen, not just the items tagged for help. Sits OUTSIDE
+     .field-wrap (not panned/scaled with it) so the arrows stay fixed
+     to the viewport edge regardless of zoom/pan. */
   #offscreen-arrows{position:absolute;inset:0;z-index:35;pointer-events:none;}
-  .offscreen-arrow{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:var(--help);border:2px solid rgba(255,255,255,.75);box-shadow:0 2px 8px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;padding:0;pointer-events:auto;animation:offscreen-arrow-pulse 1.6s ease-in-out infinite;}
+  .offscreen-arrow{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:var(--navy-2);border:2px solid rgba(255,255,255,.75);box-shadow:0 2px 8px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;padding:0;pointer-events:auto;}
   .offscreen-arrow svg{width:16px;height:16px;transform:rotate(var(--arrow-rot,0deg));}
+  .offscreen-arrow-needs-help{background:var(--help);animation:offscreen-arrow-pulse 1.6s ease-in-out infinite;}
   @keyframes offscreen-arrow-pulse{0%,100%{box-shadow:0 2px 8px rgba(0,0,0,.5),0 0 0 0 rgba(217,119,46,.55);}50%{box-shadow:0 2px 8px rgba(0,0,0,.5),0 0 0 7px rgba(217,119,46,0);}}
   .zoom-controls{position:absolute;top:10px;right:10px;left:10px;z-index:30;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;}
   .zoom-controls button{background:rgba(12,15,19,.72);backdrop-filter:blur(2px);font-size:11.5px;padding:8px 12px;border-color:rgba(255,255,255,.18);}
@@ -224,8 +229,15 @@
     .mobile-field-toolbar:empty{display:none;padding:0;}
   }
   .pit-badge{position:absolute;left:10px;bottom:10px;z-index:30;font-size:10.5px;color:var(--text-lo);background:rgba(12,15,19,.6);padding:4px 9px;border-radius:5px;letter-spacing:.02em;}
-  .readonly-badge{position:absolute;left:10px;top:10px;z-index:30;font-size:10.5px;font-weight:700;color:#12161c;background:var(--gold);padding:5px 10px;border-radius:5px;letter-spacing:.03em;text-transform:uppercase;display:none;}
+  /* position:absolute only applies while this lives inside
+     .field-viewport (desktop, or mobile during Full Screen) — moved
+     into #mobile-field-toolbar the rest of the time (js/field.js,
+     same as the zoom/labels/fullscreen buttons), where it needs to sit
+     as a normal flex item instead, not escape to the page's corner
+     looking for a positioned ancestor that's no longer there */
+  .readonly-badge{font-size:10.5px;font-weight:700;color:#12161c;background:var(--gold);padding:5px 10px;border-radius:5px;letter-spacing:.03em;text-transform:uppercase;display:none;}
   body:not(.mode-edit) .readonly-badge{display:block;}
+  .field-viewport .readonly-badge{position:absolute;left:10px;top:10px;z-index:30;}
   /* shown only while Full Screen is on but the phone is still upright —
      orientation lock isn't reliable enough to count on (iOS never
      implemented it at all), so this tells the person what to actually

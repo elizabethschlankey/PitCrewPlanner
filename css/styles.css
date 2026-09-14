@@ -472,15 +472,17 @@
     #mobile-more-menu button{width:100%;justify-content:flex-start;text-align:left;}
   }
 
-  /* Export PNG: icon-only on phones (a plain download glyph) — the
-     text label was what pushed Sign In/Sign Out/Export PNG onto a
-     second row in the header. Desktop is untouched. */
-  #btn-export .btn-icon{display:none;}
+  /* Export PNG / Enter Edit Mode-Exit-Sign In / Sign Out-Lock: icon-only
+     on phones — the text labels were what pushed these onto a second
+     row in the header, competing with the pit box for space. Desktop
+     is untouched; the label span still carries the accessible name via
+     title/aria-label (set in render.js), just visually hidden. */
+  #btn-export .btn-icon, #btn-mode-toggle .btn-icon, #btn-signout .btn-icon{display:none;}
   @media (max-width:820px){
-    #btn-export{
+    #btn-export, #btn-mode-toggle, #btn-signout{
       display:inline-flex;align-items:center;justify-content:center;
       width:34px;height:34px;padding:0;
     }
-    #btn-export .btn-icon{display:inline-block;}
-    #btn-export .btn-label{display:none;} /* aria-label above covers the accessible name */
+    #btn-export .btn-icon, #btn-mode-toggle .btn-icon, #btn-signout .btn-icon{display:inline-block;}
+    #btn-export .btn-label, #btn-mode-toggle .btn-label, #btn-signout .btn-label{display:none;} /* aria-label above covers the accessible name */
   }

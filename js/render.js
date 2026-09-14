@@ -37,8 +37,19 @@ function renderHeader(){
   }
 
   btnModeToggle.style.display = role==='lead_volunteer' ? 'none' : '';
-  btnModeToggle.textContent = mode==='edit' ? 'Exit to Volunteer View' : ((role==='director'||role==='admin') ? 'Enter Edit Mode' : 'Sign In');
-  document.getElementById('btn-signout').textContent = role==='admin' ? 'Sign Out' : 'Lock';
+  // sets the label span + title/aria-label, not the button's whole
+  // content — on phones this collapses to an icon-only button (see
+  // styles.css), so the text still has to live somewhere for a screen
+  // reader and the hover tooltip even when it's visually hidden
+  const modeToggleLabel = mode==='edit' ? 'Exit to Volunteer View' : ((role==='director'||role==='admin') ? 'Enter Edit Mode' : 'Sign In');
+  btnModeToggle.querySelector('.btn-label').textContent = modeToggleLabel;
+  btnModeToggle.title = modeToggleLabel;
+  btnModeToggle.setAttribute('aria-label', modeToggleLabel);
+  const signOutBtn = document.getElementById('btn-signout');
+  const signOutLabel = role==='admin' ? 'Sign Out' : 'Lock';
+  signOutBtn.querySelector('.btn-label').textContent = signOutLabel;
+  signOutBtn.title = signOutLabel;
+  signOutBtn.setAttribute('aria-label', signOutLabel);
 }
 
 function renderEventSelect(){

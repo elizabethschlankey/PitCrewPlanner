@@ -254,8 +254,75 @@ function applyFieldTransform(){
    color, so nothing placed on the field goes undiscoverable once
    you've zoomed in. Tapping any arrow re-centers the (still-zoomed)
    view on that item.
+
+   Several off-screen items are often bunched in roughly the same
+   direction (e.g. a whole row of equipment below the current crop) —
+   clamped to the viewport edge individually, their arrows land on top
+   of each other, so only the last one drawn is actually reachable;
+   tapping it moves that item on-screen but the others underneath it
+   never become tappable, which reads as "stuck after the first tap".
+   Fixed with a de-collision pass per edge (spreadAlongEdge below):
+   arrows keep their TRUE direction (rotation is never touched), only
+   their position along the shared edge gets nudged apart so every one
+   of them stays individually visible and tappable.
+
+   Spacing them evenly along the edge (a single row) guarantees every
+   arrow lands at a DISTINCT position, but distinct isn't the same as
+   reachable — if an edge is crowded enough that the even spacing has
+   to shrink below the arrow's own ~30px footprint, neighboring arrows
+   still bury each other and only the topmost one is actually tappable
+   (this is exactly what "I click one and can't get back to the
+   others" was: gap had shrunk to ~8px while each arrow is ~30px
+   across). So below a minimum tappable gap, the group fans out into
+   multiple staggered rows (offset inward, perpendicular to the edge)
+   instead of continuing to compress — trading a little depth for
+   arrows that stay individually hittable.
 ---------------------------------------------------------------- */
 const offscreenArrowsLayer = document.getElementById('offscreen-arrows');
+const OFFSCREEN_ARROW_GAP = 32; // ~ one arrow's own width (30px) + a hair
+const OFFSCREEN_ARROW_MIN_GAP = 26; // below this, arrows start burying each other — fan out instead
+const OFFSCREEN_ARROW_ROW_STEP = 15; // perpendicular offset between staggered rows
+const OFFSCREEN_ARROW_MAX_ROWS = 8;
+function layoutRow(items, axis, lo, hi){
+  if(items.length===1){ items[0][axis] = Math.min(Math.max(items[0][axis], lo), hi); return; }
+  const gap = Math.min(OFFSCREEN_ARROW_GAP, (hi-lo)/(items.length-1));
+  const mid = (items[0][axis]+items[items.length-1][axis])/2;
+  const span = gap*(items.length-1);
+  const start = Math.min(Math.max(mid-span/2, lo), hi-span);
+  items.forEach((g,i)=>{ g[axis] = start+i*gap; });
+}
+function spreadAlongEdge(group, axis, lo, hi, otherAxis, rowDir){
+  // axis: 'x' or 'y', whichever coordinate runs along this edge.
+  // otherAxis/rowDir: the perpendicular coordinate, and which way
+  // ("inward", +1 or -1) extra staggered rows offset along it.
+  if(group.length<2) return;
+  group.sort((a,b)=>a[axis]-b[axis]);
+  const span = hi-lo;
+  let rows = 1;
+  while(rows<OFFSCREEN_ARROW_MAX_ROWS){
+    const perRow = Math.ceil(group.length/rows);
+    if(perRow<=1 || OFFSCREEN_ARROW_MIN_GAP*(perRow-1)<=span) break;
+    rows++;
+  }
+  if(rows===1){ layoutRow(group, axis, lo, hi); return; }
+  // Lay out on a brick pattern, not a plain grid: a plain grid (each row
+  // independently evenly-spaced across the same [lo,hi]) puts row N and
+  // row N+1's items right back on top of each other at nearly the same
+  // axis position, just offset perpendicular — still effectively buried.
+  // Alternating rows by half a column-width fixes that.
+  const cols = Math.ceil(group.length/rows);
+  const gap = cols>1 ? Math.min(OFFSCREEN_ARROW_GAP, span/(cols-1)) : 0;
+  const colSpan = gap*(cols-1);
+  const mid = (group[0][axis]+group[group.length-1][axis])/2;
+  const colStart = Math.min(Math.max(mid-colSpan/2, lo), hi-colSpan);
+  const otherBase = group[0][otherAxis];
+  group.forEach((g,i)=>{
+    const row = i%rows, col = Math.floor(i/rows);
+    const stagger = (row%2)*(gap/2);
+    g[axis] = Math.min(Math.max(colStart+col*gap+stagger, lo), hi);
+    g[otherAxis] = otherBase + rowDir*row*OFFSCREEN_ARROW_ROW_STEP;
+  });
+}
 function updateOffscreenArrows(){
   offscreenArrowsLayer.innerHTML = '';
   if(!isZoomed) return;
@@ -264,6 +331,8 @@ function updateOffscreenArrows(){
   const margin = 34;
   const cx = vRect.width/2, cy = vRect.height/2;
   const halfW = Math.max(cx-margin, 10), halfH = Math.max(cy-margin, 10);
+
+  const points = [];
   currentItemsCtx().items.forEach(it=>{
     const screenX = curTx + (it.xPct/100)*vRect.width*curScale;
     const screenY = curTy + (it.yPct/100)*vRect.height*curScale;
@@ -272,12 +341,23 @@ function updateOffscreenArrows(){
     const angle = Math.atan2(dy, dx);
     const ux = Math.cos(angle), uy = Math.sin(angle);
     // clamp the direction vector to the viewport rectangle's edge
-    const scale = (Math.abs(ux)*halfH > Math.abs(uy)*halfW) ? halfW/Math.abs(ux) : halfH/Math.abs(uy);
+    const hitsSideEdge = Math.abs(ux)*halfH > Math.abs(uy)*halfW;
+    const scale = hitsSideEdge ? halfW/Math.abs(ux) : halfH/Math.abs(uy);
+    const edge = hitsSideEdge ? (ux<0 ? 'left' : 'right') : (uy<0 ? 'top' : 'bottom');
+    points.push({it, x: cx+ux*scale, y: cy+uy*scale, angle, edge});
+  });
+
+  spreadAlongEdge(points.filter(p=>p.edge==='top'),    'x', cx-halfW, cx+halfW, 'y',  1);
+  spreadAlongEdge(points.filter(p=>p.edge==='bottom'), 'x', cx-halfW, cx+halfW, 'y', -1);
+  spreadAlongEdge(points.filter(p=>p.edge==='left'),   'y', cy-halfH, cy+halfH, 'x',  1);
+  spreadAlongEdge(points.filter(p=>p.edge==='right'),  'y', cy-halfH, cy+halfH, 'x', -1);
+
+  points.forEach(({it, x, y, angle})=>{
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'offscreen-arrow' + (it.needsHelp ? ' offscreen-arrow-needs-help' : '');
-    btn.style.left = (cx+ux*scale)+'px';
-    btn.style.top = (cy+uy*scale)+'px';
+    btn.style.left = x+'px';
+    btn.style.top = y+'px';
     btn.style.setProperty('--arrow-rot', (angle*180/Math.PI)+'deg');
     btn.title = it.needsHelp ? `${it.label} needs a hand — off screen, tap to jump to it` : `${it.label} — off screen, tap to jump to it`;
     btn.dataset.jumpTo = it.uid;

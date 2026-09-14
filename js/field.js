@@ -200,8 +200,13 @@ function canDoubleUp(typeIdA, typeIdB){
 ---------------------------------------------------------------- */
 const fieldFillEl = document.querySelector('.field-fill');
 const MOBILE_FIELD_BREAKPOINT = 820;
+const MOBILE_FIELD_HEIGHT_BREAKPOINT = 500;
 function sizeMobileField(){
-  if(window.innerWidth > MOBILE_FIELD_BREAKPOINT){
+  // matches the CSS mobile breakpoint (max-width:820px, OR max-height:
+  // 500px so a landscape phone — wide but short — still counts) — width
+  // alone said a sideways phone (844px+) was "desktop" and cleared the
+  // sizing outright, collapsing the field to nothing during Full Screen
+  if(window.innerWidth > MOBILE_FIELD_BREAKPOINT && window.innerHeight > MOBILE_FIELD_HEIGHT_BREAKPOINT){
     fieldViewport.style.width = '';
     fieldViewport.style.height = '';
     return;

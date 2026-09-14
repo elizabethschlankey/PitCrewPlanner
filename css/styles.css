@@ -444,8 +444,14 @@
      the header and the nav bar, driven by body[data-mobile-view]
      (set by setMobileNavView() in js/field.js). This is what gives the
      field map the whole screen instead of splitting it with whatever
-     else used to be stacked above/below it. */
-  @media (max-width:820px){
+     else used to be stacked above/below it. max-height, not just
+     max-width: a phone's landscape WIDTH commonly exceeds 820px (844,
+     896, 932...), which would leave .stage on its DESKTOP flex:3 1 auto
+     instead of the height:100% override below, sized however the flex
+     algorithm feels like instead of the space Full Screen actually gave
+     it — this is the block Full Screen depends on, so it has to fire in
+     landscape too, not just narrow-width portrait. */
+  @media (max-width:820px), (max-height:500px){
     html,body{height:100%;}
     body{overflow:hidden;}
     .app{height:100dvh;overflow:hidden;}
@@ -461,6 +467,11 @@
       overflow-y:auto;
       padding-bottom:calc(70px + env(safe-area-inset-bottom));
     }
+    /* the desktop .stage padding (16px/gap 14px) was eating into the
+       one tab where every pixel of height goes straight to field size
+       — tightened just for the Field tab, the other two aren't as
+       size-sensitive */
+    .stage{padding:6px 8px calc(70px + env(safe-area-inset-bottom));gap:6px;}
     /* the side-drawer collapse (a "give the field more room" trick from
        the desktop/tablet layout) is meaningless once Help is already
        its own full-screen tab */
@@ -506,11 +517,23 @@
      position:absolute), so once it isn't stretched to fill its parent,
      aspect-ratio has nothing to derive a size from and collapses toward
      zero instead of "containing" within the available space, the way
-     object-fit:contain would for a replaced element like <img>. */
-  @media (max-width:820px){
+     object-fit:contain would for a replaced element like <img>.
+     max-height:500px alongside max-width, same reason as the Full
+     Screen block below — a phone's landscape WIDTH commonly exceeds
+     820px, which would leave .field-fill at its desktop display:contents
+     (i.e. no box, no flex, nothing this rule sets actually applying)
+     exactly on the one orientation Full Screen is meant for. */
+  @media (max-width:820px), (max-height:500px){
     .field-fill{
       display:flex;flex:1 1 auto;min-height:0;
-      align-items:center;justify-content:center;overflow:hidden;
+      /* landscape-shaped field in a portrait-shaped box can't fill
+         both dimensions at once (see sizeMobileField, field.js) —
+         align-items:center would've split the leftover space evenly
+         above AND below it; flex-start pins the field to the top
+         instead, so any gap collects only below it (next to the
+         toolbar, where it reads as intentional) instead of as a
+         mystery band of empty space above the field */
+      align-items:flex-start;justify-content:center;overflow:hidden;
     }
     .field-viewport{margin:0;}
     .field-viewport::before{content:none;}

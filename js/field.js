@@ -464,6 +464,7 @@ function enterFieldImmersive(){
   }
   updateFullscreenBtnLabel();
   updateRotateHint();
+  layoutMobileFieldToolbar(); // back onto the field while Full Screen is on — see its own comment for why
 }
 function exitFieldImmersive(){
   document.body.classList.remove('landscape-immersive');
@@ -476,6 +477,7 @@ function exitFieldImmersive(){
   }
   updateFullscreenBtnLabel();
   updateRotateHint();
+  layoutMobileFieldToolbar();
 }
 btnFieldFullscreen.addEventListener('click', ()=>{
   if(document.body.classList.contains('landscape-immersive')) exitFieldImmersive();
@@ -501,6 +503,35 @@ landscapePhoneQuery.addEventListener('change', e=>{
 if(landscapePhoneQuery.matches) document.body.classList.add('landscape-immersive'); // layout only — see enterFieldImmersive's comment on why requestFullscreen needs a real tap
 updateFullscreenBtnLabel();
 updateRotateHint();
+
+// Zoom to Pit Box / Hide Labels / Full Screen physically move to a
+// plain toolbar row below the field on phones, instead of floating
+// over it via .zoom-controls (styles.css) — real estate is too tight
+// on a phone to spend any of it covering up the field itself. Full
+// Screen mode is the one exception: with the header/nav already
+// hidden there, floating controls are the only way left to reach
+// zoom/labels or exit Full Screen at all, so they stay put on the
+// field during that specific state. Same physical-move pattern as the
+// mobile "More" menu below, just driven by two conditions (screen
+// size AND immersive state) instead of one.
+const mobileFieldToolbar = document.getElementById('mobile-field-toolbar');
+const mobileFieldToolbarQuery = window.matchMedia('(max-width:820px), (max-height:500px)');
+const mobileToolbarHomes = ['btn-zoom-pit','btn-zoom-reset','btn-toggle-labels','btn-field-fullscreen'].map(id=>{
+  const el = document.getElementById(id);
+  return el ? {el, parent:el.parentNode, next:el.nextSibling} : null;
+}).filter(Boolean);
+function layoutMobileFieldToolbar(){
+  const moveOut = mobileFieldToolbarQuery.matches && !document.body.classList.contains('landscape-immersive');
+  mobileToolbarHomes.forEach(({el, parent, next})=>{
+    if(moveOut){
+      mobileFieldToolbar.appendChild(el);
+    }else if(el.parentNode !== parent){
+      parent.insertBefore(el, next);
+    }
+  });
+}
+layoutMobileFieldToolbar();
+mobileFieldToolbarQuery.addEventListener('change', layoutMobileFieldToolbar);
 
 // mobile edit-mode "More" menu — Rename/New Event/Duplicate/Switch
 // Template/Save as Template/Delete Event/Export Season Data/Clear

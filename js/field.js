@@ -114,6 +114,31 @@ function describePositionShort(xPct, yPct){
   const yardLabel = yard===50 ? '50' : `${yardRaw<50?1:2}·${yard}`;
   return `${yardLabel} ${ROW_ABBR[row]}`;
 }
+// "Placement Instructions" — same geometry/classification as
+// describePosition, worded as a direct instruction a volunteer reads
+// once and knows exactly where to stop, e.g. "Side 2 (R) - 45 yard
+// line, Front Sideline" — paired with the mini-map's crosshair lines
+// (see renderMiniMap in inspector.js), which mark the same spot visually.
+function placementInstructions(xPct, yPct){
+  const svgX = (xPct/100)*W, svgY = (yPct/100)*H;
+  if(svgY > pitY - 6 && svgY < pitY+pitH+8 && svgX>=pitX-10 && svgX<=pitX+pitW+10) return 'Inside the Pit Box.';
+  if(svgY >= trackY-6) return 'On the sideline / staging area.';
+  if(svgY < fieldTop-10) return 'Behind the back end line.';
+  if(svgY > fieldBottom+10) return 'Behind the front end line.';
+  let row;
+  if(svgY<hashY1) row='Back Sideline';
+  else if(svgY<(hashY1+hashY2)/2) row='Back Hash';
+  else if(svgY<hashY2) row='Front Hash';
+  else row='Front Sideline';
+  const pct = Math.max(0,Math.min(1,(svgX-fieldLeft)/(fieldRight-fieldLeft)));
+  const yardRaw = Math.round(pct*100);
+  const yard = yardRaw<=50 ? yardRaw : 100-yardRaw;
+  if(yard===50) return `50 yard line (Midfield) — ${row}.`;
+  const side = yardRaw<50 ? 1 : 2;
+  const lr = side===1 ? 'L' : 'R';
+  return `Side ${side} (${lr}) - ${yard} yard line — ${row}.`;
+}
+
 // which equipment types benefit from an always-visible position hint
 function showsPositionRef(cat){
   return cat.icon==='speaker' || cat.icon==='sub' || cat.icon==='podium';

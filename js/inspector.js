@@ -82,6 +82,7 @@ function openInspector(itemUid){
     };
     document.getElementById('insp-student-group').style.display = isInstrumentItem(catalogFor(it.typeId)) ? 'flex' : 'none';
     resetInspEditTabs();
+    document.getElementById('insp-placement-instructions').textContent = placementInstructions(it.xPct, it.yPct);
     renderMiniMap(it, 'edit-mini-map');
     initMediaPreview('setup', typeNotes.setupMediaUrl, typeNotes.setupMediaType);
     initMediaPreview('teardown', typeNotes.teardownMediaUrl, typeNotes.teardownMediaType);
@@ -111,7 +112,14 @@ function renderMiniMap(it, targetId){
   vbX = Math.max(-20, Math.min(vbX, W - zoom + 20));
   vbY = Math.max(-20, Math.min(vbY, H - zoom + 20));
   miniMap.setAttribute('viewBox', `${vbX} ${vbY} ${zoom} ${zoom}`);
+  // crosshair — a dotted line straight through the item's exact X (its
+  // yard line) and Y (its front/back row), out to the edges of this
+  // crop, so the yard markers/hash rows already drawn in that crop give
+  // a volunteer a real frame of reference for where the two lines (and
+  // so the item) actually fall, not just a number to take on faith
   miniMap.innerHTML = svg.innerHTML + `
+    <line x1="${cx}" y1="${vbY}" x2="${cx}" y2="${vbY+zoom}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="5 5" opacity=".8"/>
+    <line x1="${vbX}" y1="${cy}" x2="${vbX+zoom}" y2="${cy}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="5 5" opacity=".8"/>
     <circle cx="${cx}" cy="${cy}" r="10" fill="none" stroke="#ff5a3c" stroke-width="4" opacity=".85">
       <animate attributeName="r" values="9;20;9" dur="1.6s" repeatCount="indefinite"/>
       <animate attributeName="opacity" values=".85;0;.85" dur="1.6s" repeatCount="indefinite"/>
@@ -138,6 +146,7 @@ function renderViewMedia(videoElId, imgElId, url, type){
 
 function renderInspectorViewOnly(it){
   resetInspViewTabs();
+  document.getElementById('view-placement-instructions').textContent = placementInstructions(it.xPct, it.yPct);
   renderMiniMap(it);
   const typeNotes = typeNotesFor(it);
   const teardownEl = document.getElementById('view-teardown');

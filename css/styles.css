@@ -205,6 +205,21 @@
   .pit-badge{position:absolute;left:10px;bottom:10px;z-index:30;font-size:10.5px;color:var(--text-lo);background:rgba(12,15,19,.6);padding:4px 9px;border-radius:5px;letter-spacing:.02em;}
   .readonly-badge{position:absolute;left:10px;top:10px;z-index:30;font-size:10.5px;font-weight:700;color:#12161c;background:var(--gold);padding:5px 10px;border-radius:5px;letter-spacing:.03em;text-transform:uppercase;display:none;}
   body:not(.mode-edit) .readonly-badge{display:block;}
+  /* shown only while Full Screen is on but the phone is still upright —
+     orientation lock isn't reliable enough to count on (iOS never
+     implemented it at all), so this tells the person what to actually
+     do instead of leaving Full Screen looking like it did nothing.
+     Toggled in field.js, not pure CSS, since it depends on both the
+     landscape-immersive class AND the live matchMedia orientation state. */
+  .rotate-hint{
+    position:absolute;inset:0;z-index:40;display:none;
+    flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    background:rgba(12,15,19,.88);color:#eceef2;text-align:center;padding:24px;
+  }
+  .rotate-hint:not([hidden]){display:flex;}
+  .rotate-hint svg{animation:rotate-hint-spin 1.8s ease-in-out infinite;color:var(--gold);}
+  .rotate-hint span{font-size:13px;font-weight:600;max-width:220px;line-height:1.4;}
+  @keyframes rotate-hint-spin{0%,20%{transform:rotate(0deg);}50%,70%{transform:rotate(-90deg);}100%{transform:rotate(-90deg);}}
 
   .overlay{position:fixed;inset:0;background:rgba(6,8,11,.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;}
   /* the confirm dialog can be triggered from inside another open modal

@@ -437,10 +437,21 @@ setMobileNavView('field');
         gets both.
 ---------------------------------------------------------------- */
 const btnFieldFullscreen = document.getElementById('btn-field-fullscreen');
+const rotateHintEl = document.getElementById('rotate-hint');
 function updateFullscreenBtnLabel(){
   const active = document.body.classList.contains('landscape-immersive');
   btnFieldFullscreen.querySelector('span').textContent = active ? 'Exit Full Screen' : 'Full Screen';
   btnFieldFullscreen.classList.toggle('active', active);
+}
+// Full Screen tapped while the phone is still upright still hides the
+// menus (that part needs no permission), but without a real landscape
+// shape to lay the field out in, it just looks like the button did
+// nothing — orientation.lock() can't be counted on to fix that (iOS
+// never implemented it at all, see the comment above), so tell the
+// person directly what to do instead of leaving them guessing
+function updateRotateHint(){
+  const stillUpright = document.body.classList.contains('landscape-immersive') && !landscapePhoneQuery.matches;
+  rotateHintEl.hidden = !stillUpright;
 }
 function enterFieldImmersive(){
   document.body.classList.add('landscape-immersive');
@@ -452,6 +463,7 @@ function enterFieldImmersive(){
     screen.orientation.lock('landscape').catch(()=>{});
   }
   updateFullscreenBtnLabel();
+  updateRotateHint();
 }
 function exitFieldImmersive(){
   document.body.classList.remove('landscape-immersive');
@@ -463,6 +475,7 @@ function exitFieldImmersive(){
     try{ screen.orientation.unlock(); }catch(e){}
   }
   updateFullscreenBtnLabel();
+  updateRotateHint();
 }
 btnFieldFullscreen.addEventListener('click', ()=>{
   if(document.body.classList.contains('landscape-immersive')) exitFieldImmersive();
@@ -487,6 +500,7 @@ landscapePhoneQuery.addEventListener('change', e=>{
 });
 if(landscapePhoneQuery.matches) document.body.classList.add('landscape-immersive'); // layout only — see enterFieldImmersive's comment on why requestFullscreen needs a real tap
 updateFullscreenBtnLabel();
+updateRotateHint();
 
 // mobile edit-mode "More" menu — Rename/New Event/Duplicate/Switch
 // Template/Save as Template/Delete Event/Export Season Data/Clear

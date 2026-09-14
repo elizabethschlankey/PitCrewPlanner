@@ -322,6 +322,7 @@ document.getElementById('btn-admin-back').addEventListener('click', ()=>{
   adminOpen = false;
   applyScreen();
   renderAll();
+  if(typeof setMobileNavView==='function') setMobileNavView('field');
 });
 document.getElementById('btn-template-edit-done').addEventListener('click', ()=>{
   editingTemplateId = null;

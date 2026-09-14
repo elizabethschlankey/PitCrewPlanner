@@ -323,27 +323,98 @@ btnToggleLabels.addEventListener('click', ()=>{
 });
 applyLabelVisibility();
 
-// mobile bottom nav — jumps to the field, opens the Badges tab, or (for
-// Crew) opens the Admin screen's Crew Roster tab, since roster
-// management now lives there rather than in the per-event palette.
+// mobile bottom nav — a real view switcher: exactly one of Field /
+// Help (Needs a Hand) / Badges-or-Equipment fills the screen below the
+// header at a time (see the body[data-mobile-view="..."] rules in
+// styles.css), instead of everything being stacked in one long scroll
+// with the field map squeezed in among it. Crew is the one exception —
+// it still opens the existing Admin screen rather than a panel here.
+function setMobileNavView(view){
+  document.body.dataset.mobileView = view;
+  document.querySelectorAll('#mobile-nav [data-nav]').forEach(b=>{
+    b.classList.toggle('active', b.dataset.nav===view);
+  });
+}
 document.querySelectorAll('#mobile-nav [data-nav]').forEach(btn=>{
   btn.addEventListener('click', ()=>{
-    document.querySelectorAll('#mobile-nav button').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
     const target = btn.dataset.nav;
-    if(target==='field'){
-      document.querySelector('.stage').scrollIntoView({behavior:'smooth', block:'start'});
-    }else if(target==='crew'){
+    setMobileNavView(target);
+    if(target==='crew'){
       adminOpen = true;
       editingTemplateId = null;
       setAdminTab('roster');
       applyScreen();
       renderAll();
-    }else{
-      const tabBtn = document.querySelector(`.tab-btn[data-tab="badges"]`);
+    }else if(target==='palette'){
+      // land on whichever sub-tab actually applies — Equipment for a
+      // signed-in editor, Badges for everyone else who can reach this
+      // tab at all (Lead Volunteer/Admin, via the data-badges-only gate)
+      const wantTab = document.body.classList.contains('mode-edit') ? 'crew' : 'badges';
+      const tabBtn = document.querySelector(`.tab-btn[data-tab="${wantTab}"]`);
       if(tabBtn) tabBtn.click();
-      document.getElementById('palette').scrollIntoView({behavior:'smooth', block:'start'});
     }
   });
 });
+setMobileNavView('field');
+
+// mobile edit-mode "More" menu — Rename/New Event/Duplicate/Switch
+// Template/Save as Template/Delete Event/Export Season Data/Clear
+// Items all need to see the field at the same time as you use them,
+// which is a desktop thing; on a phone they were just crowding the
+// header/event bar above the field. Collapsing them into one menu
+// (Go Live stays put — that one IS used from a phone) gives the
+// Field tab noticeably more height to work with. Admin isn't in this
+// menu at all — the Crew tab (bottom nav) already opens that screen.
+(function(){
+  const moreMenu = document.getElementById('mobile-more-menu');
+  const moreToggle = document.getElementById('mobile-more-toggle');
+  if(!moreMenu || !moreToggle) return;
+  const ids = ['btn-export-data','btn-clear','btn-rename-event','btn-new-event',
+    'btn-dup-event','btn-switch-template','btn-save-as-template','btn-del-event'];
+  const homes = ids.map(id=>{
+    const el = document.getElementById(id);
+    return el ? {el, parent:el.parentNode, next:el.nextSibling} : null;
+  }).filter(Boolean);
+
+  function closeMenu(){
+    document.body.classList.remove('mobile-more-open');
+    moreMenu.hidden = true;
+    moreToggle.setAttribute('aria-expanded', 'false');
+  }
+  function openMenu(){
+    const r = moreToggle.getBoundingClientRect();
+    moreMenu.style.top = Math.round(r.bottom + 8) + 'px';
+    moreMenu.hidden = false;
+    document.body.classList.add('mobile-more-open');
+    moreToggle.setAttribute('aria-expanded', 'true');
+  }
+
+  // elements physically move into the menu on phones and back into
+  // their original header/event-bar slot above that width, so desktop
+  // stays exactly as it was — this only ever runs the "mobile" branch
+  // on a screen narrow enough that the bottom nav is already showing
+  const mq = window.matchMedia('(max-width:820px)');
+  function layout(isMobile){
+    homes.forEach(({el, parent, next})=>{
+      if(isMobile){
+        moreMenu.appendChild(el);
+      }else if(el.parentNode !== parent){
+        parent.insertBefore(el, next);
+      }
+    });
+    closeMenu();
+  }
+  layout(mq.matches);
+  mq.addEventListener('change', e=>layout(e.matches));
+
+  moreToggle.addEventListener('click', ()=>{
+    if(moreMenu.hidden) openMenu(); else closeMenu();
+  });
+  // tapping any action inside closes the menu — each button's own
+  // handler (attached elsewhere, unaffected by the move) still runs
+  moreMenu.addEventListener('click', e=>{ if(e.target.closest('button')) closeMenu(); });
+  document.addEventListener('click', e=>{
+    if(!moreMenu.hidden && !moreMenu.contains(e.target) && !moreToggle.contains(e.target)) closeMenu();
+  });
+})();
 

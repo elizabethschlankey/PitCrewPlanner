@@ -16,7 +16,10 @@
       <button id="btn-mode-toggle">Sign In</button>
       <button id="btn-admin" class="ghost" data-edit-only>Admin</button>
       <button id="btn-signout" class="ghost" data-signed-in-only>Sign Out</button>
-      <button id="btn-export" data-event-only>Export PNG</button>
+      <button id="btn-export" data-event-only title="Export PNG" aria-label="Export PNG">
+        <svg viewBox="0 0 24 24" fill="none" width="16" height="16" class="btn-icon"><path d="M12 3v12m0 0l-4-4m4 4l4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="btn-label">Export PNG</span>
+      </button>
       <button id="btn-export-data" data-edit-only data-event-only>Export Season Data</button>
       <button id="btn-clear" class="danger" data-edit-only>Clear Items</button>
     </div>

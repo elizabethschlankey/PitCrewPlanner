@@ -2,6 +2,16 @@
     <label for="event-select">Event</label>
     <select id="event-select"></select>
     <span class="pill template" id="hdr-template-pill" title="Template this event follows"></span>
+    <!-- mobile-only: Rename/New Event/Duplicate/Switch Template/Save
+         as Template/Delete Event below, plus Export Season Data/Clear
+         Items from the header, collapse into this on phones (see
+         js/field.js) — those all need to see the field at the same
+         time as you use them, a desktop thing. Lives next to the
+         event picker since that's what it's actually related to. -->
+    <button type="button" id="mobile-more-toggle" class="small ghost mobile-more-toggle" data-edit-only aria-haspopup="true" aria-expanded="false" title="More actions">
+      <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><circle cx="12" cy="5.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="18.5" r="1.6" fill="currentColor"/></svg>
+    </button>
+    <div class="mobile-more-menu" id="mobile-more-menu" data-edit-only hidden></div>
     <button id="btn-set-current" class="small" data-edit-only title="Make this the event volunteers see by default">🔴 Go Live</button>
     <button id="btn-rename-event" class="small" data-edit-only>✎ Rename</button>
     <button id="btn-new-event" class="small" data-edit-only>+ New Event</button>

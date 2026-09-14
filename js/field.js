@@ -161,12 +161,44 @@ function canDoubleUp(typeIdA, typeIdB){
 }
 
 /* ---------------------------------------------------------------
+   MOBILE FIELD SIZING — below 820px, .field-fill (styles.css) takes
+   over the "grow to fill the tab" job from .field-viewport so plain
+   flexbox (unambiguous) handles that, but that leaves .field-viewport
+   itself with no way to size to the field's 1200:620 shape: it has no
+   normal-flow content at all (field-wrap/offscreen-arrows/zoom-controls
+   are all position:absolute), so CSS aspect-ratio has nothing to derive
+   a size from once it isn't stretched to fill its parent, and collapses
+   toward zero instead. Sized here in JS instead — the same kind of
+   geometry math zoomToPit() below already does — fitting the largest
+   1200:620 box within whatever space .field-fill actually has, the way
+   object-fit:contain would for a replaced element like <img>.
+---------------------------------------------------------------- */
+const fieldFillEl = document.querySelector('.field-fill');
+const MOBILE_FIELD_BREAKPOINT = 820;
+function sizeMobileField(){
+  if(window.innerWidth > MOBILE_FIELD_BREAKPOINT){
+    fieldViewport.style.width = '';
+    fieldViewport.style.height = '';
+    return;
+  }
+  const fillRect = fieldFillEl.getBoundingClientRect();
+  if(!fillRect.width || !fillRect.height) return; // hidden tab right now — sized again once it's shown, see setMobileNavView
+  const ratio = 1200/620;
+  let w = fillRect.width, h = w/ratio;
+  if(h > fillRect.height){ h = fillRect.height; w = h*ratio; }
+  fieldViewport.style.width = Math.floor(w)+'px';
+  fieldViewport.style.height = Math.floor(h)+'px';
+}
+window.addEventListener('resize', sizeMobileField);
+
+/* ---------------------------------------------------------------
    ZOOM TO PIT BOX
 ---------------------------------------------------------------- */
 const fieldViewport = document.getElementById('field-viewport');
 const btnZoomPit = document.getElementById('btn-zoom-pit');
 const btnZoomReset = document.getElementById('btn-zoom-reset');
 let isZoomed = false;
+sizeMobileField();
 
 // Icons scale naturally with the zoom transform (like zooming into a
 // real map) instead of staying a fixed screen size — that's what lets
@@ -334,6 +366,9 @@ function setMobileNavView(view){
   document.querySelectorAll('#mobile-nav [data-nav]').forEach(b=>{
     b.classList.toggle('active', b.dataset.nav===view);
   });
+  // .field-fill measures as 0x0 while its tab is hidden (display:none),
+  // so re-measure now that switching to Field just made it visible
+  if(view==='field') sizeMobileField();
 }
 document.querySelectorAll('#mobile-nav [data-nav]').forEach(btn=>{
   btn.addEventListener('click', ()=>{

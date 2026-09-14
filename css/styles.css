@@ -178,6 +178,10 @@
   .roster-add h2{font-family:'Oswald',sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);}
 
   .stage{flex:3 1 auto;min-width:0;max-width:1650px;display:flex;flex-direction:column;background:#0d1015;padding:16px 12px;gap:14px;overflow:auto;}
+  /* on desktop this wrapper is invisible to layout (its child behaves
+     as if it were a direct child of .stage, unchanged from before it
+     existed) — it only becomes a real box on mobile, see below */
+  .field-fill{display:contents;}
   .field-viewport{position:relative;width:100%;max-width:1600px;margin:0 auto;background:var(--turf-a);border-radius:6px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.5);border:3px solid #1a2e17;touch-action:none;}
   .field-viewport::before{content:"";display:block;padding-top:51.667%;}
   .field-wrap{position:absolute;inset:0;width:100%;height:100%;transform-origin:0 0;transition:transform .5s cubic-bezier(.4,0,.2,1);}
@@ -435,16 +439,21 @@
   /* the field itself: fill all the height its tab gives it instead of
      the fixed width-driven aspect-ratio box that made sense when it
      shared the screen with a palette/Needs-a-Hand panel stacked around
-     it. flex:1 (main axis = height, .stage is a column) lets it grow
-     to fill available space; align-self:center (overriding the default
-     stretch) leaves width free so aspect-ratio can derive it from that
-     height — capped by max-width so portrait phones still get the full
-     width, same as before, when height isn't the tighter constraint. */
+     it. .field-fill does the unambiguous "take the remaining space and
+     center a child in it" job (plain flexbox). .field-viewport's actual
+     1200:620 sizing is computed in JS (sizeMobileField() in field.js),
+     not CSS aspect-ratio — .field-viewport has no normal-flow content
+     at all (field-wrap/offscreen-arrows/zoom-controls are all
+     position:absolute), so once it isn't stretched to fill its parent,
+     aspect-ratio has nothing to derive a size from and collapses toward
+     zero instead of "containing" within the available space, the way
+     object-fit:contain would for a replaced element like <img>. */
   @media (max-width:820px){
-    .field-viewport{
-      flex:1 1 auto;min-height:0;align-self:center;
-      width:auto;max-width:100%;aspect-ratio:1200/620;margin:0;
+    .field-fill{
+      display:flex;flex:1 1 auto;min-height:0;
+      align-items:center;justify-content:center;overflow:hidden;
     }
+    .field-viewport{margin:0;}
     .field-viewport::before{content:none;}
   }
 

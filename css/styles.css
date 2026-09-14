@@ -47,6 +47,7 @@
   button.small{padding:6px 10px;font-size:11.5px;}
   #save-status{font-size:11px;color:var(--text-lo);min-width:90px;}
   body:not(.mode-edit) [data-edit-only]{display:none !important;}
+  body.mode-edit [data-view-only]{display:none !important;}
   /* role-tiered access — see js/state.js roleForSession()/renderHeader().
      badges-unlocked = edit mode OR the Lead Volunteer role (their whole
      reason for signing in); role-admin/signed-in are narrower/wider
@@ -323,6 +324,13 @@
   .assign-panel.collapsed .assign-panel-toggle svg{transform:rotate(90deg);} /* pointing right: click pulls it back out */
   .assign-panel.collapsed .assign-panel-toggle .assign-panel-label{display:none;} /* the count badge stays — still glance-able collapsed */
   .assign-panel.collapsed #btn-clear-volunteers{display:none;}
+  .assign-panel.collapsed .assign-search{display:none;}
+  .assign-search{display:flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--panel-edge);border-radius:20px;padding:5px 10px;flex:0 1 170px;min-width:0;}
+  .assign-search:focus-within{border-color:var(--help);}
+  .assign-search svg{width:13px;height:13px;flex:none;color:var(--text-lo);}
+  .assign-search input{flex:1;min-width:0;background:transparent;border:none;outline:none;color:#eceef2;font-size:12px;font-family:inherit;}
+  .assign-search input::placeholder{color:var(--text-lo);}
+  .assign-search input::-webkit-search-cancel-button{cursor:pointer;}
   .assign-panel-body{display:flex;flex-direction:column;gap:10px;padding:0 14px 16px;overflow-y:auto;flex:1;min-height:0;}
   .assign-panel.collapsed .assign-panel-body{display:none;}
   .assign-panel .hint{font-size:11px;color:var(--text-lo);margin:0;line-height:1.5;}
@@ -425,6 +433,7 @@
     .assign-panel.collapsed .assign-panel-toggle svg{transform:rotate(-90deg);}
     .assign-panel.collapsed .assign-panel-toggle .assign-panel-label{display:inline;}
     .assign-panel.collapsed #btn-clear-volunteers{display:inline-block;}
+    .assign-panel.collapsed .assign-search{display:flex;}
   }
   @media (max-width:820px){ .palette{width:100%;max-width:none;flex-direction:row;flex-wrap:wrap;border-right:none;border-bottom:1px solid var(--panel-edge);max-height:220px;} .palette h2{width:100%;} .custom-add, .roster-add{width:100%;} }
   /* fixed bottom nav — quick jump to Field / Badges / Crew while out on

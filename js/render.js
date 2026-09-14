@@ -190,13 +190,21 @@ function volunteerBadge(volunteerId){
   return null;
 }
 
+// view-only "find your name" search — lets a volunteer type their own
+// name to jump straight to whatever they're tagged to help carry,
+// instead of scanning the whole Needs a Hand list by eye
+let assignSearchQuery = '';
 function renderAssignments(){
-  const items = currentEvent().items.filter(it=>it.needsHelp);
-  const totalHelpersNeeded = items.reduce((sum,it)=> sum + (it.helpersNeeded||1), 0);
+  const allItems = currentEvent().items.filter(it=>it.needsHelp);
+  const totalHelpersNeeded = allItems.reduce((sum,it)=> sum + (it.helpersNeeded||1), 0);
   document.getElementById('assign-count').textContent = totalHelpersNeeded;
+  const q = assignSearchQuery.trim().toLowerCase();
+  const items = q ? allItems.filter(it => (it.assignedIds||[]).some(id => (volunteerName(id)||'').toLowerCase().includes(q))) : allItems;
   const list = document.getElementById('assign-list');
   if(!items.length){
-    list.innerHTML = `<div class="assign-empty">No items are flagged for extra hands right now. ${mode==='edit' ? 'Click an item on the field to tag it.' : ''}</div>`;
+    list.innerHTML = q
+      ? `<div class="assign-empty">No one matching your search is tagged to help with anything right now.</div>`
+      : `<div class="assign-empty">No items are flagged for extra hands right now. ${mode==='edit' ? 'Click an item on the field to tag it.' : ''}</div>`;
     return;
   }
   const timingLabel = v => (TIMING_OPTIONS.find(t=>t.v===v)||{}).label || '';
@@ -351,4 +359,10 @@ assignPanelToggle.addEventListener('click', ()=>{
   applyAssignPanelState();
 });
 applyAssignPanelState();
+
+const assignSearchInput = document.getElementById('assign-search-input');
+assignSearchInput.addEventListener('input', ()=>{
+  assignSearchQuery = assignSearchInput.value;
+  renderAssignments();
+});
 

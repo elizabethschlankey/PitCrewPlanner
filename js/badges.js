@@ -24,6 +24,12 @@ function volunteersWithBadgeOut(){
   return ids;
 }
 
+// every badge whose most recent event is a checkout — i.e. still out
+// there with someone right now
+function badgesCurrentlyOut(){
+  return STATE.badges.filter(b=>badgeStatus(b.id).out);
+}
+
 // per-event, per-badge "on hand or not" — badges themselves are
 // season-wide (see badgeStatus above); this is purely which of them you
 // actually brought to THIS event. No row = active (the default).
@@ -60,6 +66,12 @@ function badgeRowHTML(b, active){
 
 function renderBadges(){
   const list = document.getElementById('badge-list');
+  const checkInAllBtn = document.getElementById('badge-checkin-all-btn');
+  if(checkInAllBtn){
+    const outCount = badgesCurrentlyOut().length;
+    checkInAllBtn.style.display = outCount ? 'inline-block' : 'none';
+    document.getElementById('badge-checkin-all-count').textContent = outCount;
+  }
   if(!STATE.badges.length){
     list.innerHTML = `<div class="roster-empty">No badges yet. Add one below.</div>`;
     return;
@@ -85,6 +97,31 @@ document.getElementById('badge-add-btn').addEventListener('click', async ()=>{
   }
   const ok = await db(sb.from('badges').insert({label}), 'add badge');
   if(ok) input.value = '';
+});
+
+// "Check In All" — bulk-return every badge that's currently checked
+// out, for the end of an event when going around to check each one in
+// individually (with its own return photo) isn't worth the time. No
+// photo attached — there's no way to snap N individual return photos
+// in one bulk action — so anyone who wants a photo on file for a
+// specific badge should still check that one in on its own instead.
+document.getElementById('badge-checkin-all-btn').addEventListener('click', ()=>{
+  const out = badgesCurrentlyOut();
+  if(!out.length) return;
+  openConfirm(
+    `Check in all ${out.length} badge${out.length===1?'':'s'} currently checked out? This assumes everyone actually returned theirs — check an individual badge in from its own card instead if you want a return photo on file.`,
+    async ()=>{
+      const rows = out.map(b=>{
+        const st = badgeStatus(b.id);
+        return {
+          badge_id: b.id, volunteer_id: st.event.volunteer_id,
+          volunteer_name_snapshot: st.event.volunteer_name_snapshot,
+          action: 'checkin', photo_url: null
+        };
+      });
+      await db(sb.from('badge_events').insert(rows), 'bulk badge check-in');
+    }
+  );
 });
 
 document.getElementById('badge-list').addEventListener('click', e=>{

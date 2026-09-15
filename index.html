@@ -114,42 +114,50 @@
 
   <div class="layout">
     <aside class="palette" id="palette" data-badges-only>
-      <div class="toggle-row palette-lock-row" data-event-only data-edit-only title="Lock Equipment/Instruments so a drag on your phone can't accidentally move or add anything while you're just checking badges in/out">
-        <div class="toggle-label">🔒 Lock Equipment/Instruments</div>
-        <label class="switch">
-          <input type="checkbox" id="field-lock-toggle">
-          <span class="track"></span>
-          <span class="knob"></span>
-        </label>
+      <div class="palette-header">
+        <button type="button" class="palette-toggle" id="palette-toggle" title="Show/hide the equipment palette — more room for the field and Needs a Hand while you're assigning volunteers">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="palette-toggle-label">Palette</span>
+        </button>
       </div>
-      <div class="tab-row">
-        <button class="tab-btn" data-tab="badges" type="button" data-event-only>Badges</button>
-        <button class="tab-btn active" data-tab="crew" type="button" data-edit-only>Equipment</button>
-        <button class="tab-btn" data-tab="instruments" type="button" data-edit-only>Instruments</button>
-      </div>
-      <div class="tab-panel" id="tab-crew" data-edit-only>
-        <p class="hint">Press and drag any item onto the field. Drop the same item multiple times if you need more than one.</p>
-        <div id="pal-list"></div>
-      </div>
-      <div class="tab-panel" id="tab-instruments" style="display:none;" data-edit-only>
-        <p class="hint">Drag out vibes, marimbas, timpani, drum set pieces, and synths.</p>
-        <div id="pal-list-instruments"></div>
-      </div>
-      <div id="custom-add-wrap" data-edit-only>
-        <h2 style="margin-top:14px;">Add Custom Item</h2>
-        <div class="custom-add">
-          <input id="custom-label" type="text" placeholder="e.g. Water Table" maxlength="24">
-          <button id="custom-add-btn">Add</button>
+      <div class="palette-body" id="palette-body">
+        <div class="toggle-row palette-lock-row" data-event-only data-edit-only title="Lock Equipment/Instruments so a drag on your phone can't accidentally move or add anything while you're just checking badges in/out">
+          <div class="toggle-label">🔒 Lock Equipment/Instruments</div>
+          <label class="switch">
+            <input type="checkbox" id="field-lock-toggle">
+            <span class="track"></span>
+            <span class="knob"></span>
+          </label>
         </div>
-      </div>
-      <div class="tab-panel" id="tab-badges" style="display:none;" data-event-only>
-        <p class="hint">Check a badge out to a volunteer with a photo of the badge and the person — check it back in the same way, so you always know who had it last. The switch on each badge marks whether it's on hand for this event.</p>
-        <div id="badge-list"></div>
-        <h2 style="margin-top:14px;">New Badge</h2>
-        <div class="roster-add">
-          <input id="badge-label" type="text" placeholder="e.g. Sideline Pass 3" maxlength="40">
-          <div class="inline-error" id="badge-label-error"></div>
-          <button id="badge-add-btn">Add Badge</button>
+        <div class="tab-row">
+          <button class="tab-btn" data-tab="badges" type="button" data-event-only>Badges</button>
+          <button class="tab-btn active" data-tab="crew" type="button" data-edit-only>Equipment</button>
+          <button class="tab-btn" data-tab="instruments" type="button" data-edit-only>Instruments</button>
+        </div>
+        <div class="tab-panel" id="tab-crew" data-edit-only>
+          <p class="hint">Press and drag any item onto the field. Drop the same item multiple times if you need more than one.</p>
+          <div id="pal-list"></div>
+        </div>
+        <div class="tab-panel" id="tab-instruments" style="display:none;" data-edit-only>
+          <p class="hint">Drag out vibes, marimbas, timpani, drum set pieces, and synths.</p>
+          <div id="pal-list-instruments"></div>
+        </div>
+        <div id="custom-add-wrap" data-edit-only>
+          <h2 style="margin-top:14px;">Add Custom Item</h2>
+          <div class="custom-add">
+            <input id="custom-label" type="text" placeholder="e.g. Water Table" maxlength="24">
+            <button id="custom-add-btn">Add</button>
+          </div>
+        </div>
+        <div class="tab-panel" id="tab-badges" style="display:none;" data-event-only>
+          <p class="hint">Check a badge out to a volunteer with a photo of the badge and the person — check it back in the same way, so you always know who had it last. The switch on each badge marks whether it's on hand for this event.</p>
+          <div id="badge-list"></div>
+          <h2 style="margin-top:14px;">New Badge</h2>
+          <div class="roster-add">
+            <input id="badge-label" type="text" placeholder="e.g. Sideline Pass 3" maxlength="40">
+            <div class="inline-error" id="badge-label-error"></div>
+            <button id="badge-add-btn">Add Badge</button>
+          </div>
         </div>
       </div>
     </aside>

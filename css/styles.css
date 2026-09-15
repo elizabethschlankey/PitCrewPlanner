@@ -149,7 +149,24 @@
   .inline-form .form-error{font-size:11.5px;color:#ff8a80;width:100%;}
 
   .layout{display:flex;flex:1;min-height:0;align-items:stretch;}
-  .palette{flex:1 1 262px;max-width:380px;background:var(--panel);border-right:1px solid var(--panel-edge);display:flex;flex-direction:column;padding:16px 14px;gap:10px;overflow-y:auto;}
+  /* collapsible, same mechanism as the Needs a Hand drawer (see
+     .assign-panel below) — shrinks to a slim handle so .stage/
+     .assign-panel (its flex-grow siblings) can reclaim the width,
+     which matters most while assigning volunteers: the equipment
+     palette isn't useful for that task, so tucking it away gives
+     Needs a Hand and the field more room until you're back to placing
+     items. */
+  .palette{flex:1 1 262px;max-width:380px;background:var(--panel);border-right:1px solid var(--panel-edge);display:flex;flex-direction:column;overflow:hidden;transition:flex-basis .2s ease,max-width .2s ease;}
+  .palette.collapsed{flex:0 0 46px;max-width:46px;}
+  .palette-header{display:flex;align-items:center;padding:16px 14px 10px;}
+  .palette.collapsed .palette-header{flex-direction:column;padding:14px 0;}
+  .palette-toggle{display:flex;align-items:center;gap:8px;background:transparent;border:none;padding:0;margin:0;cursor:pointer;font-family:'Oswald',sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);}
+  .palette.collapsed .palette-toggle{flex-direction:column;gap:6px;}
+  .palette-toggle svg{width:13px;height:13px;flex:none;color:var(--text-lo);transition:transform .2s;transform:rotate(90deg);} /* pointing right: click collapses the drawer leftward */
+  .palette.collapsed .palette-toggle svg{transform:rotate(-90deg);} /* pointing left: click pulls it back out */
+  .palette.collapsed .palette-toggle-label{display:none;}
+  .palette-body{display:flex;flex-direction:column;gap:10px;padding:0 14px 16px;overflow-y:auto;flex:1;min-height:0;}
+  .palette.collapsed .palette-body{display:none;}
   .palette h2{font-family:'Oswald',sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);margin:4px 0 2px;}
   .palette .hint{font-size:11px;color:var(--text-lo);margin:0 0 6px;line-height:1.5;}
   .tab-row{display:flex;gap:4px;background:var(--panel-2);border:1px solid var(--panel-edge);border-radius:8px;padding:3px;margin-bottom:10px;}
@@ -460,6 +477,13 @@
     .assign-panel.collapsed .assign-panel-toggle .assign-panel-label{display:inline;}
     .assign-panel.collapsed #btn-clear-volunteers{display:inline-block;}
     .assign-panel.collapsed .assign-search{display:flex;}
+    .palette{width:100%;max-width:none;border-right:none;border-bottom:1px solid var(--panel-edge);max-height:280px;}
+    .palette.collapsed{width:100%;max-width:none;max-height:none;}
+    .palette.collapsed .palette-header{flex-direction:row;padding:16px 14px 10px;}
+    .palette.collapsed .palette-toggle{flex-direction:row;}
+    .palette-toggle svg{transform:rotate(0deg);}
+    .palette.collapsed .palette-toggle svg{transform:rotate(-90deg);}
+    .palette.collapsed .palette-toggle-label{display:inline;}
   }
   @media (max-width:820px){ .palette{width:100%;max-width:none;flex-direction:row;flex-wrap:wrap;border-right:none;border-bottom:1px solid var(--panel-edge);max-height:220px;} .palette h2{width:100%;} .custom-add, .roster-add{width:100%;} }
   /* fixed bottom nav — quick jump to Field / Badges / Crew while out on
@@ -520,9 +544,10 @@
        size-sensitive */
     .stage{padding:6px 8px calc(70px + env(safe-area-inset-bottom));gap:6px;}
     /* the side-drawer collapse (a "give the field more room" trick from
-       the desktop/tablet layout) is meaningless once Help is already
-       its own full-screen tab */
+       the desktop/tablet layout) is meaningless once Help/Equipment are
+       already their own full-screen tabs */
     .assign-panel.collapsed{display:none !important;}
+    .palette.collapsed{display:none !important;}
     body.admin-open:not(.editing-template) #admin-screen{
       flex:1;min-height:0;overflow-y:auto;
       padding-bottom:calc(70px + env(safe-area-inset-bottom));

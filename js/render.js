@@ -366,3 +366,22 @@ assignSearchInput.addEventListener('input', ()=>{
   renderAssignments();
 });
 
+// Equipment palette — same collapsible-sidebar mechanism as Needs a
+// Hand above, mirrored on the other side: collapsing it shrinks its
+// width so the field/Needs a Hand gain that room back, which matters
+// most while assigning volunteers — the palette isn't useful for that
+// task, so tucking it away gives Needs a Hand more room to work in.
+const palette = document.getElementById('palette');
+const paletteToggle = document.getElementById('palette-toggle');
+let paletteOpen = true;
+try{ paletteOpen = localStorage.getItem('palette-open') !== '0'; }catch(e){}
+function applyPaletteState(){
+  palette.classList.toggle('collapsed', !paletteOpen);
+}
+paletteToggle.addEventListener('click', ()=>{
+  paletteOpen = !paletteOpen;
+  try{ localStorage.setItem('palette-open', paletteOpen?'1':'0'); }catch(e){}
+  applyPaletteState();
+});
+applyPaletteState();
+

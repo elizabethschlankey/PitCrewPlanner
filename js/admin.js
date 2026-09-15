@@ -706,16 +706,6 @@ function volunteerAnalytics(){
       }
       if(evt.items.some(it=>(it.anchoredIds||[]).includes(v.id))) anchoredCount++;
     });
-    // Reliability = events helped / total events this season. (Earlier
-    // version divided by eventsSignedUp instead — meant to measure
-    // "did they follow through on what they said they'd do" — but the
-    // Signed Up status isn't consistently used in practice, so
-    // eventsSignedUp sits at 0 for most volunteers, and dividing by
-    // max(0, eventsHelped) collapses to eventsHelped/eventsHelped —
-    // ALWAYS 100%, even for someone who helped at just 1 of 5 events.
-    // Plain participation rate has no such trap: it's honest with
-    // whatever data actually exists.)
-    const reliabilityPct = totalEvents>0 ? Math.round(eventsHelped/totalEvents*100) : null;
     // Badge accountability — every checkout under their name vs. every
     // checkin recorded under their name (a checkin always keeps the
     // ORIGINAL holder's volunteer_id, see handleBadgeAction in
@@ -726,6 +716,27 @@ function volunteerAnalytics(){
     const badgeCheckouts = STATE.badgeEvents.filter(e=>e.volunteer_id===v.id && e.action==='checkout').length;
     const badgeReturns = STATE.badgeEvents.filter(e=>e.volunteer_id===v.id && e.action==='checkin').length;
     const badgesHeldNow = STATE.badges.filter(b=>{ const st = badgeStatus(b.id); return st.out && st.event.volunteer_id===v.id; }).length;
+    // Reliability = did they follow through on the commitments they
+    // actually made, not "did they attend every single event this
+    // season" (plenty of volunteers are only ever available for some
+    // events — that's normal, not unreliable). Two components, each
+    // only counted when there's real data for it:
+    //  - signup follow-through: of the events they signed up for, how
+    //    many did they actually get assigned to help at (clamped to
+    //    100% — someone can get assigned without ever being marked
+    //    Signed Up for that specific event, so helped can exceed
+    //    signedUp; that's not "150% reliable")
+    //  - badge accountability: of the badges they checked out, how
+    //    many did they return
+    // A volunteer with only one kind of history uses just that one;
+    // with both, they're averaged. Nobody with NEITHER signup nor
+    // badge history gets a percentage at all — raw participation
+    // (eventsHelped) is still shown separately, just not used to
+    // score "reliability" on its own.
+    const components = [];
+    if(eventsSignedUp>0) components.push(Math.min(1, eventsHelped/eventsSignedUp));
+    if(badgeCheckouts>0) components.push(badgeReturns/badgeCheckouts);
+    const reliabilityPct = components.length ? Math.round(components.reduce((a,b)=>a+b,0)/components.length*100) : null;
     return {
       id:v.id, name:v.name, role:v.role, totalEvents, eventsHelped, eventsSignedUp, eventsByType,
       anchoredCount, lastHelpedDate, reliabilityPct, badgeCheckouts, badgeReturns, badgesHeldNow
@@ -734,12 +745,13 @@ function volunteerAnalytics(){
 }
 function reliabilityPillHTML(row){
   if(row.reliabilityPct===null){
-    return `<div class="reliability-pill none" title="No events recorded this season yet">No data</div>`;
+    return `<div class="reliability-pill none" title="No signup or badge history yet — reliability needs at least one of those to score">No data</div>`;
   }
   const cls = row.reliabilityPct>=80 ? 'good' : row.reliabilityPct>=50 ? 'mid' : 'low';
-  const title = row.eventsSignedUp>0
-    ? `Helped ${row.eventsHelped} of ${row.totalEvents} events this season (signed up for ${row.eventsSignedUp} of them)`
-    : `Helped ${row.eventsHelped} of ${row.totalEvents} events this season`;
+  const parts = [];
+  if(row.eventsSignedUp>0) parts.push(`signed up for ${row.eventsSignedUp}, helped at ${row.eventsHelped}`);
+  if(row.badgeCheckouts>0) parts.push(`${row.badgeReturns}/${row.badgeCheckouts} badge checkouts returned`);
+  const title = parts.join(' · ') || `Helped ${row.eventsHelped} of ${row.totalEvents} events this season`;
   return `<div class="reliability-pill ${cls}" title="${title}">${row.reliabilityPct}%</div>`;
 }
 // "Home 2 · Away 1 · Contest 2" — only the types they've actually

@@ -10,8 +10,12 @@
     --chip-scale:1; /* shrinks placed items on narrow screens so a full
       pit box row doesn't turn into an overlapping wall of icons/labels */
   }
-  @media (max-width:820px){ :root{ --chip-scale:.75; } }
-  @media (max-width:480px){ :root{ --chip-scale:.6; } }
+  /* max-width alone misses landscape phones (844/896/932px+ wide,
+     recurring gotcha throughout this file — see the Full Screen field
+     comments below) so every tier here also triggers on short height,
+     same as the rest of the mobile field layout */
+  @media (max-width:820px), (max-height:500px){ :root{ --chip-scale:.6; } }
+  @media (max-width:480px), (max-height:380px){ :root{ --chip-scale:.45; } }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;background:var(--ink);color:#eceef2;font-family:'Inter',sans-serif;min-height:100vh;}
   .app{display:flex;flex-direction:column;min-height:100vh;}

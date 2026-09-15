@@ -240,28 +240,30 @@
   .analytics-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
   .analytics-toolbar .assign-search{flex:0 1 220px;}
   #analytics-sort{background:var(--ink);border:1px solid var(--panel-edge);color:#eceef2;padding:8px 10px;border-radius:6px;font-size:12px;font-family:'Inter',sans-serif;}
-  #analytics-list{display:flex;flex-direction:column;gap:6px;}
-  .analytics-row{display:flex;align-items:center;gap:12px;background:var(--panel-2);border:1px solid var(--panel-edge);border-radius:8px;padding:9px 12px;}
-  .analytics-row .info{min-width:0;flex:1;}
-  .analytics-row .name{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .analytics-row .role{font-size:10px;color:var(--text-lo);text-transform:uppercase;letter-spacing:.03em;}
-  .analytics-row .stat-line{font-size:11.5px;color:#eceef2;white-space:nowrap;}
-  .analytics-row .stat-sub{font-size:10px;color:var(--text-lo);white-space:nowrap;}
-  .analytics-row .stat-sub.badge-accountability{font-weight:600;}
-  .analytics-row .stat-sub.badge-accountability.good{color:var(--good);}
-  .analytics-row .stat-sub.badge-accountability.mid{color:var(--gold);}
-  .analytics-row .stat-sub.badge-accountability.low{color:#ff8a80;}
-  .analytics-row .stats{flex:none;text-align:right;}
-  .reliability-pill{flex:none;min-width:52px;text-align:center;font-size:12px;font-weight:800;padding:5px 10px;border-radius:20px;}
-  .reliability-pill.good{background:rgba(74,154,91,.18);color:var(--good);}
-  .reliability-pill.mid{background:rgba(224,177,60,.18);color:var(--gold);}
-  .reliability-pill.low{background:rgba(193,68,58,.18);color:#ff8a80;}
-  .reliability-pill.none{background:var(--panel-edge);color:var(--text-lo);font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;}
-  .analytics-empty{font-size:11.5px;color:var(--text-lo);font-style:italic;padding:14px 4px;}
-  @media (max-width:480px){
-    .analytics-row{flex-wrap:wrap;}
-    .analytics-row .stats{flex:1 1 auto;text-align:left;}
-  }
+  /* a real <table> (the only one in this app — everything else uses
+     div "rows" — but columnar numbers across nine fields is exactly
+     what a table is for) — wrapped so it scrolls horizontally on
+     narrow screens instead of squeezing/breaking the page layout */
+  .analytics-table-wrap{overflow-x:auto;}
+  .analytics-table{width:100%;border-collapse:collapse;min-width:760px;}
+  .analytics-table th{text-align:right;font-family:'Oswald',sans-serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-lo);padding:0 10px 8px;white-space:nowrap;}
+  .analytics-table th.volunteer-col{text-align:left;}
+  .analytics-table td{padding:9px 10px;border-top:1px solid var(--panel-edge);font-size:12px;color:#eceef2;text-align:right;white-space:nowrap;}
+  .analytics-table tbody tr:hover td{background:var(--panel-2);}
+  .analytics-table .volunteer-cell{display:flex;align-items:center;gap:8px;text-align:left;white-space:normal;}
+  .analytics-table .info{min-width:0;}
+  .analytics-table .name{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;}
+  .analytics-table .role{font-size:10px;color:var(--text-lo);text-transform:uppercase;letter-spacing:.03em;}
+  .analytics-table .num-cell{font-variant-numeric:tabular-nums;}
+  .analytics-table .total-cell{font-weight:700;}
+  .analytics-table .num-empty{color:var(--panel-edge);}
+  .analytics-table .anchor-note{font-size:10px;color:var(--text-lo);font-weight:400;}
+  .analytics-table .date-cell{font-size:11px;color:var(--text-lo);}
+  .badge-cell{font-weight:700;}
+  .badge-cell.good{color:var(--good);}
+  .badge-cell.mid{color:var(--gold);}
+  .badge-cell.low{color:#ff8a80;}
+  .analytics-empty{font-size:11.5px;color:var(--text-lo);font-style:italic;padding:14px 4px;text-align:left;white-space:normal;}
 
   .stage{flex:3 1 auto;min-width:0;max-width:1650px;display:flex;flex-direction:column;background:#0d1015;padding:16px 12px;gap:14px;overflow:auto;}
   /* on desktop this wrapper is invisible to layout (its child behaves

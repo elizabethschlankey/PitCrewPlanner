@@ -684,24 +684,26 @@ document.getElementById('import-names-btn').addEventListener('click', async ()=>
    check-in for volunteers themselves, only for badges).
 ---------------------------------------------------------------- */
 // per volunteer: how many events they were actually assigned to help
-// at (overall, and broken down by Home/Away/Contest — see events.event_type),
-// how many they'd signed up for, badge check-in/out accountability, when
-// they last helped, and a reliability % (helped/signed-up) where that
-// comparison makes sense — a volunteer never marked "Signed Up" for
-// anything yet (this feature is easy to skip) falls back to ranking by
-// raw events helped instead of a misleading "0 signed up, so 0/0" pct.
+// at (overall, and broken down by Home/Away/Competition/Other — see
+// events.event_type), how many they'd signed up for, badge check-in/
+// out accountability, and when they last helped. Plain counts
+// throughout — an earlier version collapsed signup + badge history
+// into one computed reliability %, but that number kept being more
+// confusing than useful, so the raw numbers are what's shown instead
+// and a Lead Volunteer can judge reliability with their own eyes.
 function volunteerAnalytics(){
   const totalEvents = STATE.events.length;
   return STATE.roster.map(v=>{
     let eventsHelped = 0, eventsSignedUp = 0, anchoredCount = 0, lastHelpedDate = null;
-    const eventsByType = {home:0, away:0, contest:0};
+    const eventsByType = {home:0, away:0, contest:0, other:0};
     STATE.events.forEach(evt=>{
       const statusRow = STATE.eventVolunteerStatus.find(s=>s.event_id===evt.id && s.volunteer_id===v.id);
       if(statusRow && statusRow.status==='signed_up') eventsSignedUp++;
       const helpedThisEvent = evt.items.some(it=>(it.assignedIds||[]).includes(v.id));
       if(helpedThisEvent){
         eventsHelped++;
-        if(evt.eventType && eventsByType[evt.eventType]!==undefined) eventsByType[evt.eventType]++;
+        if(evt.eventType==='home'||evt.eventType==='away'||evt.eventType==='contest') eventsByType[evt.eventType]++;
+        else eventsByType.other++; // unclassified events (event_type==='')
         if(evt.date && (!lastHelpedDate || evt.date>lastHelpedDate)) lastHelpedDate = evt.date;
       }
       if(evt.items.some(it=>(it.anchoredIds||[]).includes(v.id))) anchoredCount++;
@@ -716,89 +718,48 @@ function volunteerAnalytics(){
     const badgeCheckouts = STATE.badgeEvents.filter(e=>e.volunteer_id===v.id && e.action==='checkout').length;
     const badgeReturns = STATE.badgeEvents.filter(e=>e.volunteer_id===v.id && e.action==='checkin').length;
     const badgesHeldNow = STATE.badges.filter(b=>{ const st = badgeStatus(b.id); return st.out && st.event.volunteer_id===v.id; }).length;
-    // Reliability = did they follow through on the commitments they
-    // actually made, not "did they attend every single event this
-    // season" (plenty of volunteers are only ever available for some
-    // events — that's normal, not unreliable). Two components, each
-    // only counted when there's real data for it:
-    //  - signup follow-through: of the events they signed up for, how
-    //    many did they actually get assigned to help at (clamped to
-    //    100% — someone can get assigned without ever being marked
-    //    Signed Up for that specific event, so helped can exceed
-    //    signedUp; that's not "150% reliable")
-    //  - badge accountability: of the badges they checked out, how
-    //    many did they return
-    // A volunteer with only one kind of history uses just that one;
-    // with both, they're averaged. Nobody with NEITHER signup nor
-    // badge history gets a percentage at all — raw participation
-    // (eventsHelped) is still shown separately, just not used to
-    // score "reliability" on its own.
-    const components = [];
-    if(eventsSignedUp>0) components.push(Math.min(1, eventsHelped/eventsSignedUp));
-    if(badgeCheckouts>0) components.push(badgeReturns/badgeCheckouts);
-    const reliabilityPct = components.length ? Math.round(components.reduce((a,b)=>a+b,0)/components.length*100) : null;
     return {
       id:v.id, name:v.name, role:v.role, totalEvents, eventsHelped, eventsSignedUp, eventsByType,
-      anchoredCount, lastHelpedDate, reliabilityPct, badgeCheckouts, badgeReturns, badgesHeldNow
+      anchoredCount, lastHelpedDate, badgeCheckouts, badgeReturns, badgesHeldNow
     };
   });
 }
-function reliabilityPillHTML(row){
-  if(row.reliabilityPct===null){
-    return `<div class="reliability-pill none" title="No signup or badge history yet — reliability needs at least one of those to score">No data</div>`;
-  }
-  const cls = row.reliabilityPct>=80 ? 'good' : row.reliabilityPct>=50 ? 'mid' : 'low';
-  const parts = [];
-  if(row.eventsSignedUp>0) parts.push(`signed up for ${row.eventsSignedUp}, helped at ${row.eventsHelped}`);
-  if(row.badgeCheckouts>0) parts.push(`${row.badgeReturns}/${row.badgeCheckouts} badge checkouts returned`);
-  const title = parts.join(' · ') || `Helped ${row.eventsHelped} of ${row.totalEvents} events this season`;
-  return `<div class="reliability-pill ${cls}" title="${title}">${row.reliabilityPct}%</div>`;
-}
-// "Home 2 · Away 1 · Contest 2" — only the types they've actually
-// helped at, so a volunteer who's only ever done Home games doesn't
-// show two zeroes cluttering their row
-function eventTypeBreakdownText(row){
-  const parts = [];
-  if(row.eventsByType.home) parts.push(`Home ${row.eventsByType.home}`);
-  if(row.eventsByType.away) parts.push(`Away ${row.eventsByType.away}`);
-  if(row.eventsByType.contest) parts.push(`Contest ${row.eventsByType.contest}`);
-  return parts.join(' · ');
-}
-function badgeAccountabilityHTML(row){
-  if(!row.badgeCheckouts) return '';
+// compact "3/3" (or "1/3" flagged) for the Badges Returned column — a
+// dash when they've never checked one out at all, so an empty column
+// doesn't read as "0 returned" (bad) when it really means "N/A"
+function badgeCellHTML(row){
+  if(!row.badgeCheckouts) return `<span class="num-empty">—</span>`;
   const outstanding = row.badgeCheckouts - row.badgeReturns;
-  const cleanReturn = outstanding<=0;
-  const cls = cleanReturn ? 'good' : row.badgesHeldNow===outstanding ? 'mid' : 'low';
-  const label = cleanReturn
-    ? `🏷 Badges: ${row.badgeReturns}/${row.badgeCheckouts} returned — none lost`
+  const cls = outstanding<=0 ? 'good' : row.badgesHeldNow===outstanding ? 'mid' : 'low';
+  const title = outstanding<=0
+    ? 'All badge checkouts returned — none lost'
     : row.badgesHeldNow===outstanding
-      ? `🏷 Badges: ${row.badgeReturns}/${row.badgeCheckouts} returned (${row.badgesHeldNow} currently checked out)`
-      : `🏷 Badges: ${row.badgeReturns}/${row.badgeCheckouts} returned — ${outstanding-row.badgesHeldNow} unaccounted for`;
-  return `<div class="stat-sub badge-accountability ${cls}">${label}</div>`;
+      ? `${row.badgesHeldNow} currently checked out`
+      : `${outstanding-row.badgesHeldNow} unaccounted for`;
+  return `<span class="badge-cell ${cls}" title="${title}">${row.badgeReturns}/${row.badgeCheckouts}</span>`;
 }
 // Season-wide numbers for the dashboard cards up top — the "guidance"
 // view, answered before you even scroll to a single name: how big is
-// the roster, how much has actually happened this season and what kind,
-// how reliable is the crew on average, who needs a nudge, what's still
-// checked out right now.
+// the roster, how much has actually happened this season and what
+// kind, how much help is the crew averaging, who needs a nudge,
+// what's still checked out right now.
 function seasonSummary(rows){
   const eventTypeCounts = {home:0, away:0, contest:0, unspecified:0};
   STATE.events.forEach(evt=>{
     if(evt.eventType==='home'||evt.eventType==='away'||evt.eventType==='contest') eventTypeCounts[evt.eventType]++;
     else eventTypeCounts.unspecified++;
   });
-  const withReliability = rows.filter(r=>r.reliabilityPct!==null);
-  const avgReliability = withReliability.length ? Math.round(withReliability.reduce((s,r)=>s+r.reliabilityPct,0)/withReliability.length) : null;
+  const avgEventsHelped = rows.length ? (rows.reduce((s,r)=>s+r.eventsHelped,0)/rows.length) : 0;
   const neverHelped = rows.filter(r=>r.eventsHelped===0).length;
   const badgesOutNow = STATE.badges.filter(b=>badgeStatus(b.id).out).length;
   return {
     totalVolunteers: STATE.roster.length, totalEvents: STATE.events.length,
-    eventTypeCounts, avgReliability, neverHelped, badgesOutNow
+    eventTypeCounts, avgEventsHelped, neverHelped, badgesOutNow
   };
 }
 function summaryCardsHTML(summary){
   const typeLine = [
-    `Home ${summary.eventTypeCounts.home}`, `Away ${summary.eventTypeCounts.away}`, `Contest ${summary.eventTypeCounts.contest}`
+    `Home ${summary.eventTypeCounts.home}`, `Away ${summary.eventTypeCounts.away}`, `Competitions ${summary.eventTypeCounts.contest}`
   ].join(' · ') + (summary.eventTypeCounts.unspecified ? ` · ${summary.eventTypeCounts.unspecified} unclassified` : '');
   return `
     <div class="summary-card">
@@ -811,8 +772,8 @@ function summaryCardsHTML(summary){
       <div class="summary-sub">${typeLine}</div>
     </div>
     <div class="summary-card">
-      <div class="summary-value">${summary.avgReliability!==null ? summary.avgReliability+'%' : '—'}</div>
-      <div class="summary-label">Avg. Reliability</div>
+      <div class="summary-value">${summary.avgEventsHelped.toFixed(1)}</div>
+      <div class="summary-label">Avg. Events Helped / Volunteer</div>
     </div>
     <div class="summary-card${summary.neverHelped ? ' attention' : ''}" ${summary.neverHelped ? 'data-analytics-focus="never-helped" role="button" tabindex="0"' : ''}>
       <div class="summary-value">${summary.neverHelped}</div>
@@ -825,68 +786,52 @@ function summaryCardsHTML(summary){
     </div>`;
 }
 let analyticsSearchQuery = '';
-let analyticsSort = 'reliability';
+let analyticsSort = 'helped';
 function renderAnalytics(){
   const list = document.getElementById('analytics-list');
   const summaryEl = document.getElementById('analytics-summary');
   if(!list || !summaryEl) return; // partials not in the DOM yet on first paint before boot finishes
+  const allRows = volunteerAnalytics();
+  summaryEl.innerHTML = STATE.roster.length ? summaryCardsHTML(seasonSummary(allRows)) : '';
   if(!STATE.roster.length){
-    summaryEl.innerHTML = '';
-    list.innerHTML = `<div class="analytics-empty">No volunteers on your roster yet.</div>`;
+    list.innerHTML = `<tr><td colspan="9" class="analytics-empty">No volunteers on your roster yet.</td></tr>`;
     return;
   }
-  const allRows = volunteerAnalytics();
-  summaryEl.innerHTML = summaryCardsHTML(seasonSummary(allRows));
 
   const q = analyticsSearchQuery.trim().toLowerCase();
   let rows = allRows;
   if(q) rows = rows.filter(r=>r.name.toLowerCase().includes(q));
   const byName = (a,b)=> a.name.localeCompare(b.name);
-  const byHelped = (a,b)=> b.eventsHelped-a.eventsHelped || byName(a,b);
-  // "most reliable first": no-signup-history volunteers sink to the
-  // bottom — there's no percentage to compare, and burying "no data
-  // yet" below anyone with an actual track record (good or bad) beats
-  // interleaving them arbitrarily among real percentages.
-  const byReliabilityDesc = (a,b)=>{
-    if(a.reliabilityPct===null && b.reliabilityPct===null) return byHelped(a,b);
-    if(a.reliabilityPct===null) return 1;
-    if(b.reliabilityPct===null) return -1;
-    return b.reliabilityPct-a.reliabilityPct || byHelped(a,b);
-  };
-  // "needs attention first" is the opposite priority for that same
-  // no-data case: nobody needs a follow-up MORE than someone with zero
-  // track record at all, so nulls float to the TOP here instead.
-  const byReliabilityAsc = (a,b)=>{
-    if(a.reliabilityPct===null && b.reliabilityPct===null) return byHelped(a,b);
-    if(a.reliabilityPct===null) return -1;
-    if(b.reliabilityPct===null) return 1;
-    return a.reliabilityPct-b.reliabilityPct || byHelped(b,a);
-  };
+  const byHelpedDesc = (a,b)=> b.eventsHelped-a.eventsHelped || byName(a,b);
+  const byHelpedAsc = (a,b)=> a.eventsHelped-b.eventsHelped || byName(a,b);
   rows.sort(
-    analyticsSort==='helped' ? byHelped :
+    analyticsSort==='least' ? byHelpedAsc :
     analyticsSort==='name' ? byName :
-    analyticsSort==='least' ? byReliabilityAsc :
-    byReliabilityDesc
+    byHelpedDesc
   );
   if(!rows.length){
-    list.innerHTML = `<div class="analytics-empty">No volunteers match "${q}".</div>`;
+    list.innerHTML = `<tr><td colspan="9" class="analytics-empty">No volunteers match "${q}".</td></tr>`;
     return;
   }
+  const numCell = n => n ? n : `<span class="num-empty">—</span>`;
   list.innerHTML = rows.map(row=>`
-    <div class="analytics-row">
-      <div class="avatar">${initialsFor(row.name)}</div>
-      <div class="info">
-        <div class="name">${row.name}</div>
-        ${row.role ? `<div class="role">${row.role}</div>` : ''}
-      </div>
-      <div class="stats">
-        <div class="stat-line">${row.eventsHelped} of ${row.totalEvents} event${row.totalEvents===1?'':'s'} helped${row.anchoredCount ? ` · 📌 ${row.anchoredCount}` : ''}</div>
-        ${eventTypeBreakdownText(row) ? `<div class="stat-sub">${eventTypeBreakdownText(row)}</div>` : ''}
-        ${badgeAccountabilityHTML(row)}
-        <div class="stat-sub">${row.lastHelpedDate ? `Last helped ${row.lastHelpedDate}` : 'Never assigned to help'}</div>
-      </div>
-      ${reliabilityPillHTML(row)}
-    </div>`).join('');
+    <tr>
+      <td class="volunteer-cell">
+        <div class="avatar">${initialsFor(row.name)}</div>
+        <div class="info">
+          <div class="name">${row.name}</div>
+          ${row.role ? `<div class="role">${row.role}</div>` : ''}
+        </div>
+      </td>
+      <td class="num-cell">${numCell(row.eventsByType.home)}</td>
+      <td class="num-cell">${numCell(row.eventsByType.away)}</td>
+      <td class="num-cell">${numCell(row.eventsByType.contest)}</td>
+      <td class="num-cell">${numCell(row.eventsByType.other)}</td>
+      <td class="num-cell total-cell">${row.eventsHelped}${row.anchoredCount ? ` <span class="anchor-note" title="Anchored to ${row.anchoredCount} item(s) — Clear Volunteers leaves these assigned">📌${row.anchoredCount}</span>` : ''}</td>
+      <td class="num-cell">${numCell(row.eventsSignedUp)}</td>
+      <td class="num-cell">${badgeCellHTML(row)}</td>
+      <td class="date-cell">${row.lastHelpedDate || '—'}</td>
+    </tr>`).join('');
 }
 const analyticsSearchInput = document.getElementById('analytics-search-input');
 if(analyticsSearchInput){

@@ -275,6 +275,36 @@ everything the app needs is in `config.js`.
 > sitting in this folder (an old, unused file from an earlier version),
 > delete it first so it doesn't get deployed alongside the real app.
 
+### Caching, and pushing out a change
+
+The `_headers` file tells Netlify to let browsers cache `js/*` and `css/*`
+for a full year — repeat visits load those instantly from the browser's
+own cache instead of re-downloading them. `index.html`, `version.json`,
+and `config.js` stay short-lived, so every visit still picks up whichever
+version is actually live.
+
+That long caching is only safe because of `build.js`: every local
+`<script>`/`<link>` tag gets a `?v=<ASSET_VERSION>` query string baked
+in, and the browser treats a changed query string as a completely
+different file to fetch. So:
+
+- **Small day-to-day edits** (tweaking a color, fixing a typo): just run
+  `node build.js` and redeploy as usual — no version bump needed.
+- **A change you want everyone to get right away**, including anyone
+  with the app already open on their phone mid-event: open `build.js`,
+  bump the `ASSET_VERSION` string near the top (any string works — a
+  date is easiest), then run `node build.js` and redeploy. New visits
+  pick it up immediately; tabs that are already open will show a small
+  "A newer version is available — Refresh" banner within about 10
+  minutes (or as soon as someone switches back to that tab), instead of
+  silently running stale code with no way to notice.
+
+The app also caches the last data it loaded from Supabase in the
+browser's local storage, so re-opening it shows your last-known event
+right away instead of a blank/"Loading…" screen — then quietly checks
+for anything newer in the background. You don't need to do anything for
+this part; it's automatic.
+
 ## 7. Using it
 
 - The page opens in **volunteer view**: read-only, shows the field, the

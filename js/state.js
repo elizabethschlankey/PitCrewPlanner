@@ -22,6 +22,38 @@ let session = null;
 let mode = 'view';
 let loaded = false;
 
+/* ---------------------------------------------------------------
+   STATE CACHE — the first paint on a repeat visit doesn't have to
+   wait on a round trip to Supabase: the last successful loadState()
+   result is stashed in localStorage, and boot.js renders straight
+   from it (see hydrateFromCache()) before the real fetch even starts,
+   then re-renders again once fresh data actually arrives. Realtime
+   (see the subscription at the top of boot.js) keeps that fresh data
+   in sync afterward same as always — this only speeds up the very
+   first paint, it doesn't change anything about how up to date the
+   app stays once it's open. Bump the key's "v1" suffix if STATE's
+   shape ever changes incompatibly, so an old cached shape from before
+   the change can't get loaded and crash rendering.
+---------------------------------------------------------------- */
+const STATE_CACHE_KEY = 'pcp-cached-state-v1';
+function saveStateCache(){
+  try{
+    localStorage.setItem(STATE_CACHE_KEY, JSON.stringify({state: STATE, viewingEventId, savedAt: Date.now()}));
+  }catch(e){} // private browsing / storage quota / disabled storage — cache is a nice-to-have, never fatal
+}
+function hydrateFromCache(){
+  try{
+    const raw = localStorage.getItem(STATE_CACHE_KEY);
+    if(!raw) return false;
+    const cached = JSON.parse(raw);
+    if(!cached || !cached.state || !Array.isArray(cached.state.events) || !Array.isArray(cached.state.roster)) return false;
+    STATE = cached.state;
+    if(cached.viewingEventId) viewingEventId = cached.viewingEventId;
+    loaded = true;
+    return true;
+  }catch(e){ return false; }
+}
+
 // ROLE — 'guest' (no login), 'lead_volunteer'/'director' (shared PIN,
 // signed into one of the two internal accounts below), or 'admin' (the
 // one real organizer login). Re-derived from `session` any time it
@@ -157,6 +189,7 @@ async function loadState(){
   if(!STATE.events.find(e=>e.id===viewingEventId)) viewingEventId = STATE.activeEventId || (STATE.events[0]||{}).id;
   if(editingTemplateId && !STATE.templates.find(t=>t.id===editingTemplateId)) editingTemplateId = null;
   loaded = true;
+  saveStateCache();
   return true;
 }
 

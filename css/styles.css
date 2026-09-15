@@ -298,6 +298,15 @@
   .rotate-hint span{font-size:13px;font-weight:600;max-width:220px;line-height:1.4;}
   @keyframes rotate-hint-spin{0%,20%{transform:rotate(0deg);}50%,70%{transform:rotate(-90deg);}100%{transform:rotate(-90deg);}}
 
+  /* a new deploy has gone out since this tab loaded (see js/update-check.js)
+     — sits above everything except an actual open dialog (confirm/login/
+     badge/inspector, z-index 1000+ below), never forces a reload itself */
+  .update-banner{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:900;display:flex;align-items:center;gap:12px;flex-wrap:wrap;max-width:calc(100vw - 32px);background:var(--panel-2);border:1px solid var(--gold);border-radius:10px;padding:10px 14px;box-shadow:0 6px 24px rgba(0,0,0,.4);}
+  .update-banner span{font-size:12.5px;color:#eceef2;}
+  .update-banner[hidden]{display:none;}
+  /* clear the fixed bottom nav bar instead of sitting on top of it */
+  @media (max-width:820px){ .update-banner{bottom:calc(70px + env(safe-area-inset-bottom));} }
+
   .overlay{position:fixed;inset:0;background:rgba(6,8,11,.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;}
   /* the confirm dialog can be triggered from inside another open modal
      (e.g. deleting a badge from its detail view) — it must always sit

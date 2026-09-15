@@ -1,0 +1,26 @@
+# Netlify reads this file automatically at deploy time — no build step
+# needed. It's what makes the ?v=<ASSET_VERSION> cache-busting in
+# build.js actually pay off: js/css get cached by the browser for a
+# full year (safe, because their URL only changes when build.js's
+# ASSET_VERSION is bumped), while index.html/version.json/config.js
+# stay short-lived so every visit picks up whichever version is
+# actually live right now, and js/update-check.js can notice a new
+# deploy in an already-open tab.
+
+/js/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/css/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/version.json
+  Cache-Control: public, max-age=0, must-revalidate
+
+/config.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/
+  Cache-Control: public, max-age=0, must-revalidate

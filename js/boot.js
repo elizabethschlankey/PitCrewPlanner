@@ -33,6 +33,15 @@ sb.auth.onAuthStateChange((_event, sess)=>{
 });
 
 (async function boot(){
+  // paint immediately from whatever we last successfully loaded, instead
+  // of a blank/"Loading…" screen for the whole round trip to Supabase —
+  // the real fetch below still runs right away and replaces it as soon
+  // as it lands, this is purely about not staring at nothing meanwhile
+  const cacheHit = hydrateFromCache();
+  if(cacheHit){
+    renderAll();
+    statusEl.textContent = 'Showing your last-loaded data — updating…';
+  }
   const {data:{session:sess}} = await sb.auth.getSession();
   session = sess;
   role = roleForSession(sess);

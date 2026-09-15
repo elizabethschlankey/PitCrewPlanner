@@ -18,7 +18,20 @@ const ROOT = __dirname;
 const PARTIALS_DIR = path.join(ROOT, 'partials');
 const TEMPLATE_FILE = path.join(ROOT, 'index.template.html');
 const OUTPUT_FILE = path.join(ROOT, 'index.html');
+const VERSION_FILE = path.join(ROOT, 'version.json');
 const INCLUDE_RE = /<!--\s*include:\s*([\w.\-]+)\s*-->/g;
+
+// Bump this before deploying a change you want every already-open tab to
+// pick up, not just someone's next fresh visit — see js/update-check.js.
+// Any string works; a date is easiest to reason about. It's stamped onto
+// every local <script>/<link> URL in index.template.html as a ?v=
+// cache-busting query string (each one already ends in the __V__ token —
+// copy that pattern onto any NEW <script>/<link> tag you add), and
+// written to version.json, which open tabs poll to notice a new deploy
+// exists. The _headers file is what makes this actually matter: it tells
+// Netlify to let browsers cache js/css forever, safe only because this
+// version bump is what changes their URL whenever they actually change.
+const ASSET_VERSION = '2026-09-15';
 
 function resolveIncludes(content, chain) {
   return content.replace(INCLUDE_RE, (match, name) => {
@@ -35,10 +48,12 @@ function resolveIncludes(content, chain) {
 }
 
 const template = fs.readFileSync(TEMPLATE_FILE, 'utf8');
-const body = resolveIncludes(template, []);
+const resolved = resolveIncludes(template, []);
+const body = resolved.split('__V__').join(ASSET_VERSION);
 const banner = '<!-- GENERATED FILE. Do not edit directly -- edit index.template.html and partials/*.html, then run `node build.js`. -->\n';
 
 fs.writeFileSync(OUTPUT_FILE, banner + body);
+fs.writeFileSync(VERSION_FILE, JSON.stringify({version: ASSET_VERSION}) + '\n');
 
 const partialCount = fs.readdirSync(PARTIALS_DIR).filter(f => f.endsWith('.html')).length;
-console.log(`Built index.html from index.template.html + ${partialCount} partials.`);
+console.log(`Built index.html from index.template.html + ${partialCount} partials. Asset version: ${ASSET_VERSION}`);

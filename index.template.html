@@ -1,12 +1,27 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-app-version="__V__">
 <head>
 <meta charset="UTF-8">
 <title>Field Setup Planner</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- fonts.googleapis.com serves the @font-face CSS; the actual font
+     FILES come from fonts.gstatic.com (crossorigin required for that
+     one, since font fetches are always CORS-checked) — preconnecting
+     both means the file download can start the instant the CSS names
+     it, instead of only then discovering it needs a fresh connection -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- same idea for Supabase: the very first API call (auth + the
+     initial data load) no longer pays for DNS/TLS setup on top of the
+     request itself -->
+<link rel="preconnect" href="https://ficeyvfwfpyiejmbftad.supabase.co">
+<!-- Oswald only ever renders at 600/700 in styles.css (buttons and
+     h2/h3 headings) — trimmed from the full default weight range so
+     there are 2 font files to fetch instead of 4. Inter genuinely uses
+     400/500/600/700 throughout (body text through badge labels), so
+     it keeps its full range. -->
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css?v=__V__">
 </head>
 <body>
 <div class="app">
@@ -34,19 +49,30 @@
 
 <!-- include: overlay-inspector.html -->
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- include: update-banner.html -->
+
+<!-- Supabase SDK pinned to an exact version (was just "@2", which
+     jsdelivr only caches for 7 days since it can silently resolve to a
+     different 2.x release later) — an exact version's URL never
+     changes, so the browser can cache it for a full year. Bump this
+     string on purpose (check the current version at
+     https://data.jsdelivr.com/v1/packages/npm/@supabase/supabase-js)
+     when you actually want the newer SDK; it won't drift on its own
+     anymore. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
 <script src="config.js"></script>
-<script src="js/supabase-client.js"></script>
-<script src="js/catalog.js"></script>
-<script src="js/state.js"></script>
-<script src="js/field.js"></script>
-<script src="js/render.js"></script>
-<script src="js/admin.js"></script>
-<script src="js/setup-wizard.js"></script>
-<script src="js/badges.js"></script>
-<script src="js/drag-drop.js"></script>
-<script src="js/inspector.js"></script>
-<script src="js/toolbar.js"></script>
-<script src="js/boot.js"></script>
+<script src="js/supabase-client.js?v=__V__"></script>
+<script src="js/catalog.js?v=__V__"></script>
+<script src="js/state.js?v=__V__"></script>
+<script src="js/field.js?v=__V__"></script>
+<script src="js/render.js?v=__V__"></script>
+<script src="js/admin.js?v=__V__"></script>
+<script src="js/setup-wizard.js?v=__V__"></script>
+<script src="js/badges.js?v=__V__"></script>
+<script src="js/drag-drop.js?v=__V__"></script>
+<script src="js/inspector.js?v=__V__"></script>
+<script src="js/toolbar.js?v=__V__"></script>
+<script src="js/boot.js?v=__V__"></script>
+<script src="js/update-check.js?v=__V__"></script>
 </body>
 </html>

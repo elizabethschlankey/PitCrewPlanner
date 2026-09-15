@@ -706,15 +706,16 @@ function volunteerAnalytics(){
       }
       if(evt.items.some(it=>(it.anchoredIds||[]).includes(v.id))) anchoredCount++;
     });
-    // Signed Up and actually-assigned are tracked independently — a
-    // Lead Volunteer can drag someone onto an item without ever
-    // updating their roster status for that event — so eventsHelped
-    // can exceed eventsSignedUp. Dividing by the larger of the two
-    // keeps the percentage from reading as an impossible-looking 200%:
-    // "helped every event on record" always reads as 100%, whether the
-    // signup bookkeeping caught every one of those events or not.
-    const reliabilityDenom = Math.max(eventsSignedUp, eventsHelped);
-    const reliabilityPct = reliabilityDenom>0 ? Math.round(eventsHelped/reliabilityDenom*100) : null;
+    // Reliability = events helped / total events this season. (Earlier
+    // version divided by eventsSignedUp instead — meant to measure
+    // "did they follow through on what they said they'd do" — but the
+    // Signed Up status isn't consistently used in practice, so
+    // eventsSignedUp sits at 0 for most volunteers, and dividing by
+    // max(0, eventsHelped) collapses to eventsHelped/eventsHelped —
+    // ALWAYS 100%, even for someone who helped at just 1 of 5 events.
+    // Plain participation rate has no such trap: it's honest with
+    // whatever data actually exists.)
+    const reliabilityPct = totalEvents>0 ? Math.round(eventsHelped/totalEvents*100) : null;
     // Badge accountability — every checkout under their name vs. every
     // checkin recorded under their name (a checkin always keeps the
     // ORIGINAL holder's volunteer_id, see handleBadgeAction in
@@ -733,14 +734,12 @@ function volunteerAnalytics(){
 }
 function reliabilityPillHTML(row){
   if(row.reliabilityPct===null){
-    return row.eventsHelped
-      ? `<div class="reliability-pill none" title="Never formally marked Signed Up for an event — ranked by events helped instead">${row.eventsHelped}/${row.totalEvents} events</div>`
-      : `<div class="reliability-pill none" title="No signups or assignments on record yet">No data</div>`;
+    return `<div class="reliability-pill none" title="No events recorded this season yet">No data</div>`;
   }
   const cls = row.reliabilityPct>=80 ? 'good' : row.reliabilityPct>=50 ? 'mid' : 'low';
-  const title = row.eventsHelped > row.eventsSignedUp
-    ? `Helped at ${row.eventsHelped} events — ${row.eventsSignedUp} of them formally marked Signed Up`
-    : `Helped ${row.eventsHelped} of ${row.eventsSignedUp} events signed up for`;
+  const title = row.eventsSignedUp>0
+    ? `Helped ${row.eventsHelped} of ${row.totalEvents} events this season (signed up for ${row.eventsSignedUp} of them)`
+    : `Helped ${row.eventsHelped} of ${row.totalEvents} events this season`;
   return `<div class="reliability-pill ${cls}" title="${title}">${row.reliabilityPct}%</div>`;
 }
 // "Home 2 · Away 1 · Contest 2" — only the types they've actually

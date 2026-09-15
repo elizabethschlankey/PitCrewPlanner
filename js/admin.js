@@ -159,6 +159,7 @@ eventFormCreateBtn.addEventListener('click', async ()=>{
       viewingEventId = newEvt.id;
       await reload();
       statusEl.textContent = copyResultMessage('Event', srcItems.length, failed);
+      if(typeof startSetupWizard==='function') startSetupWizard(newEvt.id, name);
     }else{
       const templateId = eventFormTemplate.value || null;
       const {data:newEvt, error} = await sb.from('events').insert({name, date, template_id: templateId}).select().single();
@@ -171,6 +172,7 @@ eventFormCreateBtn.addEventListener('click', async ()=>{
       viewingEventId = newEvt.id;
       await reload();
       statusEl.textContent = copyResultMessage('Event', total, failed);
+      if(typeof startSetupWizard==='function') startSetupWizard(newEvt.id, name);
     }
     eventForm.classList.remove('open');
   }finally{

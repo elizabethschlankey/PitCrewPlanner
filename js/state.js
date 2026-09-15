@@ -177,7 +177,7 @@ async function loadState(){
   });
   STATE = {
     roster: rosterRes.data.map(r=>({id:r.id, name:r.name, role:r.role||'', description:r.description||''})),
-    events: eventsRes.data.map(e=>({id:e.id, name:e.name, date:e.date||'', templateId: e.template_id||null, items: itemsByEvent[e.id]||[]})),
+    events: eventsRes.data.map(e=>({id:e.id, name:e.name, date:e.date||'', templateId: e.template_id||null, eventType: e.event_type||'', items: itemsByEvent[e.id]||[]})),
     activeEventId: (eventsRes.data.find(e=>e.is_current) || eventsRes.data[0] || {}).id || null,
     badges: badgesRes.data,
     badgeEvents: badgeEventsRes.data,

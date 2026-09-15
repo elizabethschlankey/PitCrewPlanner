@@ -23,6 +23,12 @@
       <div class="form-label" id="event-form-label">New Event</div>
       <input type="text" name="name" id="event-form-name" placeholder="Event name, e.g. Homecoming vs. Ridgeview" maxlength="60">
       <input type="date" name="date" id="event-form-date">
+      <select id="event-form-type" title="Event type — feeds the Home/Away/Contest breakdown in Volunteer Analytics">
+        <option value="">Event Type: Not Set</option>
+        <option value="home">Home</option>
+        <option value="away">Away</option>
+        <option value="contest">Contest</option>
+      </select>
       <select id="event-form-template" title="Start from a template"></select>
       <button id="event-form-create" class="small primary" type="button">Create</button>
       <button id="event-form-cancel" class="small ghost" type="button">Cancel</button>

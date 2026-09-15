@@ -431,3 +431,12 @@ grant execute on function set_role_pin(text, text) to authenticated;
 
 -- No realtime publication entry for app_access — it's never read by the
 -- client directly, only touched through the two RPCs above.
+
+-- ---------------------------------------------------------------
+-- Event type (Home / Away / Contest) — lets Volunteer Analytics break
+-- down participation by the kind of event, not just a raw count.
+-- '' (the default) means unclassified — every event created before
+-- this migration, and any new one nobody bothers to set. Set from the
+-- New Event / Rename Event form. Idempotent — safe to re-run.
+-- ---------------------------------------------------------------
+alter table events add column if not exists event_type text not null default '' check (event_type in ('', 'home', 'away', 'contest'));

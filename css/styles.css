@@ -140,6 +140,7 @@
   .inline-form{display:none;gap:8px;align-items:center;flex-wrap:wrap;width:100%;background:var(--panel-2);border:1px solid var(--panel-edge);border-radius:8px;padding:10px;margin-top:2px;}
   .inline-form.open{display:flex;}
   .inline-form input{background:var(--ink);border:1px solid var(--panel-edge);border-radius:6px;color:#eceef2;padding:8px;font-size:12.5px;font-family:'Inter',sans-serif;}
+  .inline-form select{background:var(--ink);border:1px solid var(--panel-edge);border-radius:6px;color:#eceef2;padding:8px;font-size:12.5px;font-family:'Inter',sans-serif;}
   /* the browser's native calendar icon defaults to a dark glyph meant
      for light backgrounds, making it near-invisible here — telling the
      browser this control sits on a dark surface fixes both the icon
@@ -225,9 +226,17 @@
   .roster-add input, .roster-add textarea, .roster-add select{background:var(--ink);border:1px solid var(--panel-edge);border-radius:6px;color:#eceef2;padding:8px;font-size:12px;font-family:'Inter',sans-serif;resize:vertical;}
   .roster-add h2{font-family:'Oswald',sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);}
 
-  /* VOLUNTEER ANALYTICS — reuses .assign-search's look (search icon +
-     pill input) rather than a new style, since it's the same "find one
-     name in a long list" job */
+  /* VOLUNTEER ANALYTICS — dashboard summary cards up top, then the same
+     "find one name in a long list" search (reusing .assign-search's
+     look) driving a sortable per-volunteer breakdown below */
+  #analytics-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px;}
+  .summary-card{background:var(--panel-2);border:1px solid var(--panel-edge);border-radius:10px;padding:12px 14px;}
+  .summary-card.attention{border-color:rgba(224,177,60,.45);background:rgba(224,177,60,.07);}
+  .summary-card[data-analytics-focus]{cursor:pointer;}
+  .summary-card[data-analytics-focus]:hover{border-color:var(--gold);}
+  .summary-value{font-family:'Oswald',sans-serif;font-size:26px;font-weight:700;color:#eceef2;line-height:1.1;}
+  .summary-label{font-size:10.5px;color:var(--text-lo);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;}
+  .summary-sub{font-size:10px;color:var(--text-lo);margin-top:4px;}
   .analytics-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
   .analytics-toolbar .assign-search{flex:0 1 220px;}
   #analytics-sort{background:var(--ink);border:1px solid var(--panel-edge);color:#eceef2;padding:8px 10px;border-radius:6px;font-size:12px;font-family:'Inter',sans-serif;}
@@ -238,6 +247,10 @@
   .analytics-row .role{font-size:10px;color:var(--text-lo);text-transform:uppercase;letter-spacing:.03em;}
   .analytics-row .stat-line{font-size:11.5px;color:#eceef2;white-space:nowrap;}
   .analytics-row .stat-sub{font-size:10px;color:var(--text-lo);white-space:nowrap;}
+  .analytics-row .stat-sub.badge-accountability{font-weight:600;}
+  .analytics-row .stat-sub.badge-accountability.good{color:var(--good);}
+  .analytics-row .stat-sub.badge-accountability.mid{color:var(--gold);}
+  .analytics-row .stat-sub.badge-accountability.low{color:#ff8a80;}
   .analytics-row .stats{flex:none;text-align:right;}
   .reliability-pill{flex:none;min-width:52px;text-align:center;font-size:12px;font-weight:800;padding:5px 10px;border-radius:20px;}
   .reliability-pill.good{background:rgba(74,154,91,.18);color:var(--good);}

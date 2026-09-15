@@ -1,17 +1,20 @@
-  <div id="admin-screen" data-edit-only>
+  <div id="admin-screen" data-badges-only>
     <div class="admin-header">
       <h2>Admin</h2>
       <button id="btn-admin-back" class="small ghost" type="button">← Back to Event</button>
     </div>
     <div class="tab-row">
-      <button class="tab-btn admin-tab-btn active" data-admin-tab="templates" type="button">Templates</button>
-      <button class="tab-btn admin-tab-btn" data-admin-tab="roster" type="button">Crew Roster</button>
+      <button class="tab-btn admin-tab-btn active" data-admin-tab="templates" type="button" data-edit-only>Templates</button>
+      <button class="tab-btn admin-tab-btn" data-admin-tab="roster" type="button" data-edit-only>Crew Roster</button>
+      <button class="tab-btn admin-tab-btn" data-admin-tab="analytics" type="button">Volunteer Analytics</button>
       <button class="tab-btn admin-tab-btn" data-admin-tab="access" type="button" data-admin-only>Access</button>
     </div>
 
 <!-- include: admin-tab-templates.html -->
 
 <!-- include: admin-tab-roster.html -->
+
+<!-- include: admin-tab-analytics.html -->
 
 <!-- include: admin-tab-access.html -->
   </div>

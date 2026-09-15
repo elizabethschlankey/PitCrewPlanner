@@ -299,6 +299,7 @@ function setAdminTab(tab){
   document.querySelectorAll('.admin-tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.adminTab===tab));
   document.getElementById('admin-tab-templates').style.display = tab==='templates' ? 'block' : 'none';
   document.getElementById('admin-tab-roster').style.display = tab==='roster' ? 'block' : 'none';
+  document.getElementById('admin-tab-analytics').style.display = tab==='analytics' ? 'block' : 'none';
   document.getElementById('admin-tab-access').style.display = tab==='access' ? 'block' : 'none';
 }
 document.querySelectorAll('.admin-tab-btn').forEach(btn=>{
@@ -316,7 +317,10 @@ document.getElementById('btn-admin').addEventListener('click', ()=>{
   }
   adminOpen = true;
   editingTemplateId = null;
-  setAdminTab('templates');
+  // Templates/Crew Roster are edit-mode-only (see their data-edit-only
+  // tabs/panels) — a Lead Volunteer opening Admin has nothing to see
+  // there, so land them straight on the one tab that's actually theirs
+  setAdminTab(mode==='edit' ? 'templates' : 'analytics');
   applyScreen();
   renderAll();
 });
@@ -664,4 +668,126 @@ document.getElementById('import-names-btn').addEventListener('click', async ()=>
     statusEl.textContent = `${label} PIN updated`;
   });
 });
+
+/* ---------------------------------------------------------------
+   VOLUNTEER ANALYTICS — Lead Volunteers can't see individual events'
+   full editing tools (Templates/Crew Roster stay data-edit-only), but
+   this tab is exactly the thing they DO need: who's actually reliable
+   across the whole season, not just this one event. "Helped" means
+   assigned to at least one item that event — the only real signal of
+   participation this app tracks (there's no separate attendance
+   check-in for volunteers themselves, only for badges).
+---------------------------------------------------------------- */
+// per volunteer: how many events they were actually assigned to help
+// at, how many they'd signed up for, when they last helped, and a
+// reliability % (helped/signed-up) where that comparison makes sense —
+// a volunteer never marked "Signed Up" for anything yet (this feature
+// is easy to skip) falls back to ranking by raw events helped instead
+// of a misleading "0 signed up, so 0/0" percentage.
+function volunteerAnalytics(){
+  const totalEvents = STATE.events.length;
+  return STATE.roster.map(v=>{
+    let eventsHelped = 0, eventsSignedUp = 0, anchoredCount = 0, lastHelpedDate = null;
+    STATE.events.forEach(evt=>{
+      const statusRow = STATE.eventVolunteerStatus.find(s=>s.event_id===evt.id && s.volunteer_id===v.id);
+      if(statusRow && statusRow.status==='signed_up') eventsSignedUp++;
+      const helpedThisEvent = evt.items.some(it=>(it.assignedIds||[]).includes(v.id));
+      if(helpedThisEvent){
+        eventsHelped++;
+        if(evt.date && (!lastHelpedDate || evt.date>lastHelpedDate)) lastHelpedDate = evt.date;
+      }
+      if(evt.items.some(it=>(it.anchoredIds||[]).includes(v.id))) anchoredCount++;
+    });
+    // Signed Up and actually-assigned are tracked independently — a
+    // Lead Volunteer can drag someone onto an item without ever
+    // updating their roster status for that event — so eventsHelped
+    // can exceed eventsSignedUp. Dividing by the larger of the two
+    // keeps the percentage from reading as an impossible-looking 200%:
+    // "helped every event on record" always reads as 100%, whether the
+    // signup bookkeeping caught every one of those events or not.
+    const reliabilityDenom = Math.max(eventsSignedUp, eventsHelped);
+    const reliabilityPct = reliabilityDenom>0 ? Math.round(eventsHelped/reliabilityDenom*100) : null;
+    return {id:v.id, name:v.name, role:v.role, totalEvents, eventsHelped, eventsSignedUp, anchoredCount, lastHelpedDate, reliabilityPct};
+  });
+}
+function reliabilityPillHTML(row){
+  if(row.reliabilityPct===null){
+    return row.eventsHelped
+      ? `<div class="reliability-pill none" title="Never formally marked Signed Up for an event — ranked by events helped instead">${row.eventsHelped}/${row.totalEvents} events</div>`
+      : `<div class="reliability-pill none" title="No signups or assignments on record yet">No data</div>`;
+  }
+  const cls = row.reliabilityPct>=80 ? 'good' : row.reliabilityPct>=50 ? 'mid' : 'low';
+  const title = row.eventsHelped > row.eventsSignedUp
+    ? `Helped at ${row.eventsHelped} events — ${row.eventsSignedUp} of them formally marked Signed Up`
+    : `Helped ${row.eventsHelped} of ${row.eventsSignedUp} events signed up for`;
+  return `<div class="reliability-pill ${cls}" title="${title}">${row.reliabilityPct}%</div>`;
+}
+let analyticsSearchQuery = '';
+let analyticsSort = 'reliability';
+function renderAnalytics(){
+  const list = document.getElementById('analytics-list');
+  if(!list) return; // partial not in the DOM yet on first paint before boot finishes
+  if(!STATE.roster.length){
+    list.innerHTML = `<div class="analytics-empty">No volunteers on your roster yet.</div>`;
+    return;
+  }
+  const q = analyticsSearchQuery.trim().toLowerCase();
+  let rows = volunteerAnalytics();
+  if(q) rows = rows.filter(r=>r.name.toLowerCase().includes(q));
+  const byName = (a,b)=> a.name.localeCompare(b.name);
+  const byHelped = (a,b)=> b.eventsHelped-a.eventsHelped || byName(a,b);
+  // nulls (no signup history) sort to the bottom of a reliability-based
+  // sort either direction — there's no percentage to compare, and
+  // burying "no data yet" below anyone with an actual track record
+  // (good or bad) is more useful than interleaving them arbitrarily
+  const byReliabilityDesc = (a,b)=>{
+    if(a.reliabilityPct===null && b.reliabilityPct===null) return byHelped(a,b);
+    if(a.reliabilityPct===null) return 1;
+    if(b.reliabilityPct===null) return -1;
+    return b.reliabilityPct-a.reliabilityPct || byHelped(a,b);
+  };
+  const byReliabilityAsc = (a,b)=>{
+    if(a.reliabilityPct===null && b.reliabilityPct===null) return byHelped(a,b);
+    if(a.reliabilityPct===null) return 1;
+    if(b.reliabilityPct===null) return -1;
+    return a.reliabilityPct-b.reliabilityPct || byHelped(b,a);
+  };
+  rows.sort(
+    analyticsSort==='helped' ? byHelped :
+    analyticsSort==='name' ? byName :
+    analyticsSort==='least' ? byReliabilityAsc :
+    byReliabilityDesc
+  );
+  if(!rows.length){
+    list.innerHTML = `<div class="analytics-empty">No volunteers match "${q}".</div>`;
+    return;
+  }
+  list.innerHTML = rows.map(row=>`
+    <div class="analytics-row">
+      <div class="avatar">${initialsFor(row.name)}</div>
+      <div class="info">
+        <div class="name">${row.name}</div>
+        ${row.role ? `<div class="role">${row.role}</div>` : ''}
+      </div>
+      <div class="stats">
+        <div class="stat-line">${row.eventsHelped} of ${row.totalEvents} event${row.totalEvents===1?'':'s'} helped${row.anchoredCount ? ` · 📌 ${row.anchoredCount}` : ''}</div>
+        <div class="stat-sub">${row.lastHelpedDate ? `Last helped ${row.lastHelpedDate}` : 'Never assigned to help'}</div>
+      </div>
+      ${reliabilityPillHTML(row)}
+    </div>`).join('');
+}
+const analyticsSearchInput = document.getElementById('analytics-search-input');
+if(analyticsSearchInput){
+  analyticsSearchInput.addEventListener('input', ()=>{
+    analyticsSearchQuery = analyticsSearchInput.value;
+    renderAnalytics();
+  });
+}
+const analyticsSortSelect = document.getElementById('analytics-sort');
+if(analyticsSortSelect){
+  analyticsSortSelect.addEventListener('change', ()=>{
+    analyticsSort = analyticsSortSelect.value;
+    renderAnalytics();
+  });
+}
 

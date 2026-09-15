@@ -225,6 +225,31 @@
   .roster-add input, .roster-add textarea, .roster-add select{background:var(--ink);border:1px solid var(--panel-edge);border-radius:6px;color:#eceef2;padding:8px;font-size:12px;font-family:'Inter',sans-serif;resize:vertical;}
   .roster-add h2{font-family:'Oswald',sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);}
 
+  /* VOLUNTEER ANALYTICS — reuses .assign-search's look (search icon +
+     pill input) rather than a new style, since it's the same "find one
+     name in a long list" job */
+  .analytics-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .analytics-toolbar .assign-search{flex:0 1 220px;}
+  #analytics-sort{background:var(--ink);border:1px solid var(--panel-edge);color:#eceef2;padding:8px 10px;border-radius:6px;font-size:12px;font-family:'Inter',sans-serif;}
+  #analytics-list{display:flex;flex-direction:column;gap:6px;}
+  .analytics-row{display:flex;align-items:center;gap:12px;background:var(--panel-2);border:1px solid var(--panel-edge);border-radius:8px;padding:9px 12px;}
+  .analytics-row .info{min-width:0;flex:1;}
+  .analytics-row .name{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .analytics-row .role{font-size:10px;color:var(--text-lo);text-transform:uppercase;letter-spacing:.03em;}
+  .analytics-row .stat-line{font-size:11.5px;color:#eceef2;white-space:nowrap;}
+  .analytics-row .stat-sub{font-size:10px;color:var(--text-lo);white-space:nowrap;}
+  .analytics-row .stats{flex:none;text-align:right;}
+  .reliability-pill{flex:none;min-width:52px;text-align:center;font-size:12px;font-weight:800;padding:5px 10px;border-radius:20px;}
+  .reliability-pill.good{background:rgba(74,154,91,.18);color:var(--good);}
+  .reliability-pill.mid{background:rgba(224,177,60,.18);color:var(--gold);}
+  .reliability-pill.low{background:rgba(193,68,58,.18);color:#ff8a80;}
+  .reliability-pill.none{background:var(--panel-edge);color:var(--text-lo);font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;}
+  .analytics-empty{font-size:11.5px;color:var(--text-lo);font-style:italic;padding:14px 4px;}
+  @media (max-width:480px){
+    .analytics-row{flex-wrap:wrap;}
+    .analytics-row .stats{flex:1 1 auto;text-align:left;}
+  }
+
   .stage{flex:3 1 auto;min-width:0;max-width:1650px;display:flex;flex-direction:column;background:#0d1015;padding:16px 12px;gap:14px;overflow:auto;}
   /* on desktop this wrapper is invisible to layout (its child behaves
      as if it were a direct child of .stage, unchanged from before it

@@ -248,6 +248,7 @@ function renderAll(){
   renderAssignments();
   renderBadges();
   renderTemplates();
+  renderAnalytics();
   renderImportEventSelect();
   if(openBadgeId) renderBadgeModalBody();
 }

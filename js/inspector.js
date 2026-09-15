@@ -258,10 +258,12 @@ function syncInspectorUI(){
     inspVolunteers.innerHTML = '';
     noRosterNote.textContent = 'Your crew roster is empty — add volunteers under the Crew Roster tab first.';
     noRosterNote.style.display = 'block';
+    document.getElementById('insp-cap-note').style.display = 'none';
   }else if(!available.length){
     inspVolunteers.innerHTML = '';
     noRosterNote.textContent = 'Everyone on your roster is already assigned to another item this event.';
     noRosterNote.style.display = 'block';
+    document.getElementById('insp-cap-note').style.display = 'none';
   }else{
     noRosterNote.style.display = 'none';
     // group by this event's signup status so it's obvious who actually
@@ -277,13 +279,23 @@ function syncInspectorUI(){
         list.sort((a,b)=> (otherByVolunteer.has(b.id)?1:0) - (otherByVolunteer.has(a.id)?1:0));
       });
     }
+    // once as many helpers are checked as this item actually needs, stop
+    // offering MORE — every other unchecked box disables so the assigned
+    // count can never climb past helpersNeeded (see the change handler
+    // below for the matching guard, and insp-helpers-minus for the
+    // reverse: helpersNeeded can't drop below however many are already
+    // checked either), instead of silently over-booking volunteers past
+    // what the item was actually tagged to need
+    const atCap = inspectorDraft.assignedIds.length >= inspectorDraft.helpersNeeded;
     const checkRow = v => {
       const others = otherByVolunteer.get(v.id) || [];
       const preferred = doubleUpEligible && others.length>0;
       const preferredTag = preferred ? `<span class="preferred-tag">Also on ${others.map(o=>o.label).join(', ')}</span>` : '';
+      const checked = inspectorDraft.assignedIds.includes(v.id);
+      const disabled = atCap && !checked;
       return `
-      <label class="volunteer-check${preferred ? ' volunteer-check-preferred' : ''}">
-        <input type="checkbox" value="${v.id}" ${inspectorDraft.assignedIds.includes(v.id)?'checked':''}>
+      <label class="volunteer-check${preferred ? ' volunteer-check-preferred' : ''}${disabled ? ' volunteer-check-disabled' : ''}">
+        <input type="checkbox" value="${v.id}" ${checked?'checked':''} ${disabled?'disabled':''}>
         ${v.name}${v.role ? ' — '+v.role : ''}${preferredTag}
       </label>`;
     };
@@ -293,16 +305,34 @@ function syncInspectorUI(){
       section('Signed Up', 'signed-up', 'signed_up') +
       section('Backups', 'backup', 'backup') +
       section('Other Volunteers', '', 'potential');
+    const capNote = document.getElementById('insp-cap-note');
+    capNote.style.display = atCap ? 'block' : 'none';
+    capNote.textContent = `Helper slots full (${inspectorDraft.assignedIds.length}/${inspectorDraft.helpersNeeded}) — bump up Helpers Needed above to add another, or uncheck someone first.`;
   }
 }
 inspNeedsHelp.addEventListener('change', ()=>{ inspectorDraft.needsHelp = inspNeedsHelp.checked; syncInspectorUI(); });
-document.getElementById('insp-helpers-minus').addEventListener('click', ()=>{ inspectorDraft.helpersNeeded = Math.max(1, inspectorDraft.helpersNeeded-1); syncInspectorUI(); });
+document.getElementById('insp-helpers-minus').addEventListener('click', ()=>{
+  // can't drop the need below however many are already checked — that
+  // would leave the item over-booked (more helpers assigned than it's
+  // marked to need) with no UI contradiction visible; uncheck someone
+  // first, then the minus button can go lower
+  const floor = Math.max(1, inspectorDraft.assignedIds.length);
+  inspectorDraft.helpersNeeded = Math.max(floor, inspectorDraft.helpersNeeded-1);
+  syncInspectorUI();
+});
 document.getElementById('insp-helpers-plus').addEventListener('click', ()=>{ inspectorDraft.helpersNeeded = Math.min(6, inspectorDraft.helpersNeeded+1); syncInspectorUI(); });
 inspVolunteers.addEventListener('change', e=>{
   const cb = e.target;
   if(cb.type!=='checkbox') return;
-  if(cb.checked) inspectorDraft.assignedIds.push(cb.value);
-  else inspectorDraft.assignedIds = inspectorDraft.assignedIds.filter(id=>id!==cb.value);
+  if(cb.checked){
+    // the disabled attribute on every other unchecked box already stops
+    // this once helpersNeeded is hit — this is just a defensive backstop
+    if(inspectorDraft.assignedIds.length >= inspectorDraft.helpersNeeded){ cb.checked = false; return; }
+    inspectorDraft.assignedIds.push(cb.value);
+  }else{
+    inspectorDraft.assignedIds = inspectorDraft.assignedIds.filter(id=>id!==cb.value);
+  }
+  syncInspectorUI();
 });
 // Setup/teardown media capture — wired once per section (these elements
 // are static, never rebuilt via innerHTML, unlike the badge modal's),

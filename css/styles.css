@@ -438,7 +438,13 @@
   .volunteer-check-preferred{background:rgba(224,177,60,.1);border:1px solid rgba(224,177,60,.3);}
   .volunteer-check-preferred:hover{background:rgba(224,177,60,.18);}
   .preferred-tag{margin-left:auto;flex:none;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--gold);background:rgba(224,177,60,.16);padding:2px 6px;border-radius:10px;white-space:nowrap;}
+  /* helper slots full for this item — every unchecked box disables so
+     the assigned count can't climb past Helpers Needed */
+  .volunteer-check-disabled{opacity:.4;}
+  .volunteer-check-disabled:hover{background:transparent;}
+  .volunteer-check input:disabled{cursor:not-allowed;}
   .no-roster-note{font-size:11.5px;color:var(--text-lo);font-style:italic;}
+  .no-roster-note#insp-cap-note{color:var(--help);}
   .photo-capture{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
   .photo-btn{display:flex;align-items:center;gap:7px;flex:none;}
   .photo-btn svg{width:16px;height:16px;}

@@ -367,7 +367,7 @@ create policy "auth delete item media" on storage.objects
 -- table off the public REST API entirely. pgcrypto is already enabled
 -- above (see the top of this file).
 -- ---------------------------------------------------------------
-create table app_access (
+create table if not exists app_access (
   role       text primary key check (role in ('director','lead_volunteer')),
   pin_hash   text not null,
   updated_at timestamptz not null default now()

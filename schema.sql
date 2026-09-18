@@ -376,11 +376,17 @@ alter table app_access enable row level security;
 
 -- Returns true/false only — never the hash — so it's safe to let anon
 -- call this straight from the PIN pad, before any real session exists.
+-- search_path includes "extensions" alongside "public" because Supabase
+-- installs pgcrypto (crypt/gen_salt, used below) there by default on
+-- most projects, not into public — without it here, crypt()/gen_salt()
+-- raise "function ... does not exist" even though the extension is
+-- enabled, since a SECURITY DEFINER function only sees what its own
+-- search_path lists, not the caller's.
 create or replace function verify_role_pin(p_role text, p_pin text)
 returns boolean
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   found_hash text;
@@ -407,7 +413,7 @@ create or replace function set_role_pin(p_role text, p_pin text)
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 begin
   if auth.role() <> 'authenticated' then

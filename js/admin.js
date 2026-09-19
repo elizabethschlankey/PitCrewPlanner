@@ -288,9 +288,14 @@ document.getElementById('btn-del-event').addEventListener('click', ()=>{
 ---------------------------------------------------------------- */
 let adminOpen = false;
 let adminTab = 'templates';
+// itineraryOpen lives here (not js/itinerary.js) so it sits right next
+// to its sibling adminOpen — both are "which full-screen takeover is
+// showing" state that applyScreen() below manages together
+let itineraryOpen = false;
 
 function applyScreen(){
   document.body.classList.toggle('admin-open', adminOpen || !!editingTemplateId);
+  document.body.classList.toggle('itinerary-open', itineraryOpen);
   document.body.classList.toggle('editing-template', !!editingTemplateId);
   const nameEl = document.getElementById('template-edit-name');
   if(editingTemplateId) nameEl.textContent = '“'+currentTemplate().name+'”';
@@ -321,11 +326,14 @@ document.getElementById('btn-admin').addEventListener('click', ()=>{
     return;
   }
   adminOpen = true;
+  itineraryOpen = false;
   editingTemplateId = null;
-  // Templates/Crew Roster are edit-mode-only (see their data-edit-only
-  // tabs/panels) — a Lead Volunteer opening Admin has nothing to see
-  // there, so land them straight on the one tab that's actually theirs
-  setAdminTab(mode==='edit' ? 'templates' : 'analytics');
+  // Templates stays Director/Admin-only (see its data-edit-only tab/
+  // panel) — a Lead Volunteer opening Admin has nothing to do there, so
+  // land them on Crew Roster instead: signing volunteers up is their
+  // actual reason for being in here, Analytics is one tab away if
+  // that's what they came for instead
+  setAdminTab(mode==='edit' ? 'templates' : 'roster');
   applyScreen();
   renderAll();
 });

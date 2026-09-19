@@ -1,0 +1,32 @@
+  <div id="itinerary-screen" data-event-only>
+    <div class="admin-header">
+      <h2>Itinerary — <span id="itinerary-event-name"></span></h2>
+      <button id="btn-itinerary-back" class="small ghost" type="button">← Back to Event</button>
+    </div>
+
+    <div class="itinerary-editor" data-badges-only>
+      <div class="roster-admin-actions">
+        <div class="roster-add">
+          <h2 style="margin:0;">Paste a Schedule</h2>
+          <p class="hint" style="margin:0;">Paste a schedule straight from an email or a printed itinerary, one item
+            per line — "7:00 AM - Buses Depart", "7:00 Buses Depart" (24-hour), or just "Buses Depart" with no time
+            all work. This only adds what you paste; anything already on the list below stays untouched.</p>
+          <textarea id="itinerary-paste-input" rows="6" placeholder="7:00 AM - Buses Depart&#10;8:15 AM - Arrive at Venue&#10;9:00 AM - Warm-up&#10;10:30 AM - Prelims Performance&#10;..."></textarea>
+          <button id="itinerary-paste-btn">Import</button>
+          <div class="inline-error" id="itinerary-paste-result"></div>
+        </div>
+        <div class="roster-add">
+          <h2 style="margin:0;" id="itinerary-form-label">Add an Item</h2>
+          <input id="itinerary-time-input" type="time">
+          <input id="itinerary-label-input" type="text" placeholder="e.g. Buses Depart" maxlength="80">
+          <textarea id="itinerary-notes-input" rows="2" maxlength="200" placeholder="Notes (optional)"></textarea>
+          <div style="display:flex;gap:6px;">
+            <button id="itinerary-add-btn" style="flex:1;">Add Item</button>
+            <button id="itinerary-cancel-edit-btn" class="ghost" type="button" style="display:none;">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="itinerary-list"></div>
+  </div>

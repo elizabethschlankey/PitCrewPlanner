@@ -446,3 +446,35 @@ grant execute on function set_role_pin(text, text) to authenticated;
 -- New Event / Rename Event form. Idempotent — safe to re-run.
 -- ---------------------------------------------------------------
 alter table events add column if not exists event_type text not null default '' check (event_type in ('', 'home', 'away', 'contest'));
+
+-- ---------------------------------------------------------------
+-- Itinerary — a day-of timeline per event (bus departure, warm-up,
+-- performance time, load-out, ...). time_value drives sort order and
+-- is null when a pasted line's time couldn't be parsed (or an ad hoc
+-- item genuinely has no time — e.g. "Lunch provided by boosters"); the
+-- app falls back to showing `label` alone for those, so an
+-- unparseable/timeless entry still displays sensibly instead of
+-- breaking. Idempotent — safe to re-run.
+-- ---------------------------------------------------------------
+create table if not exists itinerary_items (
+  id         uuid primary key default gen_random_uuid(),
+  event_id   uuid not null references events(id) on delete cascade,
+  time_value time,
+  label      text not null,
+  notes      text not null default '',
+  created_at timestamptz not null default now()
+);
+alter table itinerary_items enable row level security;
+drop policy if exists "public read itinerary_items" on itinerary_items;
+create policy "public read itinerary_items" on itinerary_items for select using (true);
+drop policy if exists "auth write itinerary_items" on itinerary_items;
+create policy "auth write itinerary_items" on itinerary_items for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and tablename = 'itinerary_items'
+  ) then
+    alter publication supabase_realtime add table itinerary_items;
+  end if;
+end $$;

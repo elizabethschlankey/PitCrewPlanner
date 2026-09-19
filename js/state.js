@@ -35,7 +35,7 @@ let loaded = false;
    shape ever changes incompatibly, so an old cached shape from before
    the change can't get loaded and crash rendering.
 ---------------------------------------------------------------- */
-const STATE_CACHE_KEY = 'pcp-cached-state-v1';
+const STATE_CACHE_KEY = 'pcp-cached-state-v2'; // v2: events now carry an itinerary array too
 function saveStateCache(){
   try{
     localStorage.setItem(STATE_CACHE_KEY, JSON.stringify({state: STATE, viewingEventId, savedAt: Date.now()}));
@@ -116,7 +116,7 @@ function currentItemsCtx(){
 }
 
 async function loadState(){
-  const [rosterRes, eventsRes, itemsRes, assignRes, badgesRes, badgeEventsRes, volStatusRes, templatesRes, templateItemsRes, inactiveBadgesRes, typeNotesRes] = await Promise.all([
+  const [rosterRes, eventsRes, itemsRes, assignRes, badgesRes, badgeEventsRes, volStatusRes, templatesRes, templateItemsRes, inactiveBadgesRes, typeNotesRes, itineraryRes] = await Promise.all([
     sb.from('roster').select('*').order('created_at'),
     sb.from('events').select('*').order('created_at'),
     sb.from('items').select('*'),
@@ -127,7 +127,8 @@ async function loadState(){
     sb.from('templates').select('*').order('created_at'),
     sb.from('template_items').select('*'),
     sb.from('event_inactive_badges').select('*'),
-    sb.from('item_type_notes').select('*')
+    sb.from('item_type_notes').select('*'),
+    sb.from('itinerary_items').select('*').order('time_value', {nullsFirst:false}).order('created_at')
   ]);
   if(rosterRes.error || eventsRes.error || itemsRes.error || assignRes.error || badgesRes.error || badgeEventsRes.error || volStatusRes.error || templatesRes.error || templateItemsRes.error){
     statusEl.textContent = 'Load error — check config.js and your connection';
@@ -141,6 +142,15 @@ async function loadState(){
   // instead of blocking the whole app from loading
   if(inactiveBadgesRes.error) console.error(inactiveBadgesRes.error);
   if(typeNotesRes.error) console.error(typeNotesRes.error);
+  if(itineraryRes.error) console.error(itineraryRes.error);
+  const itineraryByEvent = {};
+  if(!itineraryRes.error){
+    itineraryRes.data.forEach(row=>{
+      (itineraryByEvent[row.event_id] ||= []).push({
+        uid: row.id, timeValue: row.time_value, label: row.label, notes: row.notes||''
+      });
+    });
+  }
   const assigns = assignRes.data;
   const itemsByEvent = {};
   itemsRes.data.forEach(row=>{
@@ -177,7 +187,7 @@ async function loadState(){
   });
   STATE = {
     roster: rosterRes.data.map(r=>({id:r.id, name:r.name, role:r.role||'', description:r.description||''})),
-    events: eventsRes.data.map(e=>({id:e.id, name:e.name, date:e.date||'', templateId: e.template_id||null, eventType: e.event_type||'', items: itemsByEvent[e.id]||[]})),
+    events: eventsRes.data.map(e=>({id:e.id, name:e.name, date:e.date||'', templateId: e.template_id||null, eventType: e.event_type||'', items: itemsByEvent[e.id]||[], itinerary: itineraryByEvent[e.id]||[]})),
     activeEventId: (eventsRes.data.find(e=>e.is_current) || eventsRes.data[0] || {}).id || null,
     badges: badgesRes.data,
     badgeEvents: badgeEventsRes.data,

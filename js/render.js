@@ -249,6 +249,7 @@ function renderAll(){
   renderBadges();
   renderTemplates();
   renderAnalytics();
+  renderItinerary();
   renderImportEventSelect();
   if(openBadgeId) renderBadgeModalBody();
 }

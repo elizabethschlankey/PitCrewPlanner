@@ -1,4 +1,4 @@
--- Pit Crew Field Setup Planner — Supabase schema
+-- P.I.T - Field Crew Planner — Supabase schema
 -- Run this once in your Supabase project's SQL Editor (Project > SQL Editor > New query > paste > Run).
 --
 -- ALREADY SET UP YOUR PROJECT BEFORE? Do NOT re-run this whole file —

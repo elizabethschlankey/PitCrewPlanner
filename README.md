@@ -1,4 +1,6 @@
-# Field Setup Planner — standalone Supabase version
+# P.I.T - Field Crew Planner — standalone Supabase version
+
+"P.I.T" stands for Parents In Training.
 
 A self-hosted twin of the Claude Artifact planner, backed by a real database
 so you can export/report on it and, later, let other tools read the data.

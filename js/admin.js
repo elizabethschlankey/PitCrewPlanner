@@ -530,6 +530,61 @@ document.getElementById('roster-list').addEventListener('click', e=>{
   if(row) startEditVolunteer(row.dataset.editVolunteer);
 });
 
+/* ---------------------------------------------------------------
+   AUTO-ASSIGN TO A RETURNING VOLUNTEER'S USUAL SPOT — the moment
+   someone's marked Signed Up for an event, if they've been 📌
+   anchored to some item type before (any past event — that's the
+   whole point of anchoring: "this person reliably runs this spot
+   every game"), and this event has a needs-a-hand item of that same
+   type with room and nobody assigned yet, put them straight on it and
+   re-anchor them there, so the streak keeps carrying forward with no
+   manual re-dragging every single game. Silently does nothing if
+   there's no anchor history for them, no matching item, or no open
+   slot — this only ever ADDS an assignment, never bumps anyone else.
+---------------------------------------------------------------- */
+// Most recent anchored item across every event, by that event's date
+// (falls back to '' so an event with no date sorts before any dated
+// one rather than crashing the comparison) — "most recent" is what
+// makes this self-correcting if someone's usual spot ever changes.
+function findDesignatedPosition(volunteerId){
+  let best = null;
+  STATE.events.forEach(evt=>{
+    const eventDate = evt.date || '';
+    evt.items.forEach(it=>{
+      if((it.anchoredIds||[]).includes(volunteerId) && (!best || eventDate>=best.eventDate)){
+        best = {typeId: it.typeId, label: it.label, eventDate};
+      }
+    });
+  });
+  return best;
+}
+// reservedCounts (optional Map<itemId, count>) lets a caller looping
+// over MANY volunteers in one batch (the paste-import below) track
+// slots this same loop has already filled, without needing a full
+// reload() between every single one — without it, two people signed
+// up in the same paste could both read the item as having room and
+// both land on it, over-booking a one-person slot.
+async function autoAssignDesignatedPosition(volunteerId, eventId, reservedCounts){
+  const designated = findDesignatedPosition(volunteerId);
+  if(!designated) return null;
+  const evt = STATE.events.find(e=>e.id===eventId);
+  if(!evt) return null;
+  if(evt.items.some(it=>(it.assignedIds||[]).includes(volunteerId))) return null; // already on something this event
+  const candidates = evt.items.filter(it=>{
+    if(it.typeId!==designated.typeId || !it.needsHelp) return false;
+    const reserved = reservedCounts ? (reservedCounts.get(it.uid)||0) : 0;
+    return (it.assignedIds||[]).length + reserved < (it.helpersNeeded||1);
+  });
+  if(!candidates.length) return null;
+  // several of the same type (e.g. three marimbas) — prefer the one
+  // whose label matches their historical spot over just "the first one"
+  const target = candidates.find(it=>it.label===designated.label) || candidates[0];
+  const {error} = await sb.from('item_assignments').insert({item_id: target.uid, volunteer_id: volunteerId, anchored: true});
+  if(error){ console.error(error); return null; }
+  if(reservedCounts) reservedCounts.set(target.uid, (reservedCounts.get(target.uid)||0)+1);
+  return target;
+}
+
 document.getElementById('roster-list').addEventListener('change', async e=>{
   const select = e.target.closest('[data-status-volunteer]');
   if(!select) return;
@@ -539,10 +594,18 @@ document.getElementById('roster-list').addEventListener('change', async e=>{
   if(status==='potential'){
     await db(sb.from('event_volunteer_status').delete().eq('event_id', evtId).eq('volunteer_id', volunteerId), 'clear volunteer status');
   }else{
-    await db(sb.from('event_volunteer_status').upsert(
+    const ok = await db(sb.from('event_volunteer_status').upsert(
       {event_id: evtId, volunteer_id: volunteerId, status},
       {onConflict: 'event_id,volunteer_id'}
     ), 'set volunteer status');
+    if(ok && status==='signed_up'){
+      const assigned = await autoAssignDesignatedPosition(volunteerId, evtId);
+      if(assigned){
+        await reload();
+        const v = STATE.roster.find(r=>r.id===volunteerId);
+        statusEl.textContent = `${v ? v.name : 'Volunteer'} auto-assigned to their usual spot (${assigned.label})`;
+      }
+    }
   }
 });
 
@@ -647,9 +710,23 @@ document.getElementById('import-names-btn').addEventListener('click', async ()=>
   }
 
   await reload();
+  // same "put a returning volunteer back on their usual spot" as the
+  // single Signed Up dropdown — just run for everyone this batch
+  // marked Signed Up. reservedCounts tracks slots THIS loop has
+  // already filled so two people in the same paste can't both land on
+  // the same one-person item before either write actually lands.
+  const reservedCounts = new Map();
+  let autoAssignedCount = 0;
+  for(const id of matchedIds){
+    const assigned = await autoAssignDesignatedPosition(id, eventId, reservedCounts);
+    if(assigned) autoAssignedCount++;
+  }
+  if(autoAssignedCount) await reload();
+
   const evtName = (STATE.events.find(e=>e.id===eventId) || {}).name || 'the event';
   const addedCount = toInsert.length;
-  resultEl.textContent = `Imported ${names.length}: ${addedCount} new, ${names.length-addedCount} already on the roster — all marked Signed Up for "${evtName}".`;
+  resultEl.textContent = `Imported ${names.length}: ${addedCount} new, ${names.length-addedCount} already on the roster — all marked Signed Up for "${evtName}"`
+    + (autoAssignedCount ? `, ${autoAssignedCount} auto-assigned to their usual spot.` : '.');
   document.getElementById('import-names-input').value = '';
   statusEl.textContent = 'All changes saved';
 });

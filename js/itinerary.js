@@ -6,6 +6,14 @@
    matching Crew Roster's access level. Lives as its own full-screen
    takeover (#itinerary-screen), the same mechanism #admin-screen uses
    — see itineraryOpen/applyScreen() in admin.js.
+
+   This same screen doubles as the editor for Itinerary Templates (see
+   editingItineraryTemplateId in state.js and the Itinerary Templates
+   section of js/admin.js) — every function below reads/writes through
+   currentItineraryCtx() instead of hardcoding itinerary_items/
+   event_id, so paste-import/add/edit/remove all work identically
+   whether the thing being edited is a real event's itinerary or a
+   reusable template's.
 ---------------------------------------------------------------- */
 
 // Finds every recognizable clock time ANYWHERE in the pasted text —
@@ -86,6 +94,7 @@ function formatItineraryTime(timeValue){
 // it isn't quietly re-rendering a hidden screen every 30s forever.
 let itineraryNowInterval = null;
 function openItineraryScreen(){
+  editingItineraryTemplateId = null;
   itineraryOpen = true;
   adminOpen = false;
   applyScreen();
@@ -93,12 +102,31 @@ function openItineraryScreen(){
   if(typeof setMobileNavView==='function') setMobileNavView('itinerary');
   if(!itineraryNowInterval) itineraryNowInterval = setInterval(renderItinerary, 30000);
 }
-function closeItineraryScreen(){
-  itineraryOpen = false;
+// Opens the SAME screen in template-editing mode instead — from a
+// template's "Edit Items" button in Admin > Templates (js/admin.js).
+function openItineraryTemplateEditor(id){
+  if(!STATE.itineraryTemplates.find(t=>t.id===id)) return;
+  editingItineraryTemplateId = id;
+  itineraryOpen = true;
+  adminOpen = false;
   applyScreen();
   renderAll();
-  if(typeof setMobileNavView==='function') setMobileNavView('field');
+}
+// "Back" from a real event's itinerary returns to the field/mobile
+// nav; "Back" out of a template's editor instead returns to Admin's
+// Templates tab, since there's no event view to go back to
+function closeItineraryScreen(){
+  const wasEditingTemplate = !!editingItineraryTemplateId;
+  editingItineraryTemplateId = null;
+  itineraryOpen = false;
   if(itineraryNowInterval){ clearInterval(itineraryNowInterval); itineraryNowInterval = null; }
+  if(wasEditingTemplate){
+    adminOpen = true;
+    setAdminTab('templates');
+  }
+  applyScreen();
+  renderAll();
+  if(!wasEditingTemplate && typeof setMobileNavView==='function') setMobileNavView('field');
 }
 document.getElementById('btn-itinerary').addEventListener('click', openItineraryScreen);
 document.getElementById('btn-itinerary-back').addEventListener('click', closeItineraryScreen);
@@ -118,23 +146,41 @@ function nowTimeString(){
 function renderItinerary(){
   const nameEl = document.getElementById('itinerary-event-name');
   const list = document.getElementById('itinerary-list');
+  const titleEl = document.getElementById('itinerary-screen-title');
+  const backBtn = document.getElementById('btn-itinerary-back');
+  const applyCard = document.getElementById('itinerary-apply-template-card');
   if(!nameEl || !list) return;
-  const evt = currentEvent();
+  const isTemplate = !!editingItineraryTemplateId;
+  if(titleEl) titleEl.textContent = isTemplate ? 'Itinerary Template' : 'Itinerary';
+  if(backBtn) backBtn.textContent = isTemplate ? '← Back to Templates' : '← Back to Event';
+  // applying a template onto ANOTHER template isn't a thing this UI
+  // offers — that card only makes sense while looking at a real event
+  if(applyCard) applyCard.style.display = isTemplate ? 'none' : '';
+  const evt = isTemplate ? currentItineraryTemplate() : currentEvent();
   nameEl.textContent = evt.name || '';
-  const items = evt.itinerary || [];
+  const items = currentItineraryCtx().items || [];
+  if(!isTemplate){
+    const applySelect = document.getElementById('itinerary-apply-template-select');
+    if(applySelect){
+      const prev = applySelect.value;
+      applySelect.innerHTML = '<option value="">Choose a template…</option>' + itineraryTemplateOptionsFor(evt.eventType);
+      if([...applySelect.options].some(o=>o.value===prev)) applySelect.value = prev;
+    }
+  }
   if(!items.length){
-    list.innerHTML = `<div class="roster-empty">No itinerary yet for this event.</div>`;
+    list.innerHTML = `<div class="roster-empty">No itinerary yet${isTemplate ? ' in this template' : ' for this event'}.</div>`;
     return;
   }
-  // Live "NOW" line — only for an event happening TODAY (comparing
-  // clock time against an event days away would be meaningless, so
-  // past/current/upcoming styling and the line itself just don't
-  // appear otherwise). currentIdx is the LAST item at or before the
-  // current time — i.e. "what's happening right now" — everything
-  // before it is past, everything after is still upcoming. Untimed
-  // items never advance it (there's no time to compare), so they
-  // always render as upcoming regardless of where they sort.
-  const showNow = evt.date && evt.date===todayISO();
+  // Live "NOW" line — only for a real event happening TODAY (a
+  // template has no date, and comparing clock time against an event
+  // days away would be meaningless, so past/current/upcoming styling
+  // and the line itself just don't appear in either case). currentIdx
+  // is the LAST item at or before the current time — i.e. "what's
+  // happening right now" — everything before it is past, everything
+  // after is still upcoming. Untimed items never advance it (there's
+  // no time to compare), so they always render as upcoming regardless
+  // of where they sort.
+  const showNow = !isTemplate && evt.date && evt.date===todayISO();
   const nowStr = showNow ? nowTimeString() : null;
   let currentIdx = -1;
   if(showNow){
@@ -179,7 +225,7 @@ const itineraryCancelEditBtn = document.getElementById('itinerary-cancel-edit-bt
 const itineraryFormLabel = document.getElementById('itinerary-form-label');
 
 function startEditItineraryItem(id){
-  const it = (currentEvent().itinerary||[]).find(i=>i.uid===id);
+  const it = (currentItineraryCtx().items||[]).find(i=>i.uid===id);
   if(!it) return;
   editingItineraryId = id;
   itineraryTimeInput.value = it.timeValue ? it.timeValue.slice(0,5) : '';
@@ -209,13 +255,13 @@ itineraryAddBtn.addEventListener('click', async ()=>{
   const timeValue = itineraryTimeInput.value ? itineraryTimeInput.value+':00' : null;
   const notes = itineraryNotesInput.value.trim();
   const isTentative = timeValue ? itineraryTentativeInput.checked : false;
+  const ctx = currentItineraryCtx();
   if(editingItineraryId){
-    const ok = await db(sb.from('itinerary_items').update({time_value: timeValue, label, notes, is_tentative: isTentative}).eq('id', editingItineraryId), 'update itinerary item');
+    const ok = await db(sb.from(ctx.table).update({time_value: timeValue, label, notes, is_tentative: isTentative}).eq('id', editingItineraryId), 'update itinerary item');
     if(ok) cancelEditItineraryItem();
   }else{
-    const eventId = currentEvent().id;
-    if(!eventId) return;
-    const ok = await db(sb.from('itinerary_items').insert({event_id: eventId, time_value: timeValue, label, notes, is_tentative: isTentative}), 'add itinerary item');
+    if(!ctx.ownerId) return;
+    const ok = await db(sb.from(ctx.table).insert({[ctx.fk]: ctx.ownerId, time_value: timeValue, label, notes, is_tentative: isTentative}), 'add itinerary item');
     if(ok) cancelEditItineraryItem();
   }
 });
@@ -224,10 +270,11 @@ document.getElementById('itinerary-list').addEventListener('click', e=>{
   const removeBtn = e.target.closest('[data-remove-itinerary]');
   if(removeBtn){
     const id = removeBtn.dataset.removeItinerary;
-    const it = (currentEvent().itinerary||[]).find(i=>i.uid===id);
+    const ctx = currentItineraryCtx();
+    const it = (ctx.items||[]).find(i=>i.uid===id);
     openConfirm(`Remove "${it ? it.label : 'this item'}" from the itinerary?`, async ()=>{
       if(editingItineraryId===id) cancelEditItineraryItem();
-      await db(sb.from('itinerary_items').delete().eq('id', id), 'remove itinerary item');
+      await db(sb.from(ctx.table).delete().eq('id', id), 'remove itinerary item');
     });
     return;
   }
@@ -242,11 +289,11 @@ document.getElementById('itinerary-paste-btn').addEventListener('click', async (
   resultEl.textContent = '';
   const parsed = parseItineraryText(input.value);
   if(!parsed.length){ resultEl.textContent = 'Paste at least one line first.'; return; }
-  const eventId = currentEvent().id;
-  if(!eventId){ resultEl.textContent = 'No event selected.'; return; }
+  const ctx = currentItineraryCtx();
+  if(!ctx.ownerId){ resultEl.textContent = editingItineraryTemplateId ? 'No template selected.' : 'No event selected.'; return; }
   statusEl.textContent = 'Importing…';
-  const rows = parsed.map(p=>({event_id: eventId, time_value: p.timeValue, label: p.label, is_tentative: p.isTentative}));
-  const {error} = await sb.from('itinerary_items').insert(rows);
+  const rows = parsed.map(p=>({[ctx.fk]: ctx.ownerId, time_value: p.timeValue, label: p.label, is_tentative: p.isTentative}));
+  const {error} = await sb.from(ctx.table).insert(rows);
   if(error){
     statusEl.textContent = 'Error: '+error.message;
     resultEl.textContent = 'Import failed — nothing was added.';
@@ -259,3 +306,26 @@ document.getElementById('itinerary-paste-btn').addEventListener('click', async (
   input.value = '';
   statusEl.textContent = 'All changes saved';
 });
+
+/* --- apply an itinerary template onto the current event ----------- */
+const itineraryApplyTemplateBtn = document.getElementById('itinerary-apply-template-btn');
+if(itineraryApplyTemplateBtn){
+  itineraryApplyTemplateBtn.addEventListener('click', async ()=>{
+    const resultEl = document.getElementById('itinerary-apply-template-result');
+    const select = document.getElementById('itinerary-apply-template-select');
+    resultEl.textContent = '';
+    const templateId = select.value;
+    if(!templateId){ resultEl.textContent = 'Pick a template first.'; return; }
+    const tmpl = STATE.itineraryTemplates.find(t=>t.id===templateId);
+    if(!tmpl || !tmpl.items.length){ resultEl.textContent = 'That template has no items yet.'; return; }
+    const eventId = currentEvent().id;
+    if(!eventId) return;
+    statusEl.textContent = 'Applying…';
+    const failed = await copyItineraryToEvent(clone(tmpl.items), eventId);
+    await reload();
+    resultEl.textContent = failed
+      ? `Applied, but ${failed} of ${tmpl.items.length} item(s) failed to copy — open the browser console (F12) for the error`
+      : `Added ${tmpl.items.length} item${tmpl.items.length===1?'':'s'} from “${tmpl.name}”.`;
+    statusEl.textContent = 'All changes saved';
+  });
+}

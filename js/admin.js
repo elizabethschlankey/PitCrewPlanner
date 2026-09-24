@@ -49,14 +49,30 @@ const eventFormLabel = document.getElementById('event-form-label');
 const eventFormName = document.getElementById('event-form-name');
 const eventFormDate = document.getElementById('event-form-date');
 const eventFormTemplate = document.getElementById('event-form-template');
+const eventFormItineraryTemplate = document.getElementById('event-form-itinerary-template');
 const eventFormType = document.getElementById('event-form-type');
 let eventFormMode = 'new';
+
+function refreshEventFormItineraryOptions(){
+  if(!eventFormItineraryTemplate) return;
+  const prev = eventFormItineraryTemplate.value;
+  eventFormItineraryTemplate.innerHTML = '<option value="">No Itinerary Template</option>' +
+    itineraryTemplateOptionsFor(eventFormType.value);
+  if([...eventFormItineraryTemplate.options].some(o=>o.value===prev)) eventFormItineraryTemplate.value = prev;
+}
+// re-filter to the newly-picked type every time it changes, while the
+// form is actually open on "New Event" (picking a type shouldn't do
+// anything while renaming/duplicating, where this select is hidden)
+eventFormType.addEventListener('change', ()=>{
+  if(eventFormMode==='new') refreshEventFormItineraryOptions();
+});
 
 function openEventForm(kind){
   eventFormMode = kind;
   // "start from a template" only makes sense for a brand new event —
   // duplicating/renaming an existing one already has its own layout
   eventFormTemplate.style.display = kind==='new' ? '' : 'none';
+  if(eventFormItineraryTemplate) eventFormItineraryTemplate.style.display = kind==='new' ? '' : 'none';
   if(kind==='new'){
     eventFormTemplate.innerHTML = '<option value="">Start Blank</option>' +
       STATE.templates.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
@@ -77,6 +93,7 @@ function openEventForm(kind){
     eventFormDate.value = todayISO();
     eventFormType.value = '';
   }
+  if(kind==='new') refreshEventFormItineraryOptions();
   document.getElementById('event-form-create').textContent = kind==='rename' ? 'Save' : 'Create';
   eventForm.classList.add('open');
   eventFormName.focus();
@@ -128,6 +145,40 @@ async function copyItemsToTemplate(srcItems, templateId){
   }
   return failed;
 }
+// same idea again, but for an Itinerary Template's items landing on an
+// event's own itinerary — used by "New Event" (when an itinerary
+// template is picked alongside/instead of a field template) and by
+// "Apply an Itinerary Template" on the Itinerary screen itself.
+// Always ADDS (never clears first), same as Switch Template for the
+// field layout, so applying one is safe to do more than once or
+// alongside items already added by hand.
+async function copyItineraryToEvent(srcItems, eventId){
+  let failed = 0;
+  for(const it of srcItems){
+    const {error} = await sb.from('itinerary_items').insert({
+      event_id: eventId, time_value: it.timeValue, label: it.label,
+      notes: it.notes || '', is_tentative: !!it.isTentative
+    });
+    if(error){ failed++; console.error(error); }
+  }
+  return failed;
+}
+
+function eventTypeLabel(t){
+  return t==='home' ? 'Home' : t==='away' ? 'Away' : t==='contest' ? 'Competition' : 'Any Type';
+}
+// <option> list for picking an Itinerary Template — an "Any Type"
+// template (event_type '') always shows up regardless of eventType,
+// same as a specific-type one only shows for a matching event. Passing
+// '' (no event type set yet, or the picker isn't scoped to one) shows
+// every template, tagged so it's still clear which type each is for.
+function itineraryTemplateOptionsFor(eventType){
+  return STATE.itineraryTemplates
+    .filter(t=>!eventType || !t.eventType || t.eventType===eventType)
+    .map(t=>`<option value="${t.id}">${t.name}${t.eventType ? ` (${eventTypeLabel(t.eventType)})` : ''}</option>`)
+    .join('');
+}
+
 // one line for every "copied N items, M failed" status — used after
 // every duplicate/save-as-template/new-from-template action below
 function copyResultMessage(kind, total, failed){
@@ -167,12 +218,17 @@ eventFormCreateBtn.addEventListener('click', async ()=>{
       if(typeof startSetupWizard==='function') startSetupWizard(newEvt.id, name);
     }else{
       const templateId = eventFormTemplate.value || null;
+      const itineraryTemplateId = eventFormItineraryTemplate ? eventFormItineraryTemplate.value || null : null;
       const {data:newEvt, error} = await sb.from('events').insert({name, date, event_type: eventType, template_id: templateId}).select().single();
       if(error){ statusEl.textContent = 'Error: '+error.message; return; }
       let failed = 0, total = 0;
       if(templateId){
         const tmpl = STATE.templates.find(t=>t.id===templateId);
         if(tmpl){ total = tmpl.items.length; failed = await copyItemsToEvent(clone(tmpl.items), newEvt.id); }
+      }
+      if(itineraryTemplateId){
+        const itmpl = STATE.itineraryTemplates.find(t=>t.id===itineraryTemplateId);
+        if(itmpl && itmpl.items.length) await copyItineraryToEvent(clone(itmpl.items), newEvt.id);
       }
       viewingEventId = newEvt.id;
       await reload();
@@ -328,6 +384,7 @@ document.getElementById('btn-admin').addEventListener('click', ()=>{
   adminOpen = true;
   itineraryOpen = false;
   editingTemplateId = null;
+  editingItineraryTemplateId = null;
   // Templates stays Director/Admin-only (see its data-edit-only tab/
   // panel) — a Lead Volunteer opening Admin has nothing to do there, so
   // land them on Crew Roster instead: signing volunteers up is their
@@ -467,6 +524,102 @@ templateFormCreateBtn.addEventListener('click', async ()=>{
     templateForm.classList.remove('open');
   }finally{
     templateFormCreateBtn.disabled = false;
+  }
+});
+
+/* ---------------------------------------------------------------
+   ITINERARY TEMPLATES — same idea as Field Templates above (a
+   reusable, named starting point an admin sets up once), but for the
+   Itinerary tab's timeline instead of the field layout. Each one is
+   tagged with an event_type (Home/Away/Competition, or "Any Type") so
+   it surfaces as a match for that kind of event — see
+   itineraryTemplateOptionsFor above, used both by "New Event"'s
+   itinerary-template picker and by "Apply an Itinerary Template" on
+   the Itinerary screen (js/itinerary.js). Editing a template's items
+   reuses that same Itinerary screen — see openItineraryTemplateEditor
+   there — rather than a separate editor UI.
+---------------------------------------------------------------- */
+function renderItineraryTemplates(){
+  const list = document.getElementById('itinerary-template-list');
+  if(!list) return;
+  if(!STATE.itineraryTemplates.length){
+    list.innerHTML = `<div class="roster-empty">No itinerary templates yet. Create one below to reuse as a starting schedule for matching events.</div>`;
+    return;
+  }
+  list.innerHTML = STATE.itineraryTemplates.map(t=>`
+    <div class="template-row">
+      <div class="info">
+        <div class="name">${t.name} <span class="pill template">${eventTypeLabel(t.eventType)}</span></div>
+        <div class="count">${t.items.length} item${t.items.length===1?'':'s'}</div>
+      </div>
+      <button class="small primary" data-edit-itinerary-template="${t.id}" type="button">Edit Items</button>
+      <button class="small ghost" data-rename-itinerary-template="${t.id}" type="button">Rename</button>
+      <button class="small danger" data-del-itinerary-template="${t.id}" type="button">Delete</button>
+    </div>`).join('');
+}
+document.getElementById('itinerary-template-list').addEventListener('click', e=>{
+  const editBtn = e.target.closest('[data-edit-itinerary-template]');
+  if(editBtn){
+    if(typeof openItineraryTemplateEditor==='function') openItineraryTemplateEditor(editBtn.dataset.editItineraryTemplate);
+    return;
+  }
+  const renameBtn = e.target.closest('[data-rename-itinerary-template]');
+  if(renameBtn){ openItineraryTemplateForm('rename', renameBtn.dataset.renameItineraryTemplate); return; }
+  const delBtn = e.target.closest('[data-del-itinerary-template]');
+  if(delBtn){
+    const id = delBtn.dataset.delItineraryTemplate;
+    const t = STATE.itineraryTemplates.find(x=>x.id===id);
+    openConfirm(`Delete itinerary template "${t.name}"? This can't be undone — events that already applied it keep their own copy of its items either way.`, async ()=>{
+      await db(sb.from('itinerary_templates').delete().eq('id', id), 'delete itinerary template');
+    });
+  }
+});
+
+const itineraryTemplateForm = document.getElementById('itinerary-template-form');
+const itineraryTemplateFormLabel = document.getElementById('itinerary-template-form-label');
+const itineraryTemplateFormName = document.getElementById('itinerary-template-form-name');
+const itineraryTemplateFormType = document.getElementById('itinerary-template-form-type');
+let itineraryTemplateFormMode = 'new';
+let itineraryTemplateFormTargetId = null;
+function openItineraryTemplateForm(kind, id){
+  itineraryTemplateFormMode = kind;
+  itineraryTemplateFormTargetId = id || null;
+  if(kind==='rename'){
+    const t = STATE.itineraryTemplates.find(x=>x.id===id) || {name:'',eventType:''};
+    itineraryTemplateFormLabel.textContent = 'Rename “'+t.name+'”';
+    itineraryTemplateFormName.value = t.name;
+    itineraryTemplateFormType.value = t.eventType;
+  }else{
+    itineraryTemplateFormLabel.textContent = 'New Itinerary Template';
+    itineraryTemplateFormName.value = '';
+    itineraryTemplateFormType.value = '';
+  }
+  document.getElementById('itinerary-template-form-create').textContent = kind==='rename' ? 'Save' : 'Create';
+  itineraryTemplateForm.classList.add('open');
+  itineraryTemplateFormName.focus();
+}
+document.getElementById('btn-new-itinerary-template').addEventListener('click', ()=>openItineraryTemplateForm('new'));
+document.getElementById('itinerary-template-form-cancel').addEventListener('click', ()=>itineraryTemplateForm.classList.remove('open'));
+const itineraryTemplateFormCreateBtn = document.getElementById('itinerary-template-form-create');
+itineraryTemplateFormCreateBtn.addEventListener('click', async ()=>{
+  // same double-tap guard as template-form-create/event-form-create
+  if(itineraryTemplateFormCreateBtn.disabled) return;
+  const name = itineraryTemplateFormName.value.trim();
+  if(!name) return;
+  const eventType = itineraryTemplateFormType.value || '';
+  itineraryTemplateFormCreateBtn.disabled = true;
+  try{
+    if(itineraryTemplateFormMode==='rename'){
+      await db(sb.from('itinerary_templates').update({name, event_type: eventType}).eq('id', itineraryTemplateFormTargetId), 'rename itinerary template');
+    }else{
+      const {error} = await sb.from('itinerary_templates').insert({name, event_type: eventType});
+      if(error){ statusEl.textContent = 'Error: '+error.message; return; }
+      await reload();
+      statusEl.textContent = 'All changes saved';
+    }
+    itineraryTemplateForm.classList.remove('open');
+  }finally{
+    itineraryTemplateFormCreateBtn.disabled = false;
   }
 });
 

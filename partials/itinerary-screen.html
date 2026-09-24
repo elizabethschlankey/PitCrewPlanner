@@ -1,11 +1,20 @@
   <div id="itinerary-screen" data-event-only>
     <div class="admin-header">
-      <h2>Itinerary — <span id="itinerary-event-name"></span></h2>
+      <h2><span id="itinerary-screen-title">Itinerary</span> — <span id="itinerary-event-name"></span></h2>
       <button id="btn-itinerary-back" class="small ghost" type="button">← Back to Event</button>
     </div>
 
     <div class="itinerary-editor" data-badges-only>
       <div class="roster-admin-actions">
+        <div class="roster-add" id="itinerary-apply-template-card">
+          <h2 style="margin:0;">Apply an Itinerary Template</h2>
+          <p class="hint" style="margin:0;">Copies a template's items onto this event's itinerary — it adds to
+            what's already here, never removes it, and everything stays freely editable afterward. Manage
+            templates from Admin &rsaquo; Templates.</p>
+          <select id="itinerary-apply-template-select"></select>
+          <button id="itinerary-apply-template-btn">Apply</button>
+          <div class="inline-error" id="itinerary-apply-template-result"></div>
+        </div>
         <div class="roster-add">
           <h2 style="margin:0;">Paste a Schedule</h2>
           <p class="hint" style="margin:0;">Paste a schedule straight from an email or a printed itinerary — it

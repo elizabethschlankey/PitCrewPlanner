@@ -248,6 +248,7 @@ function renderAll(){
   renderAssignments();
   renderBadges();
   renderTemplates();
+  renderItineraryTemplates();
   renderAnalytics();
   renderItinerary();
   renderImportEventSelect();

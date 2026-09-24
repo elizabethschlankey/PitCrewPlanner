@@ -497,7 +497,7 @@ document.querySelectorAll('#mobile-nav [data-nav]').forEach(btn=>{
     // own "← Back to Event" button.
     if(adminOpen){ adminOpen = false; applyScreen(); }
     if(itineraryOpen){
-      itineraryOpen = false; applyScreen();
+      itineraryOpen = false; editingItineraryTemplateId = null; applyScreen();
       if(itineraryNowInterval){ clearInterval(itineraryNowInterval); itineraryNowInterval = null; }
     }
     setMobileNavView(target);

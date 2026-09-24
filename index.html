@@ -1,6 +1,6 @@
 <!-- GENERATED FILE. Do not edit directly -- edit index.template.html and partials/*.html, then run `node build.js`. -->
 <!doctype html>
-<html lang="en" data-app-version="2026-09-24h">
+<html lang="en" data-app-version="2026-09-24i">
 <head>
 <meta charset="UTF-8">
 <title>Field Setup Planner</title>
@@ -22,7 +22,7 @@
      400/500/600/700 throughout (body text through badge labels), so
      it keeps its full range. -->
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=2026-09-24h">
+<link rel="stylesheet" href="css/styles.css?v=2026-09-24i">
 </head>
 <body>
 <div class="app">
@@ -115,7 +115,8 @@
         <option value="away">Away</option>
         <option value="contest">Competition</option>
       </select>
-      <select id="event-form-template" title="Start from a template"></select>
+      <select id="event-form-template" title="Start the field layout from a template"></select>
+      <select id="event-form-itinerary-template" title="Start the Itinerary tab from a template"></select>
       <button id="event-form-create" class="small primary" type="button">Create</button>
       <button id="event-form-cancel" class="small ghost" type="button">Cancel</button>
     </div>
@@ -285,6 +286,29 @@
         <button id="template-form-create" class="small primary" type="button">Create</button>
         <button id="template-form-cancel" class="small ghost" type="button">Cancel</button>
       </div>
+
+      <hr style="border:none;border-top:1px solid var(--panel-edge);margin:22px 0;">
+
+      <p class="hint">Reusable itinerary schedules (Home Football Game, Away Football Game, UIL Contest, ...) —
+        tag one with an event type and it becomes available whenever a matching event needs a starting timeline.
+        Applying one only COPIES its items onto that event's own itinerary; items can still be freely added,
+        edited, or removed afterward without touching the template.</p>
+      <div class="template-list" id="itinerary-template-list"></div>
+      <div style="margin-top:8px;">
+        <button id="btn-new-itinerary-template" class="small primary" type="button">+ New Itinerary Template</button>
+      </div>
+      <div class="inline-form" id="itinerary-template-form">
+        <div class="form-label" id="itinerary-template-form-label">New Itinerary Template</div>
+        <input type="text" name="name" id="itinerary-template-form-name" placeholder="Template name, e.g. Home Football Game" maxlength="60">
+        <select id="itinerary-template-form-type" title="Which event type this template applies to">
+          <option value="">Any Event Type</option>
+          <option value="home">Home</option>
+          <option value="away">Away</option>
+          <option value="contest">Competition</option>
+        </select>
+        <button id="itinerary-template-form-create" class="small primary" type="button">Create</button>
+        <button id="itinerary-template-form-cancel" class="small ghost" type="button">Cancel</button>
+      </div>
     </div>
 
 
@@ -383,12 +407,21 @@
 
   <div id="itinerary-screen" data-event-only>
     <div class="admin-header">
-      <h2>Itinerary — <span id="itinerary-event-name"></span></h2>
+      <h2><span id="itinerary-screen-title">Itinerary</span> — <span id="itinerary-event-name"></span></h2>
       <button id="btn-itinerary-back" class="small ghost" type="button">← Back to Event</button>
     </div>
 
     <div class="itinerary-editor" data-badges-only>
       <div class="roster-admin-actions">
+        <div class="roster-add" id="itinerary-apply-template-card">
+          <h2 style="margin:0;">Apply an Itinerary Template</h2>
+          <p class="hint" style="margin:0;">Copies a template's items onto this event's itinerary — it adds to
+            what's already here, never removes it, and everything stays freely editable afterward. Manage
+            templates from Admin &rsaquo; Templates.</p>
+          <select id="itinerary-apply-template-select"></select>
+          <button id="itinerary-apply-template-btn">Apply</button>
+          <div class="inline-error" id="itinerary-apply-template-result"></div>
+        </div>
         <div class="roster-add">
           <h2 style="margin:0;">Paste a Schedule</h2>
           <p class="hint" style="margin:0;">Paste a schedule straight from an email or a printed itinerary — it
@@ -739,19 +772,19 @@
      anymore. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
 <script src="config.js"></script>
-<script src="js/supabase-client.js?v=2026-09-24h"></script>
-<script src="js/catalog.js?v=2026-09-24h"></script>
-<script src="js/state.js?v=2026-09-24h"></script>
-<script src="js/field.js?v=2026-09-24h"></script>
-<script src="js/render.js?v=2026-09-24h"></script>
-<script src="js/admin.js?v=2026-09-24h"></script>
-<script src="js/setup-wizard.js?v=2026-09-24h"></script>
-<script src="js/itinerary.js?v=2026-09-24h"></script>
-<script src="js/badges.js?v=2026-09-24h"></script>
-<script src="js/drag-drop.js?v=2026-09-24h"></script>
-<script src="js/inspector.js?v=2026-09-24h"></script>
-<script src="js/toolbar.js?v=2026-09-24h"></script>
-<script src="js/boot.js?v=2026-09-24h"></script>
-<script src="js/update-check.js?v=2026-09-24h"></script>
+<script src="js/supabase-client.js?v=2026-09-24i"></script>
+<script src="js/catalog.js?v=2026-09-24i"></script>
+<script src="js/state.js?v=2026-09-24i"></script>
+<script src="js/field.js?v=2026-09-24i"></script>
+<script src="js/render.js?v=2026-09-24i"></script>
+<script src="js/admin.js?v=2026-09-24i"></script>
+<script src="js/setup-wizard.js?v=2026-09-24i"></script>
+<script src="js/itinerary.js?v=2026-09-24i"></script>
+<script src="js/badges.js?v=2026-09-24i"></script>
+<script src="js/drag-drop.js?v=2026-09-24i"></script>
+<script src="js/inspector.js?v=2026-09-24i"></script>
+<script src="js/toolbar.js?v=2026-09-24i"></script>
+<script src="js/boot.js?v=2026-09-24i"></script>
+<script src="js/update-check.js?v=2026-09-24i"></script>
 </body>
 </html>

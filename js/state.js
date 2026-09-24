@@ -15,9 +15,14 @@ function mediaFromRow(row, prefix){
   return {url: null, type: null};
 }
 
-let STATE = {roster:[], events:[], activeEventId:null, badges:[], badgeEvents:[], eventVolunteerStatus:[], eventInactiveBadges:[], itemTypeNotes:{}, templates:[]};
+let STATE = {roster:[], events:[], activeEventId:null, badges:[], badgeEvents:[], eventVolunteerStatus:[], eventInactiveBadges:[], itemTypeNotes:{}, templates:[], itineraryTemplates:[]};
 let viewingEventId = null;
 let editingTemplateId = null;
+// same idea as editingTemplateId, but for the Itinerary Templates
+// editor (see currentItineraryCtx below) — a separate variable since
+// the two are conceptually independent, even though only one editor
+// screen is ever open at a time in practice
+let editingItineraryTemplateId = null;
 let session = null;
 let mode = 'view';
 let loaded = false;
@@ -35,7 +40,7 @@ let loaded = false;
    shape ever changes incompatibly, so an old cached shape from before
    the change can't get loaded and crash rendering.
 ---------------------------------------------------------------- */
-const STATE_CACHE_KEY = 'pcp-cached-state-v2'; // v2: events now carry an itinerary array too
+const STATE_CACHE_KEY = 'pcp-cached-state-v3'; // v3: STATE now also carries itineraryTemplates
 function saveStateCache(){
   try{
     localStorage.setItem(STATE_CACHE_KEY, JSON.stringify({state: STATE, viewingEventId, savedAt: Date.now()}));
@@ -77,6 +82,26 @@ function currentTemplate(){
   return STATE.templates.find(t=>t.id===editingTemplateId) || {id:null,name:'',description:'',items:[]};
 }
 
+function currentItineraryTemplate(){
+  return STATE.itineraryTemplates.find(t=>t.id===editingItineraryTemplateId) || {id:null,name:'',eventType:'',items:[]};
+}
+
+// Returns which itinerary is currently being edited — a normal event's
+// itinerary, or (when editingItineraryTemplateId is set, i.e. the
+// Itinerary Templates editor has one open) an itinerary template's
+// items. Mirrors currentItemsCtx() below for the field editor — every
+// itinerary CRUD call site in js/itinerary.js reads this instead of
+// hardcoding itinerary_items/event_id, so the same editor UI works for
+// both an event's real itinerary and a reusable template.
+function currentItineraryCtx(){
+  if(editingItineraryTemplateId){
+    const t = currentItineraryTemplate();
+    return {items: t.items, table: 'itinerary_template_items', fk: 'template_id', ownerId: t.id};
+  }
+  const e = currentEvent();
+  return {items: e.itinerary, table: 'itinerary_items', fk: 'event_id', ownerId: e.id};
+}
+
 // What to Do / Wrap It Up (text + media) is shared per equipment TYPE —
 // edit it once, it's the same on every item of that type, in every
 // event and template, going forward. Legacy type ids (see
@@ -116,7 +141,7 @@ function currentItemsCtx(){
 }
 
 async function loadState(){
-  const [rosterRes, eventsRes, itemsRes, assignRes, badgesRes, badgeEventsRes, volStatusRes, templatesRes, templateItemsRes, inactiveBadgesRes, typeNotesRes, itineraryRes] = await Promise.all([
+  const [rosterRes, eventsRes, itemsRes, assignRes, badgesRes, badgeEventsRes, volStatusRes, templatesRes, templateItemsRes, inactiveBadgesRes, typeNotesRes, itineraryRes, itineraryTemplatesRes, itineraryTemplateItemsRes] = await Promise.all([
     sb.from('roster').select('*').order('created_at'),
     sb.from('events').select('*').order('created_at'),
     sb.from('items').select('*'),
@@ -128,7 +153,9 @@ async function loadState(){
     sb.from('template_items').select('*'),
     sb.from('event_inactive_badges').select('*'),
     sb.from('item_type_notes').select('*'),
-    sb.from('itinerary_items').select('*').order('time_value', {nullsFirst:false}).order('created_at')
+    sb.from('itinerary_items').select('*').order('time_value', {nullsFirst:false}).order('created_at'),
+    sb.from('itinerary_templates').select('*').order('created_at'),
+    sb.from('itinerary_template_items').select('*').order('time_value', {nullsFirst:false}).order('created_at')
   ]);
   if(rosterRes.error || eventsRes.error || itemsRes.error || assignRes.error || badgesRes.error || badgeEventsRes.error || volStatusRes.error || templatesRes.error || templateItemsRes.error){
     statusEl.textContent = 'Load error — check config.js and your connection';
@@ -143,10 +170,20 @@ async function loadState(){
   if(inactiveBadgesRes.error) console.error(inactiveBadgesRes.error);
   if(typeNotesRes.error) console.error(typeNotesRes.error);
   if(itineraryRes.error) console.error(itineraryRes.error);
+  if(itineraryTemplatesRes.error) console.error(itineraryTemplatesRes.error);
+  if(itineraryTemplateItemsRes.error) console.error(itineraryTemplateItemsRes.error);
   const itineraryByEvent = {};
   if(!itineraryRes.error){
     itineraryRes.data.forEach(row=>{
       (itineraryByEvent[row.event_id] ||= []).push({
+        uid: row.id, timeValue: row.time_value, label: row.label, notes: row.notes||'', isTentative: !!row.is_tentative
+      });
+    });
+  }
+  const itineraryByTemplate = {};
+  if(!itineraryTemplateItemsRes.error){
+    itineraryTemplateItemsRes.data.forEach(row=>{
+      (itineraryByTemplate[row.template_id] ||= []).push({
         uid: row.id, timeValue: row.time_value, label: row.label, notes: row.notes||'', isTentative: !!row.is_tentative
       });
     });
@@ -194,10 +231,12 @@ async function loadState(){
     eventVolunteerStatus: volStatusRes.data,
     eventInactiveBadges: inactiveBadgesRes.error ? [] : inactiveBadgesRes.data,
     itemTypeNotes: typeNotesRes.error ? {} : Object.fromEntries(typeNotesRes.data.map(r=>[r.type_id, r])),
-    templates: templatesRes.data.map(t=>({id:t.id, name:t.name, description:t.description||'', items: itemsByTemplate[t.id]||[]}))
+    templates: templatesRes.data.map(t=>({id:t.id, name:t.name, description:t.description||'', items: itemsByTemplate[t.id]||[]})),
+    itineraryTemplates: itineraryTemplatesRes.error ? [] : itineraryTemplatesRes.data.map(t=>({id:t.id, name:t.name, eventType: t.event_type||'', items: itineraryByTemplate[t.id]||[]}))
   };
   if(!STATE.events.find(e=>e.id===viewingEventId)) viewingEventId = STATE.activeEventId || (STATE.events[0]||{}).id;
   if(editingTemplateId && !STATE.templates.find(t=>t.id===editingTemplateId)) editingTemplateId = null;
+  if(editingItineraryTemplateId && !STATE.itineraryTemplates.find(t=>t.id===editingItineraryTemplateId)) editingItineraryTemplateId = null;
   loaded = true;
   saveStateCache();
   return true;

@@ -485,3 +485,50 @@ begin
     alter publication supabase_realtime add table itinerary_items;
   end if;
 end $$;
+
+-- ---------------------------------------------------------------
+-- Itinerary Templates — a reusable named schedule (e.g. "Home Football
+-- Game") an admin sets up once, tagged with the event_type it applies
+-- to (matching events.event_type above — Home/Away/Competition, or ''
+-- for any). Applying one to an event COPIES its items into that
+-- event's own itinerary_items, the same one-way copy Field Templates
+-- already do for the field layout (see copyItemsToEvent in admin.js)
+-- — never a live link, so adding/removing items on the event
+-- afterward never touches the template, and editing the template
+-- later never touches events that already used it. Idempotent — safe
+-- to re-run.
+-- ---------------------------------------------------------------
+create table if not exists itinerary_templates (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null,
+  event_type text not null default '' check (event_type in ('', 'home', 'away', 'contest')),
+  created_at timestamptz not null default now()
+);
+create table if not exists itinerary_template_items (
+  id           uuid primary key default gen_random_uuid(),
+  template_id  uuid not null references itinerary_templates(id) on delete cascade,
+  time_value   time,
+  label        text not null,
+  notes        text not null default '',
+  is_tentative boolean not null default false,
+  created_at   timestamptz not null default now()
+);
+alter table itinerary_templates      enable row level security;
+alter table itinerary_template_items enable row level security;
+drop policy if exists "public read itinerary_templates" on itinerary_templates;
+create policy "public read itinerary_templates" on itinerary_templates for select using (true);
+drop policy if exists "auth write itinerary_templates" on itinerary_templates;
+create policy "auth write itinerary_templates" on itinerary_templates for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+drop policy if exists "public read itinerary_template_items" on itinerary_template_items;
+create policy "public read itinerary_template_items" on itinerary_template_items for select using (true);
+drop policy if exists "auth write itinerary_template_items" on itinerary_template_items;
+create policy "auth write itinerary_template_items" on itinerary_template_items for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and tablename = 'itinerary_templates'
+  ) then
+    alter publication supabase_realtime add table itinerary_templates, itinerary_template_items;
+  end if;
+end $$;

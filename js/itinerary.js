@@ -102,8 +102,9 @@ function closeItineraryScreen(){
 }
 document.getElementById('btn-itinerary').addEventListener('click', openItineraryScreen);
 document.getElementById('btn-itinerary-back').addEventListener('click', closeItineraryScreen);
-const mobileItineraryBtn = document.querySelector('#mobile-nav [data-nav="itinerary"]');
-if(mobileItineraryBtn) mobileItineraryBtn.addEventListener('click', openItineraryScreen);
+// The bottom nav's own Itinerary tab is handled by the mobile-nav
+// click handler in field.js (it needs to close Crew's Admin screen
+// first if that's what's open) — not wired up separately here.
 
 // "HH:MM:SS", zero-padded to match Postgres's time format exactly —
 // so it can be compared against item.timeValue with plain string

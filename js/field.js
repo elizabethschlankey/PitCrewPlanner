@@ -488,6 +488,18 @@ function setMobileNavView(view){
 document.querySelectorAll('#mobile-nav [data-nav]').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     const target = btn.dataset.nav;
+    // Crew and Itinerary are full-screen takeovers layered on top of
+    // .layout (see adminOpen/itineraryOpen in admin.js), not a plain
+    // data-mobile-view tab — closing whichever one is currently open
+    // FIRST means jumping straight from Itinerary to Field/Help/Badges
+    // (or Crew, or vice versa) actually shows the new tab instead of
+    // leaving the old takeover sitting on top until someone taps its
+    // own "← Back to Event" button.
+    if(adminOpen){ adminOpen = false; applyScreen(); }
+    if(itineraryOpen){
+      itineraryOpen = false; applyScreen();
+      if(itineraryNowInterval){ clearInterval(itineraryNowInterval); itineraryNowInterval = null; }
+    }
     setMobileNavView(target);
     if(target==='crew'){
       adminOpen = true;
@@ -495,6 +507,8 @@ document.querySelectorAll('#mobile-nav [data-nav]').forEach(btn=>{
       setAdminTab('roster');
       applyScreen();
       renderAll();
+    }else if(target==='itinerary'){
+      if(typeof openItineraryScreen==='function') openItineraryScreen();
     }else if(target==='palette'){
       // land on whichever sub-tab actually applies — Equipment for a
       // signed-in editor, Badges for everyone else who can reach this

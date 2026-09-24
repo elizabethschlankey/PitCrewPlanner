@@ -720,6 +720,7 @@
   .mobile-more-menu{display:none;}
   @media (max-width:820px){
     #btn-admin{display:none !important;} /* the Crew tab (bottom nav) already opens this screen */
+    #btn-itinerary{display:none !important;} /* the Itinerary tab (bottom nav) already opens this screen */
     body.mode-edit .mobile-more-toggle{
       display:inline-flex;align-items:center;justify-content:center;
       width:34px;height:34px;padding:0;

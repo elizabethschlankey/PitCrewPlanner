@@ -74,23 +74,38 @@ function formatItineraryTime(timeValue){
 }
 
 /* --- screen open/close — same takeover mechanism as Admin ------- */
+// Live "NOW" line (see renderItinerary below) only needs to re-render
+// itself, not the whole app, and only while someone's actually looking
+// at the timeline — the interval starts on open and stops on close so
+// it isn't quietly re-rendering a hidden screen every 30s forever.
+let itineraryNowInterval = null;
 function openItineraryScreen(){
   itineraryOpen = true;
   adminOpen = false;
   applyScreen();
   renderAll();
   if(typeof setMobileNavView==='function') setMobileNavView('itinerary');
+  if(!itineraryNowInterval) itineraryNowInterval = setInterval(renderItinerary, 30000);
 }
 function closeItineraryScreen(){
   itineraryOpen = false;
   applyScreen();
   renderAll();
   if(typeof setMobileNavView==='function') setMobileNavView('field');
+  if(itineraryNowInterval){ clearInterval(itineraryNowInterval); itineraryNowInterval = null; }
 }
 document.getElementById('btn-itinerary').addEventListener('click', openItineraryScreen);
 document.getElementById('btn-itinerary-back').addEventListener('click', closeItineraryScreen);
 const mobileItineraryBtn = document.querySelector('#mobile-nav [data-nav="itinerary"]');
 if(mobileItineraryBtn) mobileItineraryBtn.addEventListener('click', openItineraryScreen);
+
+// "HH:MM:SS", zero-padded to match Postgres's time format exactly —
+// so it can be compared against item.timeValue with plain string
+// comparison (works correctly since both are always zero-padded).
+function nowTimeString(){
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+}
 
 /* --- render ------------------------------------------------------ */
 function renderItinerary(){
@@ -104,13 +119,29 @@ function renderItinerary(){
     list.innerHTML = `<div class="roster-empty">No itinerary yet for this event.</div>`;
     return;
   }
-  list.innerHTML = items.map(it=>{
+  // Live "NOW" line — only for an event happening TODAY (comparing
+  // clock time against an event days away would be meaningless, so
+  // past/current/upcoming styling and the line itself just don't
+  // appear otherwise). currentIdx is the LAST item at or before the
+  // current time — i.e. "what's happening right now" — everything
+  // before it is past, everything after is still upcoming. Untimed
+  // items never advance it (there's no time to compare), so they
+  // always render as upcoming regardless of where they sort.
+  const showNow = evt.date && evt.date===todayISO();
+  const nowStr = showNow ? nowTimeString() : null;
+  let currentIdx = -1;
+  if(showNow){
+    items.forEach((it,i)=>{ if(it.timeValue && it.timeValue<=nowStr) currentIdx = i; });
+  }
+  const rows = items.map((it,i)=>{
     const timeDisplay = formatItineraryTime(it.timeValue);
+    const state = !showNow ? '' : i<currentIdx ? ' itinerary-past' : i===currentIdx ? ' itinerary-current' : '';
+    const nowBadge = showNow && i===currentIdx ? ' <span class="itinerary-now-badge">Now</span>' : '';
     return `
-    <div class="itinerary-row">
+    <div class="itinerary-row${state}">
       <div class="itinerary-time${timeDisplay ? '' : ' no-time'}">${timeDisplay || 'No time set'}</div>
       <div class="itinerary-body">
-        <div class="itinerary-label">${it.label}</div>
+        <div class="itinerary-label">${it.label}${nowBadge}</div>
         ${it.notes ? `<div class="itinerary-notes">${it.notes}</div>` : ''}
       </div>
       <div class="itinerary-actions" data-badges-only>
@@ -118,7 +149,13 @@ function renderItinerary(){
         <button type="button" class="itinerary-remove-btn" data-remove-itinerary="${it.uid}" title="Remove">×</button>
       </div>
     </div>`;
-  }).join('');
+  });
+  // the divider itself sits right after whatever's currently happening
+  // (or at the very top, if the day's schedule hasn't started yet)
+  if(showNow){
+    rows.splice(currentIdx+1, 0, `<div class="itinerary-now-line"><span>Now — ${formatItineraryTime(nowStr)}</span></div>`);
+  }
+  list.innerHTML = rows.join('');
 }
 
 /* --- add / edit form (mirrors startEditVolunteer/cancelEditVolunteer

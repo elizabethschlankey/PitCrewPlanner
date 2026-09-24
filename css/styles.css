@@ -252,6 +252,14 @@
   .itinerary-actions button{width:24px;height:24px;border-radius:50%;border:1px solid var(--panel-edge);background:transparent;color:var(--text-lo);font-size:12px;line-height:1;padding:0;cursor:pointer;}
   .itinerary-actions button:hover{background:rgba(255,255,255,.06);color:#eceef2;}
   .itinerary-actions .itinerary-remove-btn:hover{background:rgba(193,68,58,.18);color:#ff8a80;border-color:var(--danger);}
+  /* live "where are we right now" state — only computed for an event
+     happening today (see showNow in renderItinerary) */
+  .itinerary-row.itinerary-past{opacity:.5;}
+  .itinerary-row.itinerary-current{border-color:var(--gold);background:rgba(224,177,60,.1);}
+  .itinerary-now-badge{display:inline-block;margin-left:6px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:#12161c;background:var(--gold);padding:2px 7px;border-radius:10px;vertical-align:middle;}
+  .itinerary-now-line{display:flex;align-items:center;gap:10px;margin:-2px 0;}
+  .itinerary-now-line::before,.itinerary-now-line::after{content:'';flex:1;height:2px;background:var(--danger);border-radius:1px;}
+  .itinerary-now-line span{flex:none;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--danger);white-space:nowrap;}
   @media (max-width:480px){
     .itinerary-row{flex-wrap:wrap;}
     .itinerary-time{width:auto;}

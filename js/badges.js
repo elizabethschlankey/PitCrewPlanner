@@ -321,11 +321,15 @@ async function handleBadgeAction(){
   }
 
   if(st.out){
-    await db(sb.from('badge_events').insert({
+    const ok = await db(sb.from('badge_events').insert({
       badge_id: b.id, volunteer_id: st.event.volunteer_id,
       volunteer_name_snapshot: st.event.volunteer_name_snapshot,
       action: 'checkin', photo_url: photoUrl
     }), 'badge check-in');
+    // a checkout still needs review (who's taking it, the photo) so it
+    // stays open showing the result — a checkin is just confirming a
+    // return, nothing left to look at once it's saved
+    if(ok) closeBadgeModal();
   }else{
     await db(sb.from('badge_events').insert({
       badge_id: b.id, volunteer_id: volunteerId, volunteer_name_snapshot: volunteerLabel,

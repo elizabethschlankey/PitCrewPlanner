@@ -462,8 +462,15 @@ create table if not exists itinerary_items (
   time_value time,
   label      text not null,
   notes      text not null default '',
+  is_tentative boolean not null default false,
   created_at timestamptz not null default now()
 );
+-- is_tentative: marks a time as approximate ("~7:40 PM") rather than
+-- fixed — set via the Tentative checkbox, or auto-detected on paste-
+-- import from a leading "~"/"approx." right before the time. Added
+-- after the table already shipped for some installs, so it's also an
+-- idempotent add-column below (safe to re-run either way).
+alter table itinerary_items add column if not exists is_tentative boolean not null default false;
 alter table itinerary_items enable row level security;
 drop policy if exists "public read itinerary_items" on itinerary_items;
 create policy "public read itinerary_items" on itinerary_items for select using (true);

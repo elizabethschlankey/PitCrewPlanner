@@ -1,6 +1,6 @@
 <!-- GENERATED FILE. Do not edit directly -- edit index.template.html and partials/*.html, then run `node build.js`. -->
 <!doctype html>
-<html lang="en" data-app-version="2026-09-24e">
+<html lang="en" data-app-version="2026-09-24f">
 <head>
 <meta charset="UTF-8">
 <title>Field Setup Planner</title>
@@ -22,7 +22,7 @@
      400/500/600/700 throughout (body text through badge labels), so
      it keeps its full range. -->
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=2026-09-24e">
+<link rel="stylesheet" href="css/styles.css?v=2026-09-24f">
 </head>
 <body>
 <div class="app">
@@ -394,8 +394,9 @@
           <p class="hint" style="margin:0;">Paste a schedule straight from an email or a printed itinerary — it
             splits into a new item at every time it finds, even if several ended up crammed onto one line (common
             when copying out of a PDF). "7:00 AM - Buses Depart", "7:00 Buses Depart" (24-hour), and plain lines with
-            no time on them at all are all fine. This only adds what you paste; anything already on the list below
-            stays untouched.</p>
+            no time on them at all are all fine. Mark a time approximate/tentative by writing "~7:40 PM" or
+            "approx. 7:40 PM" — it imports flagged the same as the Tentative checkbox below. This only adds what
+            you paste; anything already on the list below stays untouched.</p>
           <textarea id="itinerary-paste-input" rows="6" placeholder="7:00 AM - Buses Depart&#10;8:15 AM - Arrive at Venue&#10;9:00 AM - Warm-up&#10;10:30 AM - Prelims Performance&#10;..."></textarea>
           <button id="itinerary-paste-btn">Import</button>
           <div class="inline-error" id="itinerary-paste-result"></div>
@@ -405,6 +406,9 @@
           <input id="itinerary-time-input" type="time">
           <input id="itinerary-label-input" type="text" placeholder="e.g. Buses Depart" maxlength="80">
           <textarea id="itinerary-notes-input" rows="2" maxlength="200" placeholder="Notes (optional)"></textarea>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;">
+            <input type="checkbox" id="itinerary-tentative-input"> Tentative / approximate time
+          </label>
           <div style="display:flex;gap:6px;">
             <button id="itinerary-add-btn" style="flex:1;">Add Item</button>
             <button id="itinerary-cancel-edit-btn" class="ghost" type="button" style="display:none;">Cancel</button>
@@ -735,19 +739,19 @@
      anymore. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
 <script src="config.js"></script>
-<script src="js/supabase-client.js?v=2026-09-24e"></script>
-<script src="js/catalog.js?v=2026-09-24e"></script>
-<script src="js/state.js?v=2026-09-24e"></script>
-<script src="js/field.js?v=2026-09-24e"></script>
-<script src="js/render.js?v=2026-09-24e"></script>
-<script src="js/admin.js?v=2026-09-24e"></script>
-<script src="js/setup-wizard.js?v=2026-09-24e"></script>
-<script src="js/itinerary.js?v=2026-09-24e"></script>
-<script src="js/badges.js?v=2026-09-24e"></script>
-<script src="js/drag-drop.js?v=2026-09-24e"></script>
-<script src="js/inspector.js?v=2026-09-24e"></script>
-<script src="js/toolbar.js?v=2026-09-24e"></script>
-<script src="js/boot.js?v=2026-09-24e"></script>
-<script src="js/update-check.js?v=2026-09-24e"></script>
+<script src="js/supabase-client.js?v=2026-09-24f"></script>
+<script src="js/catalog.js?v=2026-09-24f"></script>
+<script src="js/state.js?v=2026-09-24f"></script>
+<script src="js/field.js?v=2026-09-24f"></script>
+<script src="js/render.js?v=2026-09-24f"></script>
+<script src="js/admin.js?v=2026-09-24f"></script>
+<script src="js/setup-wizard.js?v=2026-09-24f"></script>
+<script src="js/itinerary.js?v=2026-09-24f"></script>
+<script src="js/badges.js?v=2026-09-24f"></script>
+<script src="js/drag-drop.js?v=2026-09-24f"></script>
+<script src="js/inspector.js?v=2026-09-24f"></script>
+<script src="js/toolbar.js?v=2026-09-24f"></script>
+<script src="js/boot.js?v=2026-09-24f"></script>
+<script src="js/update-check.js?v=2026-09-24f"></script>
 </body>
 </html>

@@ -32,24 +32,30 @@
 // Falls back to one item per actual line break, each with no time, if
 // the whole paste has no recognizable time in it anywhere — so a
 // plain unordered list of events (no times at all) still imports.
-const ITINERARY_TIME_RE = /\b([01]?\d|2[0-3]):([0-5]\d)(?:-(?:[01]?\d|2[0-3]):[0-5]\d)?\s*([AaPp]\.?[Mm]\.?)?\b|\b(0?[1-9]|1[0-2])\s*([AaPp]\.?[Mm]\.?)\b/g;
+// A leading "~" or "approx."/"approximately" glued right onto the
+// front of a time (its own optional group, so it's consumed INTO the
+// match instead of leaking into the previous item's label) marks that
+// item tentative — same flag the Tentative checkbox sets by hand.
+const ITINERARY_TIME_RE = /(?<tent1>~\s*|approx(?:imately)?\.?\s+)?\b(?<h1>[01]?\d|2[0-3]):(?<m1>[0-5]\d)(?:-(?:[01]?\d|2[0-3]):[0-5]\d)?\s*(?<ap1>[AaPp]\.?[Mm]\.?)?\b|(?<tent2>~\s*|approx(?:imately)?\.?\s+)?\b(?<h2>0?[1-9]|1[0-2])\s*(?<ap2>[AaPp]\.?[Mm]\.?)\b/g;
 function cleanItineraryLabel(text){
   return text.replace(/[\r\n]+/g,' ').replace(/^[\s\-–—:.)]+/,'').replace(/\s+/g,' ').trim();
 }
 function parseItineraryText(raw){
   const matches = [...raw.matchAll(ITINERARY_TIME_RE)];
   if(!matches.length){
-    return raw.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(label=>({timeValue:null, label}));
+    return raw.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(label=>({timeValue:null, label, isTentative:false}));
   }
   const items = [];
   const preamble = cleanItineraryLabel(raw.slice(0, matches[0].index));
-  if(preamble) items.push({timeValue:null, label:preamble});
+  if(preamble) items.push({timeValue:null, label:preamble, isTentative:false});
 
   matches.forEach((m, i)=>{
     const segmentEnd = i+1<matches.length ? matches[i+1].index : raw.length;
-    const hour = m[1]!==undefined ? parseInt(m[1],10) : parseInt(m[4],10);
-    const minute = m[2]!==undefined ? parseInt(m[2],10) : 0;
-    const ampmRaw = m[3] || m[5];
+    const g = m.groups;
+    const hour = g.h1!==undefined ? parseInt(g.h1,10) : parseInt(g.h2,10);
+    const minute = g.m1!==undefined ? parseInt(g.m1,10) : 0;
+    const ampmRaw = g.ap1 || g.ap2;
+    const isTentative = !!(g.tent1 || g.tent2);
     let hour24 = hour;
     if(ampmRaw){
       const ampm = ampmRaw.toLowerCase().replace(/\./g,'');
@@ -59,7 +65,7 @@ function parseItineraryText(raw){
     const timeValue = `${String(hour24).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00`;
     const afterToken = raw.slice(m.index+m[0].length, segmentEnd);
     const label = cleanItineraryLabel(afterToken) || '(untitled)';
-    items.push({timeValue, label});
+    items.push({timeValue, label, isTentative});
   });
   return items;
 }
@@ -135,11 +141,13 @@ function renderItinerary(){
   }
   const rows = items.map((it,i)=>{
     const timeDisplay = formatItineraryTime(it.timeValue);
+    const tentative = !!(timeDisplay && it.isTentative);
+    const timeText = tentative ? `~${timeDisplay}` : (timeDisplay || 'TBD');
     const state = !showNow ? '' : i<currentIdx ? ' itinerary-past' : i===currentIdx ? ' itinerary-current' : '';
     const nowBadge = showNow && i===currentIdx ? ' <span class="itinerary-now-badge">Now</span>' : '';
     return `
     <div class="itinerary-row${state}">
-      <div class="itinerary-time${timeDisplay ? '' : ' no-time'}">${timeDisplay || 'TBD'}</div>
+      <div class="itinerary-time${timeDisplay ? '' : ' no-time'}${tentative ? ' tentative' : ''}"${tentative ? ' title="Approximate / tentative time"' : ''}>${timeText}${tentative ? '<div class="itinerary-tentative-tag">approx.</div>' : ''}</div>
       <div class="itinerary-body">
         <div class="itinerary-label">${it.label}${nowBadge}</div>
         ${it.notes ? `<div class="itinerary-notes">${it.notes}</div>` : ''}
@@ -164,6 +172,7 @@ let editingItineraryId = null;
 const itineraryTimeInput = document.getElementById('itinerary-time-input');
 const itineraryLabelInput = document.getElementById('itinerary-label-input');
 const itineraryNotesInput = document.getElementById('itinerary-notes-input');
+const itineraryTentativeInput = document.getElementById('itinerary-tentative-input');
 const itineraryAddBtn = document.getElementById('itinerary-add-btn');
 const itineraryCancelEditBtn = document.getElementById('itinerary-cancel-edit-btn');
 const itineraryFormLabel = document.getElementById('itinerary-form-label');
@@ -175,6 +184,7 @@ function startEditItineraryItem(id){
   itineraryTimeInput.value = it.timeValue ? it.timeValue.slice(0,5) : '';
   itineraryLabelInput.value = it.label;
   itineraryNotesInput.value = it.notes || '';
+  itineraryTentativeInput.checked = !!it.isTentative;
   itineraryFormLabel.textContent = 'Edit Item';
   itineraryAddBtn.textContent = 'Save Changes';
   itineraryCancelEditBtn.style.display = 'inline-block';
@@ -185,6 +195,7 @@ function cancelEditItineraryItem(){
   itineraryTimeInput.value = '';
   itineraryLabelInput.value = '';
   itineraryNotesInput.value = '';
+  itineraryTentativeInput.checked = false;
   itineraryFormLabel.textContent = 'Add an Item';
   itineraryAddBtn.textContent = 'Add Item';
   itineraryCancelEditBtn.style.display = 'none';
@@ -196,13 +207,14 @@ itineraryAddBtn.addEventListener('click', async ()=>{
   if(!label) return;
   const timeValue = itineraryTimeInput.value ? itineraryTimeInput.value+':00' : null;
   const notes = itineraryNotesInput.value.trim();
+  const isTentative = timeValue ? itineraryTentativeInput.checked : false;
   if(editingItineraryId){
-    const ok = await db(sb.from('itinerary_items').update({time_value: timeValue, label, notes}).eq('id', editingItineraryId), 'update itinerary item');
+    const ok = await db(sb.from('itinerary_items').update({time_value: timeValue, label, notes, is_tentative: isTentative}).eq('id', editingItineraryId), 'update itinerary item');
     if(ok) cancelEditItineraryItem();
   }else{
     const eventId = currentEvent().id;
     if(!eventId) return;
-    const ok = await db(sb.from('itinerary_items').insert({event_id: eventId, time_value: timeValue, label, notes}), 'add itinerary item');
+    const ok = await db(sb.from('itinerary_items').insert({event_id: eventId, time_value: timeValue, label, notes, is_tentative: isTentative}), 'add itinerary item');
     if(ok) cancelEditItineraryItem();
   }
 });
@@ -232,7 +244,7 @@ document.getElementById('itinerary-paste-btn').addEventListener('click', async (
   const eventId = currentEvent().id;
   if(!eventId){ resultEl.textContent = 'No event selected.'; return; }
   statusEl.textContent = 'Importing…';
-  const rows = parsed.map(p=>({event_id: eventId, time_value: p.timeValue, label: p.label}));
+  const rows = parsed.map(p=>({event_id: eventId, time_value: p.timeValue, label: p.label, is_tentative: p.isTentative}));
   const {error} = await sb.from('itinerary_items').insert(rows);
   if(error){
     statusEl.textContent = 'Error: '+error.message;
@@ -241,7 +253,8 @@ document.getElementById('itinerary-paste-btn').addEventListener('click', async (
   }
   await reload();
   const timedCount = parsed.filter(p=>p.timeValue).length;
-  resultEl.textContent = `Imported ${parsed.length} item${parsed.length===1?'':'s'} — ${timedCount} with a recognized time, ${parsed.length-timedCount} without.`;
+  const tentativeCount = parsed.filter(p=>p.timeValue && p.isTentative).length;
+  resultEl.textContent = `Imported ${parsed.length} item${parsed.length===1?'':'s'} — ${timedCount} with a recognized time${tentativeCount ? ` (${tentativeCount} marked tentative)` : ''}, ${parsed.length-timedCount} without.`;
   input.value = '';
   statusEl.textContent = 'All changes saved';
 });

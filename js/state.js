@@ -147,7 +147,7 @@ async function loadState(){
   if(!itineraryRes.error){
     itineraryRes.data.forEach(row=>{
       (itineraryByEvent[row.event_id] ||= []).push({
-        uid: row.id, timeValue: row.time_value, label: row.label, notes: row.notes||''
+        uid: row.id, timeValue: row.time_value, label: row.label, notes: row.notes||'', isTentative: !!row.is_tentative
       });
     });
   }

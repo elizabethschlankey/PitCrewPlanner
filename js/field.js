@@ -624,20 +624,21 @@ function layoutMobileFieldToolbar(){
 layoutMobileFieldToolbar();
 mobileFieldToolbarQuery.addEventListener('change', layoutMobileFieldToolbar);
 
-// mobile edit-mode "More" menu — Rename/New Event/Duplicate/Switch
-// Template/Save as Template/Delete Event/Export Season Data/Clear
-// Items all need to see the field at the same time as you use them,
-// which is a desktop thing; on a phone they were just crowding the
-// header/event bar above the field. Collapsing them into one menu
-// (Go Live stays put — that one IS used from a phone) gives the
-// Field tab noticeably more height to work with. Admin isn't in this
-// menu at all — the Crew tab (bottom nav) already opens that screen.
+// mobile edit-mode "More" menu — Rename/New Event/Delete Event/Export
+// Season Data/Clear Items all need to see the field at the same time
+// as you use them, which is a desktop thing; on a phone they were
+// just crowding the header/event bar above the field. Collapsing them
+// into one menu (Go Live stays put — that one IS used from a phone)
+// gives the Field tab noticeably more height to work with. Admin
+// isn't in this menu at all — the Crew tab (bottom nav) already opens
+// that screen. Duplicate/Switch Template/Save as Template aren't
+// here either — they live in their own always-on kebab (see
+// event-actions-toggle in event-bar.html) regardless of screen width.
 (function(){
   const moreMenu = document.getElementById('mobile-more-menu');
   const moreToggle = document.getElementById('mobile-more-toggle');
   if(!moreMenu || !moreToggle) return;
-  const ids = ['btn-export-data','btn-clear','btn-rename-event','btn-new-event',
-    'btn-dup-event','btn-switch-template','btn-save-as-template','btn-del-event'];
+  const ids = ['btn-export-data','btn-clear','btn-rename-event','btn-new-event','btn-del-event'];
   const homes = ids.map(id=>{
     const el = document.getElementById(id);
     return el ? {el, parent:el.parentNode, next:el.nextSibling} : null;
@@ -682,6 +683,39 @@ mobileFieldToolbarQuery.addEventListener('change', layoutMobileFieldToolbar);
   moreMenu.addEventListener('click', e=>{ if(e.target.closest('button')) closeMenu(); });
   document.addEventListener('click', e=>{
     if(!moreMenu.hidden && !moreMenu.contains(e.target) && !moreToggle.contains(e.target)) closeMenu();
+  });
+})();
+
+// Duplicate/Switch Template/Save as Template's own always-on kebab —
+// same open/close mechanics as the "More" menu above, but nothing to
+// relocate: these three live inside #event-actions-menu in the markup
+// already (event-bar.html), at every screen width, since they're just
+// rarely needed rather than only "in the way on a small screen."
+(function(){
+  const menu = document.getElementById('event-actions-menu');
+  const toggle = document.getElementById('event-actions-toggle');
+  if(!menu || !toggle) return;
+  function closeMenu(){
+    menu.hidden = true;
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.classList.remove('active');
+  }
+  function openMenu(){
+    const r = toggle.getBoundingClientRect();
+    menu.style.top = Math.round(r.bottom + 6) + 'px';
+    menu.style.right = Math.round(window.innerWidth - r.right) + 'px';
+    menu.hidden = false;
+    toggle.setAttribute('aria-expanded', 'true');
+    toggle.classList.add('active');
+  }
+  toggle.addEventListener('click', ()=>{
+    if(menu.hidden) openMenu(); else closeMenu();
+  });
+  // tapping any action inside closes the menu — each button's own
+  // handler (attached elsewhere) still runs
+  menu.addEventListener('click', e=>{ if(e.target.closest('button')) closeMenu(); });
+  document.addEventListener('click', e=>{
+    if(!menu.hidden && !menu.contains(e.target) && !toggle.contains(e.target)) closeMenu();
   });
 })();
 

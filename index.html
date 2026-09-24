@@ -1,6 +1,6 @@
 <!-- GENERATED FILE. Do not edit directly -- edit index.template.html and partials/*.html, then run `node build.js`. -->
 <!doctype html>
-<html lang="en" data-app-version="2026-09-24c">
+<html lang="en" data-app-version="2026-09-24d">
 <head>
 <meta charset="UTF-8">
 <title>Field Setup Planner</title>
@@ -22,7 +22,7 @@
      400/500/600/700 throughout (body text through badge labels), so
      it keeps its full range. -->
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=2026-09-24c">
+<link rel="stylesheet" href="css/styles.css?v=2026-09-24d">
 </head>
 <body>
 <div class="app">
@@ -89,9 +89,21 @@
     <button id="btn-set-current" class="small" data-edit-only title="Make this the event volunteers see by default">🔴 Go Live</button>
     <button id="btn-rename-event" class="small" data-edit-only>✎ Rename</button>
     <button id="btn-new-event" class="small" data-edit-only>+ New Event</button>
-    <button id="btn-dup-event" class="small" data-edit-only>⧉ Duplicate</button>
-    <button id="btn-switch-template" class="small" data-edit-only>⇄ Switch Template</button>
-    <button id="btn-save-as-template" class="small" data-edit-only>💾 Save as Template</button>
+    <!-- Duplicate/Switch Template/Save as Template are the least-used
+         event actions, so they live behind their own always-on kebab
+         instead of sitting in the main row every time — separate from
+         mobile-more-toggle above, which is a phone-only space-saver for
+         a DIFFERENT set of buttons (see js/field.js); this one shows at
+         every width since these three are just rarely needed, not
+         merely "in the way on a small screen." -->
+    <button type="button" id="event-actions-toggle" class="small ghost event-actions-toggle" data-edit-only aria-haspopup="true" aria-expanded="false" title="More event actions">
+      <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><circle cx="12" cy="5.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="18.5" r="1.6" fill="currentColor"/></svg>
+    </button>
+    <div class="event-actions-menu" id="event-actions-menu" data-edit-only hidden>
+      <button id="btn-dup-event" class="small">⧉ Duplicate</button>
+      <button id="btn-switch-template" class="small">⇄ Switch Template</button>
+      <button id="btn-save-as-template" class="small">💾 Save as Template</button>
+    </div>
     <button id="btn-del-event" class="small danger" data-edit-only>Delete Event</button>
     <div class="inline-form" id="event-form">
       <div class="form-label" id="event-form-label">New Event</div>
@@ -723,19 +735,19 @@
      anymore. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
 <script src="config.js"></script>
-<script src="js/supabase-client.js?v=2026-09-24c"></script>
-<script src="js/catalog.js?v=2026-09-24c"></script>
-<script src="js/state.js?v=2026-09-24c"></script>
-<script src="js/field.js?v=2026-09-24c"></script>
-<script src="js/render.js?v=2026-09-24c"></script>
-<script src="js/admin.js?v=2026-09-24c"></script>
-<script src="js/setup-wizard.js?v=2026-09-24c"></script>
-<script src="js/itinerary.js?v=2026-09-24c"></script>
-<script src="js/badges.js?v=2026-09-24c"></script>
-<script src="js/drag-drop.js?v=2026-09-24c"></script>
-<script src="js/inspector.js?v=2026-09-24c"></script>
-<script src="js/toolbar.js?v=2026-09-24c"></script>
-<script src="js/boot.js?v=2026-09-24c"></script>
-<script src="js/update-check.js?v=2026-09-24c"></script>
+<script src="js/supabase-client.js?v=2026-09-24d"></script>
+<script src="js/catalog.js?v=2026-09-24d"></script>
+<script src="js/state.js?v=2026-09-24d"></script>
+<script src="js/field.js?v=2026-09-24d"></script>
+<script src="js/render.js?v=2026-09-24d"></script>
+<script src="js/admin.js?v=2026-09-24d"></script>
+<script src="js/setup-wizard.js?v=2026-09-24d"></script>
+<script src="js/itinerary.js?v=2026-09-24d"></script>
+<script src="js/badges.js?v=2026-09-24d"></script>
+<script src="js/drag-drop.js?v=2026-09-24d"></script>
+<script src="js/inspector.js?v=2026-09-24d"></script>
+<script src="js/toolbar.js?v=2026-09-24d"></script>
+<script src="js/boot.js?v=2026-09-24d"></script>
+<script src="js/update-check.js?v=2026-09-24d"></script>
 </body>
 </html>

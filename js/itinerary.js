@@ -21,11 +21,18 @@
 // minutes — hour bounded to 1-12, since a bare hour is always spoken
 // on a 12-hour clock). Those hour bounds are what keep this from
 // misfiring on ordinary text containing numbers, e.g. a score "45:12"
-// (45 is out of range) or "3 water jugs" (no colon, no am/pm).
+// (45 is out of range) or "3 water jugs" (no colon, no am/pm). Also
+// swallows a "-H:MM" range end glued directly onto the first time with
+// no space ("5:00-6:15 pm") into that SAME match, using the range's
+// START as the item's time — without this, "6:15" would wrongly start
+// a second match of its own, splitting one activity into two entries
+// (a real one, and a spurious untitled one at the bare start time).
+// A normal "TIME - Label" separator is unaffected: that hyphen has a
+// space before it, so it never matches this glued-range pattern.
 // Falls back to one item per actual line break, each with no time, if
 // the whole paste has no recognizable time in it anywhere — so a
 // plain unordered list of events (no times at all) still imports.
-const ITINERARY_TIME_RE = /\b([01]?\d|2[0-3]):([0-5]\d)\s*([AaPp]\.?[Mm]\.?)?\b|\b(0?[1-9]|1[0-2])\s*([AaPp]\.?[Mm]\.?)\b/g;
+const ITINERARY_TIME_RE = /\b([01]?\d|2[0-3]):([0-5]\d)(?:-(?:[01]?\d|2[0-3]):[0-5]\d)?\s*([AaPp]\.?[Mm]\.?)?\b|\b(0?[1-9]|1[0-2])\s*([AaPp]\.?[Mm]\.?)\b/g;
 function cleanItineraryLabel(text){
   return text.replace(/[\r\n]+/g,' ').replace(/^[\s\-–—:.)]+/,'').replace(/\s+/g,' ').trim();
 }

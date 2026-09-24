@@ -54,7 +54,12 @@ function renderHeader(){
 
 function renderEventSelect(){
   const sel = document.getElementById('event-select');
-  sel.innerHTML = STATE.events.map(e=>{
+  // most recent date first, so the dropdown doesn't make you scroll
+  // past a whole season to find this week's game — undated events (a
+  // rare, usually brand-new event nobody's set a date on yet) sink to
+  // the bottom rather than sorting to the top ahead of everything
+  const sorted = STATE.events.slice().sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  sel.innerHTML = sorted.map(e=>{
     const label = e.name + (e.date ? ' ('+e.date+')' : '') + (e.id===STATE.activeEventId ? ' ★' : '');
     return `<option value="${e.id}" ${e.id===viewingEventId?'selected':''}>${label}</option>`;
   }).join('');

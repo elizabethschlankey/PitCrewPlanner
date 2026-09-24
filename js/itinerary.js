@@ -139,7 +139,7 @@ function renderItinerary(){
     const nowBadge = showNow && i===currentIdx ? ' <span class="itinerary-now-badge">Now</span>' : '';
     return `
     <div class="itinerary-row${state}">
-      <div class="itinerary-time${timeDisplay ? '' : ' no-time'}">${timeDisplay || 'No time set'}</div>
+      <div class="itinerary-time${timeDisplay ? '' : ' no-time'}">${timeDisplay || 'TBD'}</div>
       <div class="itinerary-body">
         <div class="itinerary-label">${it.label}${nowBadge}</div>
         ${it.notes ? `<div class="itinerary-notes">${it.notes}</div>` : ''}

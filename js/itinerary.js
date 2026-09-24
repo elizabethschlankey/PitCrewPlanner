@@ -8,40 +8,53 @@
    — see itineraryOpen/applyScreen() in admin.js.
 ---------------------------------------------------------------- */
 
-// Parses one pasted line into {timeValue, label}. timeValue is a
-// "HH:MM:00" 24-hour string when a leading time is recognized, or null
-// when it isn't — in which case the WHOLE line becomes the label
-// (still imported, just sorts after every timed item). Recognizes
-// "7:00 AM - Label", "7:00pm Label", "07:00 - Label" (24-hour, no
-// am/pm), and "7 AM - Label" (no minutes). A bare leading number with
-// neither a colon nor am/pm (e.g. "3 water jugs") is deliberately NOT
-// treated as a time — too easy to misfire on ordinary text.
-function parseItineraryLine(rawLine){
-  const line = rawLine.trim();
-  if(!line) return null;
-  let hour = null, minute = 0, ampmRaw = null, rest = null;
-
-  let m = line.match(/^(\d{1,2}):([0-5]\d)\s*([AaPp]\.?[Mm]\.?)?\s*[-–—:.)]*\s*(.*)$/);
-  if(m){
-    hour = parseInt(m[1],10); minute = parseInt(m[2],10); ampmRaw = m[3]; rest = m[4];
-  }else{
-    m = line.match(/^(\d{1,2})\s*([AaPp]\.?[Mm]\.?)\s*[-–—:.)]*\s*(.*)$/);
-    if(m){ hour = parseInt(m[1],10); ampmRaw = m[2]; rest = m[3]; }
-  }
-  if(hour===null || hour<1 || hour>23) return {timeValue: null, label: line};
-
-  let hour24 = hour;
-  if(ampmRaw){
-    const ampm = ampmRaw.toLowerCase().replace(/\./g,'');
-    if(ampm==='pm' && hour<12) hour24 = hour+12;
-    if(ampm==='am' && hour===12) hour24 = 0;
-  }
-  const timeValue = `${String(hour24).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00`;
-  const label = (rest||'').trim() || '(untitled)';
-  return {timeValue, label};
+// Finds every recognizable clock time ANYWHERE in the pasted text —
+// not just at the start of a line break — and starts a new itinerary
+// item at each one, running until the next recognized time (or the
+// end of the text). Copying a schedule out of a PDF or a web page
+// often collapses several time slots onto one wrapped line, or breaks
+// lines in places that don't line up with each entry at all, so
+// splitting only on \n (the original approach) would swallow every
+// entry after the first one on a line into that first entry's label.
+// Recognizes "7:00 AM - Label", "7:00pm Label", "07:00 - Label"
+// (24-hour, no am/pm — hour bounded to 0-23), and "7 AM - Label" (no
+// minutes — hour bounded to 1-12, since a bare hour is always spoken
+// on a 12-hour clock). Those hour bounds are what keep this from
+// misfiring on ordinary text containing numbers, e.g. a score "45:12"
+// (45 is out of range) or "3 water jugs" (no colon, no am/pm).
+// Falls back to one item per actual line break, each with no time, if
+// the whole paste has no recognizable time in it anywhere — so a
+// plain unordered list of events (no times at all) still imports.
+const ITINERARY_TIME_RE = /\b([01]?\d|2[0-3]):([0-5]\d)\s*([AaPp]\.?[Mm]\.?)?\b|\b(0?[1-9]|1[0-2])\s*([AaPp]\.?[Mm]\.?)\b/g;
+function cleanItineraryLabel(text){
+  return text.replace(/[\r\n]+/g,' ').replace(/^[\s\-–—:.)]+/,'').replace(/\s+/g,' ').trim();
 }
 function parseItineraryText(raw){
-  return raw.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(parseItineraryLine).filter(Boolean);
+  const matches = [...raw.matchAll(ITINERARY_TIME_RE)];
+  if(!matches.length){
+    return raw.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(label=>({timeValue:null, label}));
+  }
+  const items = [];
+  const preamble = cleanItineraryLabel(raw.slice(0, matches[0].index));
+  if(preamble) items.push({timeValue:null, label:preamble});
+
+  matches.forEach((m, i)=>{
+    const segmentEnd = i+1<matches.length ? matches[i+1].index : raw.length;
+    const hour = m[1]!==undefined ? parseInt(m[1],10) : parseInt(m[4],10);
+    const minute = m[2]!==undefined ? parseInt(m[2],10) : 0;
+    const ampmRaw = m[3] || m[5];
+    let hour24 = hour;
+    if(ampmRaw){
+      const ampm = ampmRaw.toLowerCase().replace(/\./g,'');
+      if(ampm==='pm' && hour<12) hour24 = hour+12;
+      if(ampm==='am' && hour===12) hour24 = 0;
+    }
+    const timeValue = `${String(hour24).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00`;
+    const afterToken = raw.slice(m.index+m[0].length, segmentEnd);
+    const label = cleanItineraryLabel(afterToken) || '(untitled)';
+    items.push({timeValue, label});
+  });
+  return items;
 }
 // "07:00:00" (Postgres time, or already-trimmed "07:00") -> "7:00 AM"
 function formatItineraryTime(timeValue){

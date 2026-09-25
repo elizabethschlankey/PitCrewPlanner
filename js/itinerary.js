@@ -149,13 +149,16 @@ function renderItinerary(){
   const titleEl = document.getElementById('itinerary-screen-title');
   const backBtn = document.getElementById('btn-itinerary-back');
   const applyCard = document.getElementById('itinerary-apply-template-card');
+  const saveAsTemplateBtn = document.getElementById('btn-save-itinerary-as-template');
   if(!nameEl || !list) return;
   const isTemplate = !!editingItineraryTemplateId;
   if(titleEl) titleEl.textContent = isTemplate ? 'Itinerary Template' : 'Itinerary';
   if(backBtn) backBtn.textContent = isTemplate ? '← Back to Templates' : '← Back to Event';
-  // applying a template onto ANOTHER template isn't a thing this UI
-  // offers — that card only makes sense while looking at a real event
+  // applying a template onto ANOTHER template, or saving a template AS
+  // a template, aren't things this UI offers — both only make sense
+  // while looking at a real event's itinerary
   if(applyCard) applyCard.style.display = isTemplate ? 'none' : '';
+  if(saveAsTemplateBtn) saveAsTemplateBtn.style.display = isTemplate ? 'none' : '';
   const evt = isTemplate ? currentItineraryTemplate() : currentEvent();
   nameEl.textContent = evt.name || '';
   const items = currentItineraryCtx().items || [];
@@ -327,5 +330,50 @@ if(itineraryApplyTemplateBtn){
       ? `Applied, but ${failed} of ${tmpl.items.length} item(s) failed to copy — open the browser console (F12) for the error`
       : `Added ${tmpl.items.length} item${tmpl.items.length===1?'':'s'} from “${tmpl.name}”.`;
     statusEl.textContent = 'All changes saved';
+  });
+}
+
+/* --- save the current event's itinerary as a new template --------- */
+const saveItineraryAsTemplateForm = document.getElementById('save-itinerary-as-template-form');
+const saveItineraryAsTemplateSource = document.getElementById('save-itinerary-as-template-source');
+const saveItineraryAsTemplateName = document.getElementById('save-itinerary-as-template-name');
+const saveItineraryAsTemplateType = document.getElementById('save-itinerary-as-template-type');
+const btnSaveItineraryAsTemplate = document.getElementById('btn-save-itinerary-as-template');
+if(btnSaveItineraryAsTemplate){
+  btnSaveItineraryAsTemplate.addEventListener('click', ()=>{
+    const evt = currentEvent();
+    saveItineraryAsTemplateSource.textContent = evt.name;
+    saveItineraryAsTemplateName.value = evt.name;
+    saveItineraryAsTemplateType.value = evt.eventType || '';
+    saveItineraryAsTemplateForm.classList.add('open');
+    saveItineraryAsTemplateName.focus();
+  });
+}
+const saveItineraryAsTemplateCancelBtn = document.getElementById('save-itinerary-as-template-cancel');
+if(saveItineraryAsTemplateCancelBtn){
+  saveItineraryAsTemplateCancelBtn.addEventListener('click', ()=>saveItineraryAsTemplateForm.classList.remove('open'));
+}
+const saveItineraryAsTemplateCreateBtn = document.getElementById('save-itinerary-as-template-create');
+if(saveItineraryAsTemplateCreateBtn){
+  saveItineraryAsTemplateCreateBtn.addEventListener('click', async ()=>{
+    // same double-tap guard as the field-layout Save as Template
+    if(saveItineraryAsTemplateCreateBtn.disabled) return;
+    const name = saveItineraryAsTemplateName.value.trim();
+    if(!name) return;
+    const eventType = saveItineraryAsTemplateType.value || '';
+    saveItineraryAsTemplateCreateBtn.disabled = true;
+    try{
+      const srcItems = clone(currentEvent().itinerary || []);
+      const {data:newTmpl, error} = await sb.from('itinerary_templates').insert({name, event_type: eventType}).select().single();
+      if(error){ statusEl.textContent = 'Error: '+error.message; return; }
+      const failed = srcItems.length ? await copyItineraryToTemplate(srcItems, newTmpl.id) : 0;
+      saveItineraryAsTemplateForm.classList.remove('open');
+      await reload();
+      statusEl.textContent = failed
+        ? copyResultMessage('Template', srcItems.length, failed)
+        : `Saved "${name}" as an itinerary template`;
+    }finally{
+      saveItineraryAsTemplateCreateBtn.disabled = false;
+    }
   });
 }

@@ -1,6 +1,6 @@
 <!-- GENERATED FILE. Do not edit directly -- edit index.template.html and partials/*.html, then run `node build.js`. -->
 <!doctype html>
-<html lang="en" data-app-version="2026-09-24k">
+<html lang="en" data-app-version="2026-09-24l">
 <head>
 <meta charset="UTF-8">
 <title>P.I.T - Field Crew Planner</title>
@@ -22,7 +22,7 @@
      400/500/600/700 throughout (body text through badge labels), so
      it keeps its full range. -->
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=2026-09-24k">
+<link rel="stylesheet" href="css/styles.css?v=2026-09-24l">
 </head>
 <body>
 <div class="app">
@@ -408,7 +408,23 @@
   <div id="itinerary-screen" data-event-only>
     <div class="admin-header">
       <h2><span id="itinerary-screen-title">Itinerary</span> — <span id="itinerary-event-name"></span></h2>
-      <button id="btn-itinerary-back" class="small ghost" type="button">← Back to Event</button>
+      <div style="display:flex;gap:8px;">
+        <button id="btn-save-itinerary-as-template" class="small ghost" type="button" data-badges-only>💾 Save as Itinerary Template</button>
+        <button id="btn-itinerary-back" class="small ghost" type="button">← Back to Event</button>
+      </div>
+    </div>
+    <div class="inline-form" id="save-itinerary-as-template-form">
+      <div class="form-label">Save “<span id="save-itinerary-as-template-source"></span>”'s itinerary as a new
+        template — a one-time copy, editable afterward on both sides without affecting the other.</div>
+      <input type="text" name="name" id="save-itinerary-as-template-name" placeholder="Template name, e.g. Home Football Game" maxlength="60">
+      <select id="save-itinerary-as-template-type" title="Which event type this template applies to">
+        <option value="">Any Event Type</option>
+        <option value="home">Home</option>
+        <option value="away">Away</option>
+        <option value="contest">Competition</option>
+      </select>
+      <button id="save-itinerary-as-template-create" class="small primary" type="button">Save Template</button>
+      <button id="save-itinerary-as-template-cancel" class="small ghost" type="button">Cancel</button>
     </div>
 
     <div class="itinerary-editor" data-badges-only>
@@ -772,19 +788,19 @@
      anymore. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
 <script src="config.js"></script>
-<script src="js/supabase-client.js?v=2026-09-24k"></script>
-<script src="js/catalog.js?v=2026-09-24k"></script>
-<script src="js/state.js?v=2026-09-24k"></script>
-<script src="js/field.js?v=2026-09-24k"></script>
-<script src="js/render.js?v=2026-09-24k"></script>
-<script src="js/admin.js?v=2026-09-24k"></script>
-<script src="js/setup-wizard.js?v=2026-09-24k"></script>
-<script src="js/itinerary.js?v=2026-09-24k"></script>
-<script src="js/badges.js?v=2026-09-24k"></script>
-<script src="js/drag-drop.js?v=2026-09-24k"></script>
-<script src="js/inspector.js?v=2026-09-24k"></script>
-<script src="js/toolbar.js?v=2026-09-24k"></script>
-<script src="js/boot.js?v=2026-09-24k"></script>
-<script src="js/update-check.js?v=2026-09-24k"></script>
+<script src="js/supabase-client.js?v=2026-09-24l"></script>
+<script src="js/catalog.js?v=2026-09-24l"></script>
+<script src="js/state.js?v=2026-09-24l"></script>
+<script src="js/field.js?v=2026-09-24l"></script>
+<script src="js/render.js?v=2026-09-24l"></script>
+<script src="js/admin.js?v=2026-09-24l"></script>
+<script src="js/setup-wizard.js?v=2026-09-24l"></script>
+<script src="js/itinerary.js?v=2026-09-24l"></script>
+<script src="js/badges.js?v=2026-09-24l"></script>
+<script src="js/drag-drop.js?v=2026-09-24l"></script>
+<script src="js/inspector.js?v=2026-09-24l"></script>
+<script src="js/toolbar.js?v=2026-09-24l"></script>
+<script src="js/boot.js?v=2026-09-24l"></script>
+<script src="js/update-check.js?v=2026-09-24l"></script>
 </body>
 </html>

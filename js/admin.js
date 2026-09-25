@@ -163,6 +163,21 @@ async function copyItineraryToEvent(srcItems, eventId){
   }
   return failed;
 }
+// the reverse direction — turning a real event's CURRENT itinerary
+// into a new reusable template, same idea as "Save as Template" for
+// the field layout. Used by "Save as Itinerary Template" on the
+// Itinerary screen (js/itinerary.js).
+async function copyItineraryToTemplate(srcItems, templateId){
+  let failed = 0;
+  for(const it of srcItems){
+    const {error} = await sb.from('itinerary_template_items').insert({
+      template_id: templateId, time_value: it.timeValue, label: it.label,
+      notes: it.notes || '', is_tentative: !!it.isTentative
+    });
+    if(error){ failed++; console.error(error); }
+  }
+  return failed;
+}
 
 function eventTypeLabel(t){
   return t==='home' ? 'Home' : t==='away' ? 'Away' : t==='contest' ? 'Competition' : 'Any Type';

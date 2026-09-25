@@ -31,6 +31,12 @@
       <button id="btn-save-as-template" class="small">💾 Save as Template</button>
     </div>
     <button id="btn-del-event" class="small danger" data-edit-only>Delete Event</button>
+    <!-- everyone (guest included) can open this, so it's not grouped
+         with the edit-only actions above — pinned to the far right of
+         the row (see #btn-itinerary in styles.css) instead of just
+         sitting wherever it lands in the flow, since it's the one
+         action here that isn't about managing the event itself -->
+    <button id="btn-itinerary" class="small" data-event-only title="Itinerary — a day-of timeline for this event">🕐 Itinerary</button>
     <div class="inline-form" id="event-form">
       <div class="form-label" id="event-form-label">New Event</div>
       <input type="text" name="name" id="event-form-name" placeholder="Event name, e.g. Homecoming vs. Ridgeview" maxlength="60">

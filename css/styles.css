@@ -145,6 +145,10 @@
   .event-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 24px;background:var(--panel);border-bottom:1px solid var(--panel-edge);}
   .event-bar label{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-lo);}
   .event-bar select{background:var(--panel-2);border:1px solid var(--panel-edge);color:#eceef2;padding:8px 10px;border-radius:6px;font-size:12.5px;font-family:'Inter',sans-serif;max-width:280px;}
+  /* pins Itinerary to the far right of the row instead of wherever it
+     falls in source order — everything else in .event-bar stays left-
+     aligned right after the event picker */
+  .event-bar #btn-itinerary{margin-left:auto;}
   .inline-form{display:none;gap:8px;align-items:center;flex-wrap:wrap;width:100%;background:var(--panel-2);border:1px solid var(--panel-edge);border-radius:8px;padding:10px;margin-top:2px;}
   .inline-form.open{display:flex;}
   .inline-form input{background:var(--ink);border:1px solid var(--panel-edge);border-radius:6px;color:#eceef2;padding:8px;font-size:12.5px;font-family:'Inter',sans-serif;}

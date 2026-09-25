@@ -245,14 +245,19 @@
   .roster-add input, .roster-add textarea, .roster-add select{background:var(--ink);border:1px solid var(--panel-edge);border-radius:6px;color:#eceef2;padding:8px;font-size:12px;font-family:'Inter',sans-serif;resize:vertical;}
   .roster-add h2{font-family:'Oswald',sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);}
 
-  /* ITINERARY — a day-of timeline per event. Reuses .roster-add's boxed
-     paste/add-form look; its own simple side-by-side layout on wide
-     screens rather than .roster-admin's named-grid-areas one, since it
-     doesn't share that layout's hint/list slots. */
-  .itinerary-editor{max-width:1100px;margin-bottom:18px;}
-  .itinerary-editor .roster-admin-actions{flex-direction:row;flex-wrap:wrap;}
-  .itinerary-editor .roster-admin-actions .roster-add{flex:1 1 320px;}
-  #itinerary-list{display:flex;flex-direction:column;gap:8px;max-width:640px;}
+  /* ITINERARY — actionable features (Apply Template/Paste/Add Item) in
+     their own column on the left, the actual timeline in its own titled
+     panel on the right — same flex-wrap-to-stack trick as the Templates
+     tab's side-by-side cards (no hardcoded breakpoint; wraps to one
+     column once there isn't room for both, which is what mobile's
+     narrower width already gets for free). Reuses .roster-add's boxed
+     paste/add-form look for each card in the left column. */
+  .itinerary-columns{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
+  .itinerary-editor{flex:1 1 360px;min-width:280px;}
+  .itinerary-editor .roster-admin-actions{display:flex;flex-direction:column;gap:14px;}
+  .itinerary-list-panel{flex:2 1 480px;min-width:0;background:var(--panel-2);border:1px solid var(--panel-edge);border-radius:10px;padding:16px;}
+  .itinerary-list-panel-title{margin:0 0 10px;font-size:15px;}
+  #itinerary-list{display:flex;flex-direction:column;gap:8px;}
   .itinerary-row{display:flex;align-items:flex-start;gap:14px;background:var(--panel-2);border:1px solid var(--panel-edge);border-radius:8px;padding:10px 14px;}
   .itinerary-time{flex:none;width:80px;font-family:'Oswald',sans-serif;font-size:13px;font-weight:700;color:var(--gold);padding-top:1px;}
   .itinerary-time.no-time{color:var(--text-lo);font-style:italic;font-weight:400;font-size:11px;}

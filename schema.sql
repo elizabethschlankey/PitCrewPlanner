@@ -532,3 +532,15 @@ begin
     alter publication supabase_realtime add table itinerary_templates, itinerary_template_items;
   end if;
 end $$;
+
+-- ---------------------------------------------------------------
+-- pit_crew_needed — flags an itinerary item (real event or template)
+-- as a moment the Pit Crew specifically needs to be on hand for (load
+-- buses, unload, move equipment, ...), so it stands out on the
+-- timeline (💪 badge) separately from a plain schedule note. Set via
+-- the checkbox on the Add/Edit Item form; carries through Apply/Save
+-- as Template like every other itinerary field. Idempotent — safe to
+-- re-run.
+-- ---------------------------------------------------------------
+alter table itinerary_items          add column if not exists pit_crew_needed boolean not null default false;
+alter table itinerary_template_items add column if not exists pit_crew_needed boolean not null default false;

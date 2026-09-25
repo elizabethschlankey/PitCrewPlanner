@@ -157,7 +157,7 @@ async function copyItineraryToEvent(srcItems, eventId){
   for(const it of srcItems){
     const {error} = await sb.from('itinerary_items').insert({
       event_id: eventId, time_value: it.timeValue, label: it.label,
-      notes: it.notes || '', is_tentative: !!it.isTentative
+      notes: it.notes || '', is_tentative: !!it.isTentative, pit_crew_needed: !!it.pitCrewNeeded
     });
     if(error){ failed++; console.error(error); }
   }
@@ -172,7 +172,7 @@ async function copyItineraryToTemplate(srcItems, templateId){
   for(const it of srcItems){
     const {error} = await sb.from('itinerary_template_items').insert({
       template_id: templateId, time_value: it.timeValue, label: it.label,
-      notes: it.notes || '', is_tentative: !!it.isTentative
+      notes: it.notes || '', is_tentative: !!it.isTentative, pit_crew_needed: !!it.pitCrewNeeded
     });
     if(error){ failed++; console.error(error); }
   }

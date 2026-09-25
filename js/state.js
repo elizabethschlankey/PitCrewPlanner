@@ -176,7 +176,8 @@ async function loadState(){
   if(!itineraryRes.error){
     itineraryRes.data.forEach(row=>{
       (itineraryByEvent[row.event_id] ||= []).push({
-        uid: row.id, timeValue: row.time_value, label: row.label, notes: row.notes||'', isTentative: !!row.is_tentative
+        uid: row.id, timeValue: row.time_value, label: row.label, notes: row.notes||'', isTentative: !!row.is_tentative,
+        pitCrewNeeded: !!row.pit_crew_needed
       });
     });
   }
@@ -184,7 +185,8 @@ async function loadState(){
   if(!itineraryTemplateItemsRes.error){
     itineraryTemplateItemsRes.data.forEach(row=>{
       (itineraryByTemplate[row.template_id] ||= []).push({
-        uid: row.id, timeValue: row.time_value, label: row.label, notes: row.notes||'', isTentative: !!row.is_tentative
+        uid: row.id, timeValue: row.time_value, label: row.label, notes: row.notes||'', isTentative: !!row.is_tentative,
+        pitCrewNeeded: !!row.pit_crew_needed
       });
     });
   }

@@ -270,6 +270,12 @@
   .itinerary-row.itinerary-past{opacity:.5;}
   .itinerary-row.itinerary-current{border-color:var(--gold);background:rgba(224,177,60,.1);}
   .itinerary-now-badge{display:inline-block;margin-left:6px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:#12161c;background:var(--gold);padding:2px 7px;border-radius:10px;vertical-align:middle;}
+  /* same orange as the field's "needs help" signal — a Pit Crew flag
+     here is the same kind of "someone needs to show up" alert, just on
+     the timeline instead of the field. Comes after .itinerary-current
+     so it wins if a moment is both happening now AND needs the crew. */
+  .itinerary-row.itinerary-pitcrew{border-color:var(--help);background:var(--help-dim);}
+  .itinerary-pitcrew-badge{display:inline-block;margin-left:6px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:#fff;background:var(--help);padding:2px 7px;border-radius:10px;vertical-align:middle;white-space:nowrap;}
   .itinerary-now-line{display:flex;align-items:center;gap:10px;margin:-2px 0;}
   .itinerary-now-line::before,.itinerary-now-line::after{content:'';flex:1;height:2px;background:var(--danger);border-radius:1px;}
   .itinerary-now-line span{flex:none;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--danger);white-space:nowrap;}

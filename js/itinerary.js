@@ -194,12 +194,14 @@ function renderItinerary(){
     const tentative = !!(timeDisplay && it.isTentative);
     const timeText = tentative ? `~${timeDisplay}` : (timeDisplay || 'TBD');
     const state = !showNow ? '' : i<currentIdx ? ' itinerary-past' : i===currentIdx ? ' itinerary-current' : '';
+    const pitCrewClass = it.pitCrewNeeded ? ' itinerary-pitcrew' : '';
     const nowBadge = showNow && i===currentIdx ? ' <span class="itinerary-now-badge">Now</span>' : '';
+    const pitCrewBadge = it.pitCrewNeeded ? ' <span class="itinerary-pitcrew-badge" title="Pit Crew needed here">💪 Pit Crew Needed</span>' : '';
     return `
-    <div class="itinerary-row${state}">
+    <div class="itinerary-row${state}${pitCrewClass}">
       <div class="itinerary-time${timeDisplay ? '' : ' no-time'}${tentative ? ' tentative' : ''}"${tentative ? ' title="Approximate / tentative time"' : ''}>${timeText}${tentative ? '<div class="itinerary-tentative-tag">approx.</div>' : ''}</div>
       <div class="itinerary-body">
-        <div class="itinerary-label">${it.label}${nowBadge}</div>
+        <div class="itinerary-label">${it.label}${nowBadge}${pitCrewBadge}</div>
         ${it.notes ? `<div class="itinerary-notes">${it.notes}</div>` : ''}
       </div>
       <div class="itinerary-actions" data-badges-only>
@@ -223,6 +225,7 @@ const itineraryTimeInput = document.getElementById('itinerary-time-input');
 const itineraryLabelInput = document.getElementById('itinerary-label-input');
 const itineraryNotesInput = document.getElementById('itinerary-notes-input');
 const itineraryTentativeInput = document.getElementById('itinerary-tentative-input');
+const itineraryPitCrewInput = document.getElementById('itinerary-pitcrew-input');
 const itineraryAddBtn = document.getElementById('itinerary-add-btn');
 const itineraryCancelEditBtn = document.getElementById('itinerary-cancel-edit-btn');
 const itineraryFormLabel = document.getElementById('itinerary-form-label');
@@ -235,6 +238,7 @@ function startEditItineraryItem(id){
   itineraryLabelInput.value = it.label;
   itineraryNotesInput.value = it.notes || '';
   itineraryTentativeInput.checked = !!it.isTentative;
+  itineraryPitCrewInput.checked = !!it.pitCrewNeeded;
   itineraryFormLabel.textContent = 'Edit Item';
   itineraryAddBtn.textContent = 'Save Changes';
   itineraryCancelEditBtn.style.display = 'inline-block';
@@ -246,6 +250,7 @@ function cancelEditItineraryItem(){
   itineraryLabelInput.value = '';
   itineraryNotesInput.value = '';
   itineraryTentativeInput.checked = false;
+  itineraryPitCrewInput.checked = false;
   itineraryFormLabel.textContent = 'Add an Item';
   itineraryAddBtn.textContent = 'Add Item';
   itineraryCancelEditBtn.style.display = 'none';
@@ -258,13 +263,14 @@ itineraryAddBtn.addEventListener('click', async ()=>{
   const timeValue = itineraryTimeInput.value ? itineraryTimeInput.value+':00' : null;
   const notes = itineraryNotesInput.value.trim();
   const isTentative = timeValue ? itineraryTentativeInput.checked : false;
+  const pitCrewNeeded = itineraryPitCrewInput.checked;
   const ctx = currentItineraryCtx();
   if(editingItineraryId){
-    const ok = await db(sb.from(ctx.table).update({time_value: timeValue, label, notes, is_tentative: isTentative}).eq('id', editingItineraryId), 'update itinerary item');
+    const ok = await db(sb.from(ctx.table).update({time_value: timeValue, label, notes, is_tentative: isTentative, pit_crew_needed: pitCrewNeeded}).eq('id', editingItineraryId), 'update itinerary item');
     if(ok) cancelEditItineraryItem();
   }else{
     if(!ctx.ownerId) return;
-    const ok = await db(sb.from(ctx.table).insert({[ctx.fk]: ctx.ownerId, time_value: timeValue, label, notes, is_tentative: isTentative}), 'add itinerary item');
+    const ok = await db(sb.from(ctx.table).insert({[ctx.fk]: ctx.ownerId, time_value: timeValue, label, notes, is_tentative: isTentative, pit_crew_needed: pitCrewNeeded}), 'add itinerary item');
     if(ok) cancelEditItineraryItem();
   }
 });

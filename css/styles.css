@@ -670,6 +670,25 @@
       flex:1;min-height:0;overflow-y:auto;
       padding-bottom:calc(70px + env(safe-area-inset-bottom));
     }
+    /* Field/Help/Crew never hide the event bar on mobile — Itinerary
+       was the odd one out (it used the same full-screen takeover as
+       Admin, which DOES hide it, on every screen size). Re-showing it
+       just for Itinerary, just on mobile, keeps the event dropdown
+       reachable/visible the same way it already is on every other tab,
+       without changing Crew or the desktop layout, neither of which
+       was part of this ask. It's simply outside #itinerary-screen's
+       own scroll container above, so it stays put — no position:sticky
+       needed — while the list scrolls underneath it. */
+    body.itinerary-open:not(.editing-template) .event-bar{display:flex;}
+    /* a visible (not just present) scrollbar on the itinerary list, so
+       it's obvious there's more to scroll to on a long game-day
+       schedule — Chrome/Edge/Firefox/Android honor this; iOS Safari's
+       scrollbar is a system overlay CSS can't restyle, so this has no
+       visible effect there, but doesn't hurt either */
+    #itinerary-screen{scrollbar-width:auto;scrollbar-color:var(--gold) var(--panel-2);}
+    #itinerary-screen::-webkit-scrollbar{width:10px;}
+    #itinerary-screen::-webkit-scrollbar-track{background:var(--panel-2);}
+    #itinerary-screen::-webkit-scrollbar-thumb{background:var(--gold);border-radius:5px;border:2px solid var(--panel-2);}
     /* nav label swap: "Badges" for Lead Volunteer, "Equipment" (via the
        existing data-edit-only utility) once actually signed in to edit */
     body.mode-edit .mobile-nav .nav-label-badges{display:none;}

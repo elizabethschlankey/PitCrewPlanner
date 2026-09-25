@@ -136,6 +136,13 @@
       column-gap:28px;
     }
   }
+  /* Field Templates and Itinerary Templates side by side on desktop —
+     each its own card, wrapping to a single stacked column once there
+     isn't room for both at a sane width (no hardcoded breakpoint
+     needed, same flex-wrap trick as .itinerary-editor's cards) */
+  .template-columns{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;}
+  .template-section{flex:1 1 380px;min-width:0;background:var(--panel-2);border:1px solid var(--panel-edge);border-radius:10px;padding:16px;}
+  .template-section-title{margin:0 0 8px;font-size:15px;}
   .template-row{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--panel-edge);border-radius:8px;padding:12px 14px;}
   .template-row .info{flex:1;}
   .template-row .name{font-weight:700;color:#eceef2;}

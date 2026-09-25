@@ -1,6 +1,6 @@
 <!-- GENERATED FILE. Do not edit directly -- edit index.template.html and partials/*.html, then run `node build.js`. -->
 <!doctype html>
-<html lang="en" data-app-version="2026-09-24n">
+<html lang="en" data-app-version="2026-09-25a">
 <head>
 <meta charset="UTF-8">
 <title>P.I.T - Field Crew Planner</title>
@@ -22,7 +22,7 @@
      400/500/600/700 throughout (body text through badge labels), so
      it keeps its full range. -->
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=2026-09-24n">
+<link rel="stylesheet" href="css/styles.css?v=2026-09-25a">
 </head>
 <body>
 <div class="app">
@@ -276,40 +276,46 @@
     </div>
 
     <div class="tab-panel" id="admin-tab-templates" data-edit-only>
-      <p class="hint">Reusable starting layouts (Football, BOA Comp, UIL Comp, ...). Pick one when creating a new event, or start blank.</p>
-      <div class="template-list" id="template-list"></div>
-      <div style="margin-top:8px;">
-        <button id="btn-new-template" class="small primary" type="button">+ New Template</button>
-      </div>
-      <div class="inline-form" id="template-form">
-        <div class="form-label" id="template-form-label">New Template</div>
-        <input type="text" name="name" id="template-form-name" placeholder="Template name, e.g. Football" maxlength="60">
-        <input type="text" name="description" id="template-form-description" placeholder="Description (optional)" maxlength="120">
-        <button id="template-form-create" class="small primary" type="button">Create</button>
-        <button id="template-form-cancel" class="small ghost" type="button">Cancel</button>
-      </div>
+      <div class="template-columns">
+        <div class="template-section">
+          <h2 class="template-section-title">Field Templates</h2>
+          <p class="hint">Reusable starting layouts (Football, BOA Comp, UIL Comp, ...). Pick one when creating a new event, or start blank.</p>
+          <div class="template-list" id="template-list"></div>
+          <div style="margin-top:8px;">
+            <button id="btn-new-template" class="small primary" type="button">+ New Template</button>
+          </div>
+          <div class="inline-form" id="template-form">
+            <div class="form-label" id="template-form-label">New Template</div>
+            <input type="text" name="name" id="template-form-name" placeholder="Template name, e.g. Football" maxlength="60">
+            <input type="text" name="description" id="template-form-description" placeholder="Description (optional)" maxlength="120">
+            <button id="template-form-create" class="small primary" type="button">Create</button>
+            <button id="template-form-cancel" class="small ghost" type="button">Cancel</button>
+          </div>
+        </div>
 
-      <hr style="border:none;border-top:1px solid var(--panel-edge);margin:22px 0;">
-
-      <p class="hint">Reusable itinerary schedules (Home Football Game, Away Football Game, UIL Contest, ...) —
-        tag one with an event type and it becomes available whenever a matching event needs a starting timeline.
-        Applying one only COPIES its items onto that event's own itinerary; items can still be freely added,
-        edited, or removed afterward without touching the template.</p>
-      <div class="template-list" id="itinerary-template-list"></div>
-      <div style="margin-top:8px;">
-        <button id="btn-new-itinerary-template" class="small primary" type="button">+ New Itinerary Template</button>
-      </div>
-      <div class="inline-form" id="itinerary-template-form">
-        <div class="form-label" id="itinerary-template-form-label">New Itinerary Template</div>
-        <input type="text" name="name" id="itinerary-template-form-name" placeholder="Template name, e.g. Home Football Game" maxlength="60">
-        <select id="itinerary-template-form-type" title="Which event type this template applies to">
-          <option value="">Any Event Type</option>
-          <option value="home">Home</option>
-          <option value="away">Away</option>
-          <option value="contest">Competition</option>
-        </select>
-        <button id="itinerary-template-form-create" class="small primary" type="button">Create</button>
-        <button id="itinerary-template-form-cancel" class="small ghost" type="button">Cancel</button>
+        <div class="template-section">
+          <h2 class="template-section-title">Itinerary Templates</h2>
+          <p class="hint">Reusable itinerary schedules (Home Football Game, Away Football Game, UIL Contest, ...) —
+            tag one with an event type and it becomes available whenever a matching event needs a starting timeline.
+            Applying one only COPIES its items onto that event's own itinerary; items can still be freely added,
+            edited, or removed afterward without touching the template.</p>
+          <div class="template-list" id="itinerary-template-list"></div>
+          <div style="margin-top:8px;">
+            <button id="btn-new-itinerary-template" class="small primary" type="button">+ New Itinerary Template</button>
+          </div>
+          <div class="inline-form" id="itinerary-template-form">
+            <div class="form-label" id="itinerary-template-form-label">New Itinerary Template</div>
+            <input type="text" name="name" id="itinerary-template-form-name" placeholder="Template name, e.g. Home Football Game" maxlength="60">
+            <select id="itinerary-template-form-type" title="Which event type this template applies to">
+              <option value="">Any Event Type</option>
+              <option value="home">Home</option>
+              <option value="away">Away</option>
+              <option value="contest">Competition</option>
+            </select>
+            <button id="itinerary-template-form-create" class="small primary" type="button">Create</button>
+            <button id="itinerary-template-form-cancel" class="small ghost" type="button">Cancel</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -790,19 +796,19 @@
      anymore. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
 <script src="config.js"></script>
-<script src="js/supabase-client.js?v=2026-09-24n"></script>
-<script src="js/catalog.js?v=2026-09-24n"></script>
-<script src="js/state.js?v=2026-09-24n"></script>
-<script src="js/field.js?v=2026-09-24n"></script>
-<script src="js/render.js?v=2026-09-24n"></script>
-<script src="js/admin.js?v=2026-09-24n"></script>
-<script src="js/setup-wizard.js?v=2026-09-24n"></script>
-<script src="js/itinerary.js?v=2026-09-24n"></script>
-<script src="js/badges.js?v=2026-09-24n"></script>
-<script src="js/drag-drop.js?v=2026-09-24n"></script>
-<script src="js/inspector.js?v=2026-09-24n"></script>
-<script src="js/toolbar.js?v=2026-09-24n"></script>
-<script src="js/boot.js?v=2026-09-24n"></script>
-<script src="js/update-check.js?v=2026-09-24n"></script>
+<script src="js/supabase-client.js?v=2026-09-25a"></script>
+<script src="js/catalog.js?v=2026-09-25a"></script>
+<script src="js/state.js?v=2026-09-25a"></script>
+<script src="js/field.js?v=2026-09-25a"></script>
+<script src="js/render.js?v=2026-09-25a"></script>
+<script src="js/admin.js?v=2026-09-25a"></script>
+<script src="js/setup-wizard.js?v=2026-09-25a"></script>
+<script src="js/itinerary.js?v=2026-09-25a"></script>
+<script src="js/badges.js?v=2026-09-25a"></script>
+<script src="js/drag-drop.js?v=2026-09-25a"></script>
+<script src="js/inspector.js?v=2026-09-25a"></script>
+<script src="js/toolbar.js?v=2026-09-25a"></script>
+<script src="js/boot.js?v=2026-09-25a"></script>
+<script src="js/update-check.js?v=2026-09-25a"></script>
 </body>
 </html>

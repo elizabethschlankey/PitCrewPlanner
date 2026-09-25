@@ -17,6 +17,14 @@ function mediaFromRow(row, prefix){
 
 let STATE = {roster:[], events:[], activeEventId:null, badges:[], badgeEvents:[], eventVolunteerStatus:[], eventInactiveBadges:[], itemTypeNotes:{}, templates:[], itineraryTemplates:[]};
 let viewingEventId = null;
+// Tracks whether the REAL (network) loadState() has synced
+// viewingEventId to the live event at least once this session — stays
+// false through hydrateFromCache's cached-data paint (which sets its
+// own `loaded` flag but has no way to know if the live event changed
+// since that cache was written), so the real fetch right behind it
+// still forces the live event on once, even if the cache already
+// looked "loaded". See loadState() below.
+let liveEventSynced = false;
 let editingTemplateId = null;
 // same idea as editingTemplateId, but for the Itinerary Templates
 // editor (see currentItineraryCtx below) — a separate variable since
@@ -53,7 +61,11 @@ function hydrateFromCache(){
     const cached = JSON.parse(raw);
     if(!cached || !cached.state || !Array.isArray(cached.state.events) || !Array.isArray(cached.state.roster)) return false;
     STATE = cached.state;
-    if(cached.viewingEventId) viewingEventId = cached.viewingEventId;
+    // the live event, not whatever was last viewed — same "always open
+    // on the live event" default loadState() enforces for the real
+    // fetch right behind this, so the cached first paint doesn't
+    // flash a different event first
+    viewingEventId = STATE.activeEventId || (STATE.events[0]||{}).id || null;
     loaded = true;
     return true;
   }catch(e){ return false; }
@@ -236,7 +248,16 @@ async function loadState(){
     templates: templatesRes.data.map(t=>({id:t.id, name:t.name, description:t.description||'', items: itemsByTemplate[t.id]||[]})),
     itineraryTemplates: itineraryTemplatesRes.error ? [] : itineraryTemplatesRes.data.map(t=>({id:t.id, name:t.name, eventType: t.event_type||'', items: itineraryByTemplate[t.id]||[]}))
   };
-  if(!STATE.events.find(e=>e.id===viewingEventId)) viewingEventId = STATE.activeEventId || (STATE.events[0]||{}).id;
+  // Every fresh app open lands on whichever event is ACTUALLY live
+  // right now, even if hydrateFromCache's instant first paint already
+  // set viewingEventId from a stale cached snapshot (that snapshot's
+  // "live" event might not be live anymore). Once this real fetch has
+  // synced it once, picking a different event from the dropdown has to
+  // stick through every later reload() (a realtime update, another
+  // admin's edit, ...), so only that event vanishing entirely resets
+  // the pick after this first real load.
+  if(!liveEventSynced || !STATE.events.find(e=>e.id===viewingEventId)) viewingEventId = STATE.activeEventId || (STATE.events[0]||{}).id;
+  liveEventSynced = true;
   if(editingTemplateId && !STATE.templates.find(t=>t.id===editingTemplateId)) editingTemplateId = null;
   if(editingItineraryTemplateId && !STATE.itineraryTemplates.find(t=>t.id===editingItineraryTemplateId)) editingItineraryTemplateId = null;
   loaded = true;

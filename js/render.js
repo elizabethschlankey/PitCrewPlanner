@@ -10,7 +10,6 @@ function volunteerName(id){ const v = STATE.roster.find(r=>r.id===id); return v 
 
 function renderHeader(){
   const evt = currentEvent();
-  document.getElementById('hdr-evt-name').textContent = loaded ? (evt.name + (evt.date ? ' — '+evt.date : '')) : 'Loading…';
   const evtPill = document.getElementById('hdr-evt-pill');
   if(evt.id && evt.id === STATE.activeEventId){ evtPill.textContent='🔴 Live'; evtPill.className='pill current'; evtPill.title = 'This is the event volunteers see by default'; }
   else { evtPill.textContent='Draft'; evtPill.className='pill other'; evtPill.title = 'Not live yet — volunteers won\'t see this event until you Go Live with it'; }

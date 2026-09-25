@@ -164,10 +164,15 @@ function renderItinerary(){
   const items = currentItineraryCtx().items || [];
   if(!isTemplate){
     const applySelect = document.getElementById('itinerary-apply-template-select');
+    const applyBtn = document.getElementById('itinerary-apply-template-btn');
     if(applySelect){
       const prev = applySelect.value;
       applySelect.innerHTML = '<option value="">Choose a template…</option>' + itineraryTemplateOptionsFor(evt.eventType);
       if([...applySelect.options].some(o=>o.value===prev)) applySelect.value = prev;
+      // rebuilding the options above doesn't fire 'change', so the
+      // Apply button's disabled state needs re-checking here too, not
+      // just from the listener below
+      if(applyBtn) applyBtn.disabled = !applySelect.value;
     }
   }
   if(!items.length){
@@ -230,6 +235,42 @@ const itineraryAddBtn = document.getElementById('itinerary-add-btn');
 const itineraryCancelEditBtn = document.getElementById('itinerary-cancel-edit-btn');
 const itineraryFormLabel = document.getElementById('itinerary-form-label');
 
+// what a submit would actually send right now — used both to build the
+// insert/update payload and to detect whether the form has anything
+// new/changed worth saving (see updateItineraryAddBtnState below)
+function itineraryFormSnapshot(){
+  const timeValue = itineraryTimeInput.value ? itineraryTimeInput.value+':00' : null;
+  return {
+    timeValue, label: itineraryLabelInput.value.trim(), notes: itineraryNotesInput.value.trim(),
+    isTentative: timeValue ? itineraryTentativeInput.checked : false, pitCrewNeeded: itineraryPitCrewInput.checked
+  };
+}
+// the item's values as of when Edit was clicked — compared against the
+// live form snapshot to tell whether anything's actually changed yet
+let editingItineraryOriginal = null;
+// Add Item stays disabled until there's a label to save at all; Save
+// Changes stays disabled until something in the form actually differs
+// from what's already saved, so there's never a save with nothing new
+// to write.
+function updateItineraryAddBtnState(){
+  const snap = itineraryFormSnapshot();
+  if(!snap.label){ itineraryAddBtn.disabled = true; return; }
+  if(editingItineraryId && editingItineraryOriginal){
+    const dirty = snap.timeValue!==editingItineraryOriginal.timeValue || snap.label!==editingItineraryOriginal.label
+      || snap.notes!==editingItineraryOriginal.notes || snap.isTentative!==editingItineraryOriginal.isTentative
+      || snap.pitCrewNeeded!==editingItineraryOriginal.pitCrewNeeded;
+    itineraryAddBtn.disabled = !dirty;
+  }else{
+    itineraryAddBtn.disabled = false;
+  }
+}
+[itineraryTimeInput, itineraryLabelInput, itineraryNotesInput].forEach(el=>{
+  el.addEventListener('input', updateItineraryAddBtnState);
+});
+[itineraryTentativeInput, itineraryPitCrewInput].forEach(el=>{
+  el.addEventListener('change', updateItineraryAddBtnState);
+});
+
 function startEditItineraryItem(id){
   const it = (currentItineraryCtx().items||[]).find(i=>i.uid===id);
   if(!it) return;
@@ -242,10 +283,13 @@ function startEditItineraryItem(id){
   itineraryFormLabel.textContent = 'Edit Item';
   itineraryAddBtn.textContent = 'Save Changes';
   itineraryCancelEditBtn.style.display = 'inline-block';
+  editingItineraryOriginal = itineraryFormSnapshot();
+  updateItineraryAddBtnState();
   itineraryLabelInput.focus();
 }
 function cancelEditItineraryItem(){
   editingItineraryId = null;
+  editingItineraryOriginal = null;
   itineraryTimeInput.value = '';
   itineraryLabelInput.value = '';
   itineraryNotesInput.value = '';
@@ -254,16 +298,16 @@ function cancelEditItineraryItem(){
   itineraryFormLabel.textContent = 'Add an Item';
   itineraryAddBtn.textContent = 'Add Item';
   itineraryCancelEditBtn.style.display = 'none';
+  updateItineraryAddBtnState();
 }
 itineraryCancelEditBtn.addEventListener('click', cancelEditItineraryItem);
 
 itineraryAddBtn.addEventListener('click', async ()=>{
-  const label = itineraryLabelInput.value.trim();
+  // button's already disabled unless there's a label AND (for an edit)
+  // something actually changed — this just guards a stray click event
+  if(itineraryAddBtn.disabled) return;
+  const {timeValue, label, notes, isTentative, pitCrewNeeded} = itineraryFormSnapshot();
   if(!label) return;
-  const timeValue = itineraryTimeInput.value ? itineraryTimeInput.value+':00' : null;
-  const notes = itineraryNotesInput.value.trim();
-  const isTentative = timeValue ? itineraryTentativeInput.checked : false;
-  const pitCrewNeeded = itineraryPitCrewInput.checked;
   const ctx = currentItineraryCtx();
   if(editingItineraryId){
     const ok = await db(sb.from(ctx.table).update({time_value: timeValue, label, notes, is_tentative: isTentative, pit_crew_needed: pitCrewNeeded}).eq('id', editingItineraryId), 'update itinerary item');
@@ -292,9 +336,15 @@ document.getElementById('itinerary-list').addEventListener('click', e=>{
 });
 
 /* --- paste-import -------------------------------------------------- */
-document.getElementById('itinerary-paste-btn').addEventListener('click', async ()=>{
+const itineraryPasteInput = document.getElementById('itinerary-paste-input');
+const itineraryPasteBtn = document.getElementById('itinerary-paste-btn');
+itineraryPasteInput.addEventListener('input', ()=>{
+  itineraryPasteBtn.disabled = !itineraryPasteInput.value.trim();
+});
+itineraryPasteBtn.addEventListener('click', async ()=>{
+  if(itineraryPasteBtn.disabled) return;
   const resultEl = document.getElementById('itinerary-paste-result');
-  const input = document.getElementById('itinerary-paste-input');
+  const input = itineraryPasteInput;
   resultEl.textContent = '';
   const parsed = parseItineraryText(input.value);
   if(!parsed.length){ resultEl.textContent = 'Paste at least one line first.'; return; }
@@ -313,13 +363,21 @@ document.getElementById('itinerary-paste-btn').addEventListener('click', async (
   const tentativeCount = parsed.filter(p=>p.timeValue && p.isTentative).length;
   resultEl.textContent = `Imported ${parsed.length} item${parsed.length===1?'':'s'} — ${timedCount} with a recognized time${tentativeCount ? ` (${tentativeCount} marked tentative)` : ''}, ${parsed.length-timedCount} without.`;
   input.value = '';
+  itineraryPasteBtn.disabled = true;
   statusEl.textContent = 'All changes saved';
 });
 
 /* --- apply an itinerary template onto the current event ----------- */
 const itineraryApplyTemplateBtn = document.getElementById('itinerary-apply-template-btn');
+const itineraryApplyTemplateSelect = document.getElementById('itinerary-apply-template-select');
+if(itineraryApplyTemplateSelect && itineraryApplyTemplateBtn){
+  itineraryApplyTemplateSelect.addEventListener('change', ()=>{
+    itineraryApplyTemplateBtn.disabled = !itineraryApplyTemplateSelect.value;
+  });
+}
 if(itineraryApplyTemplateBtn){
   itineraryApplyTemplateBtn.addEventListener('click', async ()=>{
+    if(itineraryApplyTemplateBtn.disabled) return;
     const resultEl = document.getElementById('itinerary-apply-template-result');
     const select = document.getElementById('itinerary-apply-template-select');
     resultEl.textContent = '';
@@ -335,6 +393,11 @@ if(itineraryApplyTemplateBtn){
     resultEl.textContent = failed
       ? `Applied, but ${failed} of ${tmpl.items.length} item(s) failed to copy — open the browser console (F12) for the error`
       : `Added ${tmpl.items.length} item${tmpl.items.length===1?'':'s'} from “${tmpl.name}”.`;
+    // reset the picker so re-applying the same template needs a
+    // deliberate re-pick, not a stray click on a still-enabled button
+    // (Apply adds every time, it never dedupes)
+    select.value = '';
+    itineraryApplyTemplateBtn.disabled = true;
     statusEl.textContent = 'All changes saved';
   });
 }
@@ -345,6 +408,12 @@ const saveItineraryAsTemplateSource = document.getElementById('save-itinerary-as
 const saveItineraryAsTemplateName = document.getElementById('save-itinerary-as-template-name');
 const saveItineraryAsTemplateType = document.getElementById('save-itinerary-as-template-type');
 const btnSaveItineraryAsTemplate = document.getElementById('btn-save-itinerary-as-template');
+const saveItineraryAsTemplateCreateBtn = document.getElementById('save-itinerary-as-template-create');
+if(saveItineraryAsTemplateName && saveItineraryAsTemplateCreateBtn){
+  saveItineraryAsTemplateName.addEventListener('input', ()=>{
+    saveItineraryAsTemplateCreateBtn.disabled = !saveItineraryAsTemplateName.value.trim();
+  });
+}
 if(btnSaveItineraryAsTemplate){
   btnSaveItineraryAsTemplate.addEventListener('click', ()=>{
     const evt = currentEvent();
@@ -352,6 +421,7 @@ if(btnSaveItineraryAsTemplate){
     saveItineraryAsTemplateName.value = evt.name;
     saveItineraryAsTemplateType.value = evt.eventType || '';
     saveItineraryAsTemplateForm.classList.add('open');
+    if(saveItineraryAsTemplateCreateBtn) saveItineraryAsTemplateCreateBtn.disabled = !evt.name;
     saveItineraryAsTemplateName.focus();
   });
 }
@@ -359,7 +429,6 @@ const saveItineraryAsTemplateCancelBtn = document.getElementById('save-itinerary
 if(saveItineraryAsTemplateCancelBtn){
   saveItineraryAsTemplateCancelBtn.addEventListener('click', ()=>saveItineraryAsTemplateForm.classList.remove('open'));
 }
-const saveItineraryAsTemplateCreateBtn = document.getElementById('save-itinerary-as-template-create');
 if(saveItineraryAsTemplateCreateBtn){
   saveItineraryAsTemplateCreateBtn.addEventListener('click', async ()=>{
     // same double-tap guard as the field-layout Save as Template

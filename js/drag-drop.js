@@ -78,8 +78,30 @@ function startPaletteDrag(typeId, label, clientX, clientY){
   document.addEventListener('pointerup', onUp);
 }
 function wirePaletteDrag(row, typeId, label){
-  row.addEventListener('pointerdown', e=>{ if(mode!=='edit' || isFieldLocked()) return; e.preventDefault(); startPaletteDrag(typeId, label, e.clientX, e.clientY); });
+  row.addEventListener('pointerdown', e=>{
+    if(mode!=='edit' || isFieldLocked()) return;
+    // let the Pit/Props buttons (see wireCategoryToggle below) work as
+    // an ordinary click instead of hijacking their pointerdown into
+    // dragging the whole row onto the field
+    if(e.target.closest('[data-category-toggle-for]')) return;
+    e.preventDefault();
+    startPaletteDrag(typeId, label, e.clientX, e.clientY);
+  });
 }
+
+// Pit/Props tag for an Equipment type — event-delegated on the palette
+// list itself (buildPaletteList in render.js only builds each row's
+// buttons once, but that's fine here, this doesn't need per-button
+// listeners). Persists to item_type_notes, the same shared-per-type
+// row What to Do/Wrap It Up already use.
+palList.addEventListener('click', e=>{
+  const btn = e.target.closest('.pal-cat-btn');
+  if(!btn) return;
+  const toggle = btn.closest('[data-category-toggle-for]');
+  const typeId = toggle.dataset.categoryToggleFor;
+  const newCategory = btn.classList.contains('active') ? '' : btn.dataset.cat;
+  db(sb.from('item_type_notes').upsert({type_id: resolveTypeId(typeId), category: newCategory}, {onConflict:'type_id'}), 'set item category');
+});
 
 document.getElementById('custom-add-btn').addEventListener('click', ()=>{
   if(isFieldLocked()){ statusEl.textContent = 'Unlock Equipment/Instruments first.'; return; }

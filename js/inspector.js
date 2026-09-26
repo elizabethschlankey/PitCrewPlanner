@@ -188,6 +188,7 @@ function renderInspectorViewOnly(it){
   const helpBlock = document.getElementById('view-help-block');
   if(it.needsHelp){
     helpBlock.style.display = 'flex';
+    helpBlock.dataset.category = categoryForType(it.typeId);
     const names = (it.assignedIds||[]).map(volunteerName).filter(Boolean);
     const need = it.helpersNeeded||1;
     const pill = document.getElementById('view-helper-pill');

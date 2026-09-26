@@ -138,6 +138,16 @@ function typeNotesFor(it){
   };
 }
 
+// 'pit' or 'props' (or '' if never tagged) — set from the Equipment
+// palette (see wireCategoryToggle in drag-drop.js), same shared-per-
+// type row as typeNotesFor above. '' renders as the original orange
+// "needs help" color everywhere; only 'props' gets the yellow variant
+// — see the --item-help custom property in styles.css.
+function categoryForType(typeId){
+  const row = STATE.itemTypeNotes[resolveTypeId(typeId)];
+  return row && row.category ? row.category : '';
+}
+
 // Returns which items collection is currently being edited — a normal
 // event's items, or (when editingTemplateId is set, i.e. the Admin
 // screen has a template open) a template's items. Every item-CRUD call

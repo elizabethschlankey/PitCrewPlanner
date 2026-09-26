@@ -544,3 +544,15 @@ end $$;
 -- ---------------------------------------------------------------
 alter table itinerary_items          add column if not exists pit_crew_needed boolean not null default false;
 alter table itinerary_template_items add column if not exists pit_crew_needed boolean not null default false;
+
+-- ---------------------------------------------------------------
+-- category — tags an EQUIPMENT type (Generator, Mixer, Podiums, Sub,
+-- Speakers — the "Equipment" palette tab, not Instruments) as 'pit' or
+-- 'props', so its "needs help" color on the field/Needs a Hand panel
+-- can be orange vs yellow instead of every item looking the same.
+-- Lives on item_type_notes since it's the same "one shared row per
+-- equipment type, editable from the palette" shape as notes/media
+-- already are — '' (the default) means untagged, which renders as the
+-- original orange. Idempotent — safe to re-run.
+-- ---------------------------------------------------------------
+alter table item_type_notes add column if not exists category text not null default '' check (category in ('', 'pit', 'props'));

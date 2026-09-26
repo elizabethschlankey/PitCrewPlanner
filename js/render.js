@@ -136,6 +136,7 @@ function renderField(){
     const cat = catalogFor(it.typeId);
     const el = document.createElement('div');
     el.className = 'placed' + (it.needsHelp ? ' needs-help' : '');
+    if(it.needsHelp) el.dataset.category = categoryForType(it.typeId);
     el.style.left = it.xPct+'%';
     el.style.top = it.yPct+'%';
     el.style.transform = 'translate(-50%,-50%) scale(var(--chip-scale))';
@@ -229,7 +230,7 @@ function renderAssignments(){
       return `<span class="who-person">${volunteerName(id)}${badgeHTML}${anchorHTML}</span>`;
     }).join('') : '<span class="unassigned">Unassigned — needs a volunteer</span>';
     return `
-    <div class="assign-card" data-open-inspector="${it.uid}">
+    <div class="assign-card" data-open-inspector="${it.uid}" data-category="${categoryForType(it.typeId)}">
       <div class="top-row">
         <div class="item-label">${it.label}</div>
         <div class="helper-pill ${filled?'filled':''}">${ids.length}/${need} helpers</div>
@@ -253,6 +254,7 @@ function renderAll(){
   renderBadges();
   renderTemplates();
   renderItineraryTemplates();
+  renderPaletteCategories();
   renderAnalytics();
   renderItinerary();
   renderImportEventSelect();
@@ -262,14 +264,22 @@ function renderAll(){
 /* ---------------------------------------------------------------
    BUILD PALETTE
 ---------------------------------------------------------------- */
-function buildPaletteList(container, catalog, subLabel){
+// showCategoryToggle: only the Equipment tab (CATALOG) gets a Pit/Props
+// tag — Instruments are inherently pit gear, nothing to categorize
+function buildPaletteList(container, catalog, subLabel, showCategoryToggle){
   catalog.forEach(item=>{
     const row = document.createElement('div');
     row.className = 'pal-item';
     row.dataset.type = item.id;
+    const categoryToggleHTML = showCategoryToggle ? `
+      <div class="pal-category-toggle" data-edit-only data-category-toggle-for="${item.id}" title="Which color this item's “needs help” marker uses">
+        <button type="button" class="pal-cat-btn pal-cat-pit" data-cat="pit">Pit</button>
+        <button type="button" class="pal-cat-btn pal-cat-props" data-cat="props">Props</button>
+      </div>` : '';
     row.innerHTML = `
       <div class="swatch" style="background:${item.color}">${ICONS[item.icon]}</div>
       <div><div class="label">${item.name}</div><div class="sub">${subLabel}</div></div>
+      ${categoryToggleHTML}
       <div class="count-badge" data-count-for="${item.id}">0</div>`;
     container.appendChild(row);
     wirePaletteDrag(row, item.id, item.name);
@@ -287,8 +297,21 @@ const palListInstruments = document.getElementById('pal-list-instruments');
 // initPalette() (below) does the real building; boot.js calls it last,
 // once every file — including drag-drop.js — has loaded.
 function initPalette(){
-  buildPaletteList(palList, CATALOG, 'Pit Crew Item');
-  buildPaletteList(palListInstruments, INSTRUMENT_CATALOG, 'Pit Instrument');
+  buildPaletteList(palList, CATALOG, 'Pit Crew Item', true);
+  buildPaletteList(palListInstruments, INSTRUMENT_CATALOG, 'Pit Instrument', false);
+}
+
+// keeps each Equipment row's Pit/Props buttons in sync with
+// STATE.itemTypeNotes — separate from buildPaletteList (which only
+// ever runs once, before data has even loaded) so this needs its own
+// pass on every renderAll()
+function renderPaletteCategories(){
+  document.querySelectorAll('[data-category-toggle-for]').forEach(toggle=>{
+    const cat = categoryForType(toggle.dataset.categoryToggleFor);
+    toggle.querySelectorAll('.pal-cat-btn').forEach(btn=>{
+      btn.classList.toggle('active', btn.dataset.cat===cat);
+    });
+  });
 }
 
 let activeList = palList;
@@ -327,8 +350,12 @@ const legend = document.getElementById('legend');
 });
 const ringEl = document.createElement('div');
 ringEl.className='item';
-ringEl.innerHTML = `<span class="ring"></span>Needs a helper to move`;
+ringEl.innerHTML = `<span class="ring"></span>Needs a helper to move — Pit`;
 legend.appendChild(ringEl);
+const propsRingEl = document.createElement('div');
+propsRingEl.className='item';
+propsRingEl.innerHTML = `<span class="ring props"></span>Needs a helper to move — Props`;
+legend.appendChild(propsRingEl);
 
 // legend accordion — collapsed by default to save space, remembered
 // per viewer so it doesn't reset every visit

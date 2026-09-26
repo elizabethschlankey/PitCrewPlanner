@@ -6,10 +6,21 @@
     --paper:#f4f1e8; --navy:#1b2a5e; --navy-2:#2c3f8f; --gold:#e0b13c;
     --silver:#8b93a3; --wood:#8a5a2e; --danger:#c1443a;
     --help:#d9772e; --help-dim:rgba(217,119,46,.16); --good:#4a9a5b;
+    --gold-dim:rgba(224,177,60,.16);
     --text-lo:#9aa2b2;
     --chip-scale:1; /* shrinks placed items on narrow screens so a full
       pit box row doesn't turn into an overlapping wall of icons/labels */
+    /* the "needs help" color a placed EQUIPMENT item (or its Needs a
+       Hand card / inspector view) actually renders in — orange by
+       default, overridden to gold wherever a [data-category="props"]
+       element wraps it (see categoryForType in state.js and the
+       Pit/Props buttons in the Equipment palette). Untagged and Pit
+       items both fall through to this default, so "keep Pit orange"
+       needs no override rule of its own. */
+    --item-help: var(--help);
+    --item-help-dim: var(--help-dim);
   }
+  [data-category="props"]{ --item-help: var(--gold); --item-help-dim: var(--gold-dim); }
   /* max-width alone misses landscape phones (844/896/932px+ wide,
      recurring gotcha throughout this file — see the Full Screen field
      comments below) so every tier here also triggers on short height,
@@ -216,6 +227,14 @@
   .pal-item .sub{font-size:9.5px;color:var(--text-lo);text-transform:uppercase;letter-spacing:.04em;}
   .pal-item .count-badge{margin-left:auto;flex:none;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--panel-edge);color:var(--text-lo);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;}
   .pal-item .count-badge.has-count{background:var(--gold);color:#12161c;}
+  /* Pit/Props tag — Equipment tab only (see buildPaletteList's
+     showCategoryToggle in render.js); sets which color that type's
+     "needs help" marker uses everywhere else in the app */
+  .pal-category-toggle{display:flex;gap:2px;flex:none;}
+  .pal-cat-btn{border:1px solid var(--panel-edge);background:transparent;color:var(--text-lo);font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;padding:3px 6px;border-radius:10px;cursor:pointer;}
+  .pal-cat-btn:hover{background:rgba(255,255,255,.06);color:#eceef2;}
+  .pal-cat-btn.pal-cat-pit.active{background:var(--help-dim);color:var(--help);border-color:var(--help);}
+  .pal-cat-btn.pal-cat-props.active{background:var(--gold-dim);color:var(--gold);border-color:var(--gold);}
   .custom-add{display:flex;gap:6px;margin-top:4px;}
   .custom-add input{flex:1;min-width:0;background:var(--panel-2);border:1px solid var(--panel-edge);border-radius:6px;color:#eceef2;padding:8px;font-size:12px;}
 
@@ -433,13 +452,13 @@
   .placed:active{cursor:grabbing;}
   body:not(.mode-edit) .placed:active{cursor:pointer;}
   .placed .chip{position:relative;display:flex;align-items:center;justify-content:center;border-radius:7px;box-shadow:0 3px 8px rgba(0,0,0,.45);border:1.5px solid rgba(255,255,255,.25);}
-  .placed.needs-help .chip{box-shadow:0 0 0 3px var(--help),0 3px 8px rgba(0,0,0,.45);}
+  .placed.needs-help .chip{box-shadow:0 0 0 3px var(--item-help),0 3px 8px rgba(0,0,0,.45);}
   .placed .chip svg{width:60%;height:60%;}
-  .placed .help-badge{position:absolute;top:-7px;left:-7px;min-width:16px;height:16px;padding:0 3px;border-radius:50%;background:var(--help);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.6);}
+  .placed .help-badge{position:absolute;top:-7px;left:-7px;min-width:16px;height:16px;padding:0 3px;border-radius:50%;background:var(--item-help);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.6);}
   .placed .chip-badge-thumb{position:absolute;bottom:-6px;right:-6px;width:16px;height:16px;border-radius:50%;object-fit:cover;border:1.5px solid var(--gold);box-shadow:0 1px 3px rgba(0,0,0,.5);}
   .placed .tag{margin-top:2px;font-size:8px;font-weight:700;color:#0c0f13;background:var(--paper);padding:1px 4px;border-radius:3px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.4);text-transform:uppercase;letter-spacing:.01em;}
-  .placed .assign-note{margin-top:1px;font-size:7.5px;font-weight:700;color:var(--help);background:rgba(12,15,19,.75);padding:1px 4px;border-radius:3px;white-space:nowrap;}
-  .placed .tag.name-tag{background:var(--help);color:#fff;text-transform:none;font-size:9px;letter-spacing:0;}
+  .placed .assign-note{margin-top:1px;font-size:7.5px;font-weight:700;color:var(--item-help);background:rgba(12,15,19,.75);padding:1px 4px;border-radius:3px;white-space:nowrap;}
+  .placed .tag.name-tag{background:var(--item-help);color:#fff;text-transform:none;font-size:9px;letter-spacing:0;}
   .placed .pos-note{margin-top:1px;font-size:7px;font-weight:700;color:var(--gold);background:rgba(12,15,19,.75);padding:1px 4px;border-radius:3px;white-space:nowrap;}
   /* labels-off view: icons + the needs-help ring stay, text goes —
      the Needs a Hand panel already lists who's assigned to what */
@@ -463,6 +482,7 @@
   .legend .item{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text-lo);}
   .legend .dot{width:11px;height:11px;border-radius:3px;flex:none;}
   .legend .ring{width:11px;height:11px;border-radius:3px;flex:none;border:2px solid var(--help);background:transparent;}
+  .legend .ring.props{border-color:var(--gold);}
 
   /* a real collapsible drawer, not just a shorter panel — collapsing
      shrinks its WIDTH down to a slim handle, and .stage/.palette (its
@@ -495,17 +515,17 @@
   .assign-panel .hint{font-size:11px;color:var(--text-lo);margin:0;line-height:1.5;}
   .assign-panel .hint [data-edit-only]{display:block;margin-top:4px;}
   .assign-empty{font-size:12px;color:var(--text-lo);font-style:italic;padding:14px 4px;line-height:1.5;}
-  .assign-card{background:var(--panel-2);border:1px solid var(--panel-edge);border-left:3px solid var(--help);border-radius:8px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:5px;}
-  .assign-card:hover{border-color:var(--help);background:#242c3b;}
+  .assign-card{background:var(--panel-2);border:1px solid var(--panel-edge);border-left:3px solid var(--item-help);border-radius:8px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:5px;}
+  .assign-card:hover{border-color:var(--item-help);background:#242c3b;}
   .assign-card .top-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
   .assign-card .item-label{font-size:13px;font-weight:700;}
-  .assign-card .helper-pill{font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;white-space:nowrap;background:var(--help-dim);color:var(--help);}
+  .assign-card .helper-pill{font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;white-space:nowrap;background:var(--item-help-dim);color:var(--item-help);}
   .assign-card .helper-pill.filled{background:rgba(74,154,91,.18);color:var(--good);}
   .assign-card .student-tag{font-size:11.5px;color:var(--silver);}
   .assign-card .student-tag strong{color:#eceef2;font-weight:700;}
   .assign-card .pos{font-size:10.5px;color:var(--text-lo);}
   .assign-card .who{display:flex;flex-wrap:wrap;gap:6px;font-size:11.5px;color:#eceef2;}
-  .assign-card .who .unassigned{color:var(--help);font-style:italic;}
+  .assign-card .who .unassigned{color:var(--item-help);font-style:italic;}
   .assign-card .who-person{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.04);border:1px solid var(--panel-edge);border-radius:22px;padding:4px 10px 4px 4px;}
   .assign-card .who-badge-thumb{width:34px;height:34px;border-radius:50%;object-fit:cover;flex:none;border:1.5px solid var(--gold);}
   .assign-card .who-badge-label{color:var(--gold);font-weight:700;}
@@ -574,10 +594,10 @@
   .coil-animation{width:96px;height:96px;}
   .coil-caption{margin:0;font-size:11.5px;color:var(--text-lo);text-align:center;line-height:1.5;max-width:260px;}
   .view-text.empty{color:var(--text-lo);font-style:italic;}
-  #insp-view-body .helper-pill{display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;background:var(--help-dim);color:var(--help);margin-bottom:6px;}
+  #insp-view-body .helper-pill{display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;background:var(--item-help-dim);color:var(--item-help);margin-bottom:6px;}
   #insp-view-body .helper-pill.filled{background:rgba(74,154,91,.18);color:var(--good);}
   #insp-view-body .who{font-size:13px;color:#eceef2;margin-bottom:6px;}
-  #insp-view-body .who .unassigned{color:var(--help);font-style:italic;}
+  #insp-view-body .who .unassigned{color:var(--item-help);font-style:italic;}
   #insp-view-body .timing-tag{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.03em;font-weight:700;color:var(--silver);background:rgba(139,147,163,.14);padding:3px 8px;border-radius:4px;}
   .inspector-card .row-end{display:flex;justify-content:space-between;gap:8px;margin-top:4px;}
 

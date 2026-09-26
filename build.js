@@ -31,7 +31,7 @@ const INCLUDE_RE = /<!--\s*include:\s*([\w.\-]+)\s*-->/g;
 // exists. The _headers file is what makes this actually matter: it tells
 // Netlify to let browsers cache js/css forever, safe only because this
 // version bump is what changes their URL whenever they actually change.
-const ASSET_VERSION = '2026-09-25f';
+const ASSET_VERSION = '2026-09-26a';
 
 function resolveIncludes(content, chain) {
   return content.replace(INCLUDE_RE, (match, name) => {

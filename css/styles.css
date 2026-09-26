@@ -273,7 +273,7 @@
   /* live "where are we right now" state — only computed for an event
      happening today (see showNow in renderItinerary) */
   .itinerary-row.itinerary-past{opacity:.5;}
-  .itinerary-row.itinerary-current{border-color:var(--gold);background:rgba(224,177,60,.1);}
+  .itinerary-row.itinerary-current{border-color:var(--good);background:rgba(74,154,91,.14);}
   .itinerary-now-badge{display:inline-block;margin-left:6px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:#12161c;background:var(--gold);padding:2px 7px;border-radius:10px;vertical-align:middle;}
   /* same orange as the field's "needs help" signal — a Pit Crew flag
      here is the same kind of "someone needs to show up" alert, just on

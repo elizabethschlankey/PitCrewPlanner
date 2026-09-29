@@ -754,6 +754,16 @@ async function autoAssignDesignatedPosition(volunteerId, eventId, reservedCounts
 }
 
 document.getElementById('roster-list').addEventListener('change', async e=>{
+  const sessionSelect = e.target.closest('[data-session-volunteer]');
+  if(sessionSelect){
+    // the row always already exists here — the session picker only
+    // ever renders once someone's Signed Up/Backup (see rosterRowHTML)
+    await db(sb.from('event_volunteer_status').upsert(
+      {event_id: currentEvent().id, volunteer_id: sessionSelect.dataset.sessionVolunteer, session: sessionSelect.value},
+      {onConflict: 'event_id,volunteer_id'}
+    ), 'set volunteer session');
+    return;
+  }
   const select = e.target.closest('[data-status-volunteer]');
   if(!select) return;
   const volunteerId = select.dataset.statusVolunteer;
@@ -762,6 +772,9 @@ document.getElementById('roster-list').addEventListener('change', async e=>{
   if(status==='potential'){
     await db(sb.from('event_volunteer_status').delete().eq('event_id', evtId).eq('volunteer_id', volunteerId), 'clear volunteer status');
   }else{
+    // omitting `session` here (rather than resetting it to 'both')
+    // means flipping Signed Up <-> Backup keeps whatever session was
+    // already chosen instead of silently clearing it
     const ok = await db(sb.from('event_volunteer_status').upsert(
       {event_id: evtId, volunteer_id: volunteerId, status},
       {onConflict: 'event_id,volunteer_id'}

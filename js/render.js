@@ -91,7 +91,22 @@ function volunteerStatusFor(volunteerId){
   return row ? row.status : 'potential';
 }
 
+// 'both' (the default), 'prelims', or 'finals' — which part of the
+// event this volunteer signed up to help with, for the "one event,
+// two volunteer sets" case (a Competition with separate Prelims/
+// Finals crews) instead of needing two whole separate events for it.
+function volunteerSessionFor(volunteerId){
+  const evtId = currentEvent().id;
+  const row = STATE.eventVolunteerStatus.find(s=>s.event_id===evtId && s.volunteer_id===volunteerId);
+  return row && row.session ? row.session : 'both';
+}
+
 function rosterRowHTML(v, statusKey){
+  // only meaningful once someone's actually committed to helping, and
+  // only for a Competition — Home/Away games have no Prelims/Finals
+  // split to tag in the first place
+  const showSession = statusKey!=='potential' && currentEvent().eventType==='contest';
+  const sessionKey = showSession ? volunteerSessionFor(v.id) : 'both';
   return `
     <div class="roster-row" data-edit-volunteer="${v.id}">
       <div class="avatar">${initialsFor(v.name)}</div>
@@ -105,6 +120,12 @@ function rosterRowHTML(v, statusKey){
         <option value="backup" ${statusKey==='backup'?'selected':''}>Backup</option>
         <option value="potential" ${statusKey==='potential'?'selected':''}>Potential</option>
       </select>
+      ${showSession ? `
+      <select class="session-select" data-session-volunteer="${v.id}" title="Which part of this event they're helping with">
+        <option value="both" ${sessionKey==='both'?'selected':''}>Both</option>
+        <option value="prelims" ${sessionKey==='prelims'?'selected':''}>Prelims</option>
+        <option value="finals" ${sessionKey==='finals'?'selected':''}>Finals</option>
+      </select>` : ''}
       <button class="remove-btn" data-remove-volunteer="${v.id}" type="button" title="Remove">&times;</button>
     </div>`;
 }
@@ -124,7 +145,13 @@ function renderRoster(){
       ${groups[key].length ? groups[key].map(v=>rosterRowHTML(v, key)).join('') : `<div class="roster-empty">${emptyText}</div>`}
     </div>`;
 
-  list.innerHTML =
+  // only relevant once someone's actually Signed Up/Backup on a
+  // Competition — matches rosterRowHTML's own showSession condition,
+  // so this note only appears when the session pickers below it do
+  const sessionHint = currentEvent().eventType==='contest'
+    ? `<p class="hint" style="margin:0 0 10px;">Signed Up/Backup volunteers can be tagged Both, Prelims, or Finals — useful when a Competition needs separate crews for each.</p>`
+    : '';
+  list.innerHTML = sessionHint +
     section(`Signed Up — ${currentEvent().name}`, 'signed_up', 'signed-up', 'Nobody signed up yet.') +
     section('Backups', 'backup', 'backup', 'No backups set.') +
     section('All Other Volunteers', 'potential', 'potential', 'Everyone is signed up or a backup.');

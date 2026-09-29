@@ -556,3 +556,16 @@ alter table itinerary_template_items add column if not exists pit_crew_needed bo
 -- original orange. Idempotent — safe to re-run.
 -- ---------------------------------------------------------------
 alter table item_type_notes add column if not exists category text not null default '' check (category in ('', 'pit', 'props'));
+
+-- ---------------------------------------------------------------
+-- session — lets ONE event (typically a Competition) hold two
+-- separate volunteer signups instead of needing two events for it —
+-- e.g. someone who only wants to help for Finals, not Prelims. 'both'
+-- (the default) is the normal case and matches every event's old
+-- behavior exactly, so nothing changes for events that never use
+-- this. Shown in Crew Roster only once a volunteer is actually
+-- Signed Up or a Backup (Potential has nothing to pick a session
+-- for), and only for a Competition event — Home/Away have no
+-- prelims/finals split to tag. Idempotent — safe to re-run.
+-- ---------------------------------------------------------------
+alter table event_volunteer_status add column if not exists session text not null default 'both' check (session in ('both', 'prelims', 'finals'));

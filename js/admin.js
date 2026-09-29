@@ -813,6 +813,20 @@ function cleanNameText(s){
 function nameMatchKey(s){
   return cleanNameText(s).toLowerCase();
 }
+// Signup.com/spreadsheet exports often carry an email or phone column
+// right alongside the name — a stray one landing on its own line/cell
+// (rather than trailing after a name on the same one, already dropped
+// by the comma-split below) would otherwise get imported as if it
+// were a volunteer's name. An email is anything@anything.anything; a
+// standalone number is what's left after stripping ordinary phone
+// punctuation (spaces/dashes/dots/parens/leading +) being ALL digits —
+// covers "214-555-1234", "(214) 555-1234", a bare "2145551234", even
+// a lone "3", but never an actual name (which always has a letter).
+function isEmailOrStandaloneNumber(s){
+  if(/^\S+@\S+\.\S+$/.test(s)) return true;
+  const digitsOnly = s.replace(/[\s\-.()+]/g, '');
+  return digitsOnly.length>0 && /^\d+$/.test(digitsOnly);
+}
 
 function parseSignupNames(raw){
   const HEADER_WORDS = new Set(['name','full name','volunteer','volunteer name','participant','participant name']);
@@ -830,6 +844,7 @@ function parseSignupNames(raw){
       const firstField = cell.split(',')[0].trim();
       const name = cleanNameText(firstField.replace(/\s*\(\d+\)\s*$/, '')); // strip a trailing "(N)" slot count
       if(!name || HEADER_WORDS.has(name.toLowerCase())) return;
+      if(isEmailOrStandaloneNumber(name)) return; // an email/phone column that ended up on its own, not a name
       const key = nameMatchKey(name);
       if(seen.has(key)) return; // duplicate within the pasted list itself
       seen.add(key);

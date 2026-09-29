@@ -547,6 +547,18 @@
   .drag-ghost{position:fixed;pointer-events:none;z-index:999;display:flex;flex-direction:column;align-items:center;opacity:.9;}
 
   .inspector-card{background:var(--panel-2);border:1px solid var(--panel-edge);border-radius:12px;width:100%;max-width:420px;max-height:90vh;max-height:90dvh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.6);padding:20px 22px;display:flex;flex-direction:column;gap:14px;}
+  /* landscape on a phone: width is the one thing NOT in short supply,
+     so let a modal spread out sideways instead of only ever getting
+     taller — a wider .inspector-card wraps its stacked field-groups
+     into less overall height, meaning less to scroll through (on top
+     of the sticky Cancel/Save row above) to get through all 4 tabs.
+     Placed after both .card and .inspector-card's own max-width, not
+     alongside them, so it actually wins the cascade — same specificity,
+     later source order — instead of being overridden right back by
+     whichever of those two rules happens to come after it. */
+  @media (max-height:500px){
+    .card, .inspector-card{max-width:min(92vw, 760px);}
+  }
   .inspector-card h3{margin:0;font-family:'Oswald',sans-serif;font-size:16px;text-transform:uppercase;letter-spacing:.03em;}
   .inspector-card .item-sub{font-size:11px;color:var(--text-lo);margin-top:-10px;}
   .inspector-card .pos-readout{font-size:11.5px;color:var(--gold);background:rgba(224,177,60,.1);border:1px solid rgba(224,177,60,.25);padding:6px 10px;border-radius:6px;}
@@ -607,7 +619,22 @@
   #insp-view-body .who{font-size:13px;color:#eceef2;margin-bottom:6px;}
   #insp-view-body .who .unassigned{color:var(--item-help);font-style:italic;}
   #insp-view-body .timing-tag{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.03em;font-weight:700;color:var(--silver);background:rgba(139,147,163,.14);padding:3px 8px;border-radius:4px;}
-  .inspector-card .row-end{display:flex;justify-content:space-between;gap:8px;margin-top:4px;}
+  /* pinned to the bottom of the modal's own scroll area (not just
+     "near the bottom of the content") — with 4 tabs' worth of content
+     above it, Cancel/Save could scroll out of reach depending on which
+     tab was open and how tall the viewport is; this guarantees they're
+     always visible and tappable without hunting for them first. The
+     negative margins extend the row into the card's own padding so it
+     sits flush at the true edge instead of leaving a gap the content
+     behind it could still peek through; the matching negative `bottom`
+     compensates for a Chrome quirk where a scroll container's own
+     bottom padding isn't otherwise honored by a sticky child. */
+  .inspector-card .row-end{
+    display:flex;justify-content:space-between;gap:8px;margin-top:4px;
+    position:sticky;bottom:-20px;margin-left:-22px;margin-right:-22px;margin-bottom:-20px;
+    padding:12px 22px 20px;background:var(--panel-2);
+    box-shadow:0 -10px 14px -10px rgba(0,0,0,.5);
+  }
 
   ::-webkit-scrollbar{width:9px;height:9px;}
   ::-webkit-scrollbar-thumb{background:#333c4c;border-radius:5px;}

@@ -11,10 +11,14 @@ const svg = document.getElementById('field');
 // true-to-scale marker drawn ON the turf at the real 40-60 yard lines,
 // a matching inset drawn inside the working pit box (see restFieldSVG),
 // and — while "Zoom to Pit Box" is active — an actual horizontal
-// stretch of just the turf (see TURF_ZOOM_STRETCH) so that marker lines
-// up edge-to-edge with the pit box below it. None of this ever touches
-// the pit box's own size, anything placed inside it, or any stored
-// item position.
+// stretch of everything EXCEPT the pit box (see TURF_ZOOM_STRETCH) so
+// that marker lines up edge-to-edge with the pit box below it, and
+// every other item (sideline crew, staging equipment, anything on the
+// open turf) shifts right along with it to stay at its real yard line —
+// a realistic relationship to each other and to the box, instead of
+// just the turf moving underneath them. None of this ever touches the
+// pit box's own size, anything placed inside it, or any stored item
+// position — only how non-pit-box items are drawn while zoomed in.
 const PIT_BOX_TRUE_YARDS = 20; // the 40 to the 60
 const W = 1200, H = 620;
 const fieldTop = 60, fieldBottom = 396, fieldLeft = 30, fieldRight = W-30;
@@ -34,16 +38,17 @@ const trueBoxX1 = fieldLeft + ((50-trueBoxHalfYards)/100)*(fieldRight-fieldLeft)
 const trueBoxX2 = fieldLeft + ((50+trueBoxHalfYards)/100)*(fieldRight-fieldLeft);
 const TRUE_BAND_WIDTH_UNITS = trueBoxX2 - trueBoxX1;
 
-// Turf-only horizontal stretch, switched on for the duration of "Zoom
-// to Pit Box" (see setTurfZoomWarp, zoomToPit/zoomReset below) — scaled
-// so the true band above is exactly pitW wide once stretched, matching
-// the pit box below it pixel-for-pixel. Only x-coordinates above
-// TURF_ZOOM_SPLIT_Y (the turf) are ever affected; the pit box and
-// everything at or below it always render at their normal, unwarped
-// scale, and the normal (non-zoomed) view never changes at all.
+// Horizontal stretch, switched on for the duration of "Zoom to Pit Box"
+// (see setTurfZoomWarp, zoomToPit/zoomReset below) — scaled so the true
+// band above is exactly pitW wide once stretched, matching the pit box
+// below it pixel-for-pixel. Applies everywhere EXCEPT the pit box
+// itself (see isInPitBox below) — the turf, the sideline/staging strip,
+// and the track all shift to line up with their real yard line, same as
+// an item actually drawn on the turf does, so everything outside the
+// (intentionally oversized) box stays in a realistic relationship to
+// each other and to it. The pit box and everything placed in it never
+// move, and the normal (non-zoomed) view never changes at all.
 const TURF_ZOOM_STRETCH = pitW / TRUE_BAND_WIDTH_UNITS;
-const TURF_ZOOM_SPLIT_Y = pitY - 3; // top edge of the pit box's background rect, see restFieldSVG
-const TURF_ZOOM_SPLIT_PCT = (TURF_ZOOM_SPLIT_Y/H)*100;
 let pitZoomWarpActive = false; // true only between zoomToPit() and zoomReset()
 
 // shared "is this SVG point inside the (working, oversized) pit box"
@@ -51,7 +56,9 @@ let pitZoomWarpActive = false; // true only between zoomToPit() and zoomReset()
 // placementInstructions below all classify a point the same way, just
 // word the result differently. Always uses the TRUE (unwarped)
 // coordinates — item classification never changes just because the
-// view happens to be zoomed in right now.
+// view happens to be zoomed in right now. Also doubles as the boundary
+// for the turf/sideline stretch below: this is the one region excluded
+// from it.
 function isInPitBox(svgX, svgY){
   return svgY > pitY - 6 && svgY < pitY+pitH+8 && svgX >= pitX-10 && svgX <= pitX+pitW+10;
 }
@@ -62,14 +69,14 @@ function isInPitBox(svgX, svgY){
 function turfWarpX(svgX, stretch){
   return W/2 + (svgX - W/2)*stretch;
 }
-// true (stored) xPct -> the warped xPct, applying the turf stretch when
-// `warped` is true and this point is on the turf (above the pit box)
-// rather than in/below it. Shared by warpXPctForZoom (tied to the live
-// zoom state) and the volunteer-facing mini-map (always warped, see
-// renderMiniMap), so both use the exact same math.
+// true (stored) xPct -> the warped xPct, applying the stretch when
+// `warped` is true and this point isn't inside the pit box itself.
+// Shared by warpXPctForZoom (tied to the live zoom state) and the
+// volunteer-facing mini-map (always warped, see renderMiniMap), so both
+// use the exact same math.
 function warpXPctIf(xPct, yPct, warped){
-  if(!warped || yPct >= TURF_ZOOM_SPLIT_PCT) return xPct;
-  const svgX = (xPct/100)*W;
+  const svgX = (xPct/100)*W, svgY = (yPct/100)*H;
+  if(!warped || isInPitBox(svgX, svgY)) return xPct;
   return (turfWarpX(svgX, TURF_ZOOM_STRETCH)/W)*100;
 }
 // true (stored) xPct -> the xPct actually displayed on the main field
@@ -80,8 +87,9 @@ function warpXPctForZoom(xPct, yPct){
 // inverse of the above — an on-screen xPct (e.g. read from a raw
 // pointer position) -> the true xPct to store
 function unwarpXPctForZoom(xPct, yPct){
-  if(!pitZoomWarpActive || yPct >= TURF_ZOOM_SPLIT_PCT) return xPct;
-  const svgX = (xPct/100)*W;
+  if(!pitZoomWarpActive) return xPct;
+  const svgX = (xPct/100)*W, svgY = (yPct/100)*H;
+  if(isInPitBox(svgX, svgY)) return xPct;
   const trueSvgX = W/2 + (svgX - W/2)/TURF_ZOOM_STRETCH;
   return (trueSvgX/W)*100;
 }

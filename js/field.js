@@ -83,6 +83,18 @@ function isInPitBox(svgX, svgY){
   s += `<rect x="${pitX-3}" y="${pitY-3}" width="${pitW+6}" height="${pitH+6}" fill="#0e1116"/>`;
   s += `<rect id="pit-box-rect" x="${pitX}" y="${pitY}" width="${pitW}" height="${pitH}" fill="#f4f1e8" stroke="#0e1116" stroke-width="4"/>`;
   s += `<text x="${pitX+pitW/2}" y="${pitY+pitH/2+16}" text-anchor="middle" font-family="Oswald" font-size="48" font-weight="700" fill="#12161c" opacity=".13" letter-spacing="4">PIT BOX</text>`;
+  // Same true-scale reference, mirrored inside the (deliberately oversized)
+  // working pit box — drawn at the identical unit-width as the turf marker
+  // above, so the two are a direct, apples-to-apples comparison once
+  // zoomed in via "Zoom to Pit Box": this inset shows how much of the
+  // wider working box the real 20-yard footprint would actually take up.
+  const trueWidthUnits = trueBoxX2 - trueBoxX1;
+  const pitInsetX1 = pitX + pitW/2 - trueWidthUnits/2;
+  const pitInsetX2 = pitX + pitW/2 + trueWidthUnits/2;
+  s += `<rect x="${pitInsetX1}" y="${pitY}" width="${trueWidthUnits}" height="${pitH}" fill="var(--gold)" opacity=".08"/>`;
+  s += `<line x1="${pitInsetX1}" y1="${pitY}" x2="${pitInsetX1}" y2="${pitY+pitH}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="6 4" opacity=".85"/>`;
+  s += `<line x1="${pitInsetX2}" y1="${pitY}" x2="${pitInsetX2}" y2="${pitY+pitH}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="6 4" opacity=".85"/>`;
+  s += `<text x="${pitX+pitW/2}" y="${pitY-8}" text-anchor="middle" font-family="Oswald" font-size="11" font-weight="700" fill="var(--gold)" opacity=".9" letter-spacing="1">TRUE 20-YD WIDTH</text>`;
   // the painted blue restraining line most HS fields have between the
   // team/pit box and the track — speakers' back wheels typically line up
   // on it, so it's a real placement reference, not just decoration

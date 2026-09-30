@@ -253,22 +253,26 @@ function describePositionShort(xPct, yPct){
 // (see renderMiniMap in inspector.js), which mark the same spot visually.
 function placementInstructions(xPct, yPct){
   const svgX = (xPct/100)*W, svgY = (yPct/100)*H;
-  if(isInPitBox(svgX, svgY)) return 'Inside the Pit Box.';
-  if(svgY >= trackY-6) return 'On the sideline / staging area.';
-  if(svgY < fieldTop-10) return 'Behind the back end line.';
-  if(svgY > fieldBottom+10) return 'Behind the front end line.';
+  // every instruction — pit box/sideline/behind-line included — is
+  // prefaced with the same Side/Yard-line label, since the underlying
+  // x position always has a real yard-line equivalent even where the
+  // row description below doesn't otherwise mention it
+  const pct = Math.max(0,Math.min(1,(svgX-fieldLeft)/(fieldRight-fieldLeft)));
+  const yardRaw = Math.round(pct*100);
+  const yard = yardRaw<=50 ? yardRaw : 100-yardRaw;
+  const side = yardRaw<50 ? 1 : 2;
+  const lr = side===1 ? 'L' : 'R';
+  const yardLabel = yard===50 ? '50 yard line (Midfield)' : `Side ${side} (${lr}) - ${yard} yard line`;
+  if(isInPitBox(svgX, svgY)) return `${yardLabel} — Inside the Pit Box.`;
+  if(svgY >= trackY-6) return `${yardLabel} — On the sideline / staging area.`;
+  if(svgY < fieldTop-10) return `${yardLabel} — Behind the back end line.`;
+  if(svgY > fieldBottom+10) return `${yardLabel} — Behind the front end line.`;
   let row;
   if(svgY<hashY1) row='Back Sideline';
   else if(svgY<(hashY1+hashY2)/2) row='Back Hash';
   else if(svgY<hashY2) row='Front Hash';
   else row='Front Sideline';
-  const pct = Math.max(0,Math.min(1,(svgX-fieldLeft)/(fieldRight-fieldLeft)));
-  const yardRaw = Math.round(pct*100);
-  const yard = yardRaw<=50 ? yardRaw : 100-yardRaw;
-  if(yard===50) return `50 yard line (Midfield) — ${row}.`;
-  const side = yardRaw<50 ? 1 : 2;
-  const lr = side===1 ? 'L' : 'R';
-  return `Side ${side} (${lr}) - ${yard} yard line — ${row}.`;
+  return `${yardLabel} — ${row}.`;
 }
 
 // Inverse of the yard-line math above — given a side (1 or 2) and a

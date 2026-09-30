@@ -264,6 +264,29 @@ function placementInstructions(xPct, yPct){
   return `Side ${side} (${lr}) - ${yard} yard line — ${row}.`;
 }
 
+// Inverse of the yard-line math above — given a side (1 or 2) and a
+// yard number (0-50), the xPct that lands on that exact yard line.
+// Always the TRUE (unwarped) position, same as everywhere else that
+// reads/writes xPct — the "Set by Yard Line" field in the inspector
+// (insp-yard-side/insp-yard-num) is the only caller. Row/front-back
+// position (yPct) is untouched; this only ever moves left/right.
+function yardToXPct(side, yard){
+  const yardRaw = side===1 ? yard : 100-yard;
+  const pct = Math.max(0, Math.min(1, yardRaw/100));
+  const svgX = fieldLeft + pct*(fieldRight-fieldLeft);
+  return (svgX/W)*100;
+}
+// the reverse — an item's true xPct -> {side, yard}, for pre-filling
+// that same field when the inspector opens
+function xPctToYard(xPct){
+  const svgX = (xPct/100)*W;
+  const pct = Math.max(0,Math.min(1,(svgX-fieldLeft)/(fieldRight-fieldLeft)));
+  const yardRaw = Math.round(pct*100);
+  const yard = yardRaw<=50 ? yardRaw : 100-yardRaw;
+  const side = yardRaw<=50 ? 1 : 2;
+  return {side, yard};
+}
+
 // which equipment types benefit from an always-visible position hint
 function showsPositionRef(cat){
   return cat.icon==='speaker' || cat.icon==='sub' || cat.icon==='podium';

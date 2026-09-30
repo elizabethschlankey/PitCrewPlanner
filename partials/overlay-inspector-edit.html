@@ -50,6 +50,18 @@
           <div class="view-text" id="insp-placement-instructions"></div>
         </div>
         <div class="field-group">
+          <label>Set by Yard Line</label>
+          <div class="yard-set-row">
+            <select id="insp-yard-side">
+              <option value="1">Side 1</option>
+              <option value="2">Side 2</option>
+            </select>
+            <input type="number" id="insp-yard-num" min="0" max="50" step="1" inputmode="numeric" placeholder="Yard">
+            <button type="button" id="insp-yard-apply">Set</button>
+          </div>
+          <p class="hint" style="margin:0;">Only moves it left/right, to that exact yard line — front/back position (sideline/hash) is unchanged; drag on the field for that.</p>
+        </div>
+        <div class="field-group">
           <div class="mini-map-wrap">
             <svg id="edit-mini-map" xmlns="http://www.w3.org/2000/svg"></svg>
           </div>

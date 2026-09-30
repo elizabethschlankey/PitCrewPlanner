@@ -1,6 +1,6 @@
 <!-- GENERATED FILE. Do not edit directly -- edit index.template.html and partials/*.html, then run `node build.js`. -->
 <!doctype html>
-<html lang="en" data-app-version="2026-09-29h">
+<html lang="en" data-app-version="2026-09-30a">
 <head>
 <meta charset="UTF-8">
 <title>P.I.T - Field Crew Planner</title>
@@ -22,7 +22,7 @@
      400/500/600/700 throughout (body text through badge labels), so
      it keeps its full range. -->
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=2026-09-29h">
+<link rel="stylesheet" href="css/styles.css?v=2026-09-30a">
 </head>
 <body>
 <div class="app">
@@ -719,6 +719,18 @@
           <div class="view-text" id="insp-placement-instructions"></div>
         </div>
         <div class="field-group">
+          <label>Set by Yard Line</label>
+          <div class="yard-set-row">
+            <select id="insp-yard-side">
+              <option value="1">Side 1</option>
+              <option value="2">Side 2</option>
+            </select>
+            <input type="number" id="insp-yard-num" min="0" max="50" step="1" inputmode="numeric" placeholder="Yard">
+            <button type="button" id="insp-yard-apply">Set</button>
+          </div>
+          <p class="hint" style="margin:0;">Only moves it left/right, to that exact yard line — front/back position (sideline/hash) is unchanged; drag on the field for that.</p>
+        </div>
+        <div class="field-group">
           <div class="mini-map-wrap">
             <svg id="edit-mini-map" xmlns="http://www.w3.org/2000/svg"></svg>
           </div>
@@ -804,19 +816,19 @@
      anymore. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
 <script src="config.js"></script>
-<script src="js/supabase-client.js?v=2026-09-29h"></script>
-<script src="js/catalog.js?v=2026-09-29h"></script>
-<script src="js/state.js?v=2026-09-29h"></script>
-<script src="js/field.js?v=2026-09-29h"></script>
-<script src="js/render.js?v=2026-09-29h"></script>
-<script src="js/admin.js?v=2026-09-29h"></script>
-<script src="js/setup-wizard.js?v=2026-09-29h"></script>
-<script src="js/itinerary.js?v=2026-09-29h"></script>
-<script src="js/badges.js?v=2026-09-29h"></script>
-<script src="js/drag-drop.js?v=2026-09-29h"></script>
-<script src="js/inspector.js?v=2026-09-29h"></script>
-<script src="js/toolbar.js?v=2026-09-29h"></script>
-<script src="js/boot.js?v=2026-09-29h"></script>
-<script src="js/update-check.js?v=2026-09-29h"></script>
+<script src="js/supabase-client.js?v=2026-09-30a"></script>
+<script src="js/catalog.js?v=2026-09-30a"></script>
+<script src="js/state.js?v=2026-09-30a"></script>
+<script src="js/field.js?v=2026-09-30a"></script>
+<script src="js/render.js?v=2026-09-30a"></script>
+<script src="js/admin.js?v=2026-09-30a"></script>
+<script src="js/setup-wizard.js?v=2026-09-30a"></script>
+<script src="js/itinerary.js?v=2026-09-30a"></script>
+<script src="js/badges.js?v=2026-09-30a"></script>
+<script src="js/drag-drop.js?v=2026-09-30a"></script>
+<script src="js/inspector.js?v=2026-09-30a"></script>
+<script src="js/toolbar.js?v=2026-09-30a"></script>
+<script src="js/boot.js?v=2026-09-30a"></script>
+<script src="js/update-check.js?v=2026-09-30a"></script>
 </body>
 </html>

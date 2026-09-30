@@ -578,7 +578,11 @@
   .switch input:checked ~ .knob{transform:translateX(18px);}
   .field-group{display:flex;flex-direction:column;gap:6px;}
   .field-group label{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-lo);}
-  .field-group select, .field-group textarea, .field-group input[type="text"]{background:var(--ink);border:1px solid var(--panel-edge);border-radius:6px;color:#eceef2;padding:9px 10px;font-size:12.5px;font-family:'Inter',sans-serif;resize:vertical;}
+  .field-group select, .field-group textarea, .field-group input[type="text"], .field-group input[type="number"]{background:var(--ink);border:1px solid var(--panel-edge);border-radius:6px;color:#eceef2;padding:9px 10px;font-size:12.5px;font-family:'Inter',sans-serif;resize:vertical;}
+  .yard-set-row{display:flex;gap:8px;align-items:center;}
+  .yard-set-row select{flex:none;width:84px;}
+  .yard-set-row input[type="number"]{width:64px;flex:none;}
+  .yard-set-row button{flex:none;}
   .stepper{display:flex;align-items:center;gap:10px;}
   .stepper button{width:32px;height:32px;padding:0;font-size:16px;line-height:1;}
   .stepper .val{font-size:15px;font-weight:700;min-width:20px;text-align:center;}

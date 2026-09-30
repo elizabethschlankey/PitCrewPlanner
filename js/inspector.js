@@ -83,6 +83,9 @@ function openInspector(itemUid){
     document.getElementById('insp-student-group').style.display = isInstrumentItem(catalogFor(it.typeId)) ? 'flex' : 'none';
     resetInspEditTabs();
     document.getElementById('insp-placement-instructions').textContent = placementInstructions(it.xPct, it.yPct);
+    const curYard = xPctToYard(it.xPct);
+    document.getElementById('insp-yard-side').value = curYard.side;
+    document.getElementById('insp-yard-num').value = curYard.yard;
     renderMiniMap(it, 'edit-mini-map');
     initMediaPreview('setup', typeNotes.setupMediaUrl, typeNotes.setupMediaType);
     initMediaPreview('teardown', typeNotes.teardownMediaUrl, typeNotes.teardownMediaType);
@@ -410,6 +413,28 @@ async function applyMediaChange(section, itemUid, updatePayload){
 }
 
 document.getElementById('insp-cancel').addEventListener('click', closeInspector);
+// "Set by Yard Line" — an alternative to dragging for getting the
+// left/right position exact. Applies immediately (like a drag release
+// does), rather than waiting for the Save button below, which only
+// covers the Assignment/What to Do/Wrap It Up fields.
+document.getElementById('insp-yard-apply').addEventListener('click', async ()=>{
+  if(isFieldLocked()){ statusEl.textContent = 'Unlock Equipment/Instruments first.'; return; }
+  const itemUid = inspectorUid;
+  if(!itemUid) return;
+  const side = Number(document.getElementById('insp-yard-side').value);
+  let yard = Number(document.getElementById('insp-yard-num').value);
+  if(!Number.isFinite(yard)) return;
+  yard = Math.max(0, Math.min(50, Math.round(yard)));
+  document.getElementById('insp-yard-num').value = yard;
+  const xPct = yardToXPct(side, yard);
+  const ok = await db(sb.from(currentItemsCtx().table).update({x_pct: xPct}).eq('id', itemUid), 'set yard line');
+  if(!ok) return;
+  const it = currentItemsCtx().items.find(i=>i.uid===itemUid);
+  if(!it) return; // item (or the whole event) may be gone by the time this resolves
+  document.getElementById('insp-placement-instructions').textContent = placementInstructions(it.xPct, it.yPct);
+  document.getElementById('insp-pos').textContent = 'On field: ' + describePosition(it.xPct, it.yPct);
+  renderMiniMap(it, 'edit-mini-map');
+});
 document.getElementById('insp-save').addEventListener('click', async ()=>{
   const itemUid = inspectorUid;
   const it = currentItemsCtx().items.find(i=>i.uid===itemUid);

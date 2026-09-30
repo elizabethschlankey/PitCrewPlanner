@@ -106,26 +106,49 @@ function closeInspector(){ inspOverlay.style.display = 'none'; inspectorUid = nu
 // zoomed-in crop of the field, centered on an item, with a pulsing
 // marker at its exact spot — reuses the live field SVG's own content
 // (same document, so its var(--turf-a) etc. resolve normally) with a
-// different, tighter viewBox instead of the full 0..W 0..H one
-function renderMiniMap(it, targetId){
+// different, tighter viewBox instead of the full 0..W 0..H one.
+//
+// zoomedPitView: true for the volunteer-facing mini-map — always shown
+// with the same turf stretch "Zoom to Pit Box" uses (see
+// TURF_ZOOM_STRETCH on the main field), regardless of whatever the main
+// field's own zoom happens to be doing right now, since that stretched
+// view is the accurate-ratio one this app now treats as the "real"
+// picture of how the turf relates to the pit box. The printed yard-line
+// text elsewhere on this tab is unaffected either way — the item's true
+// yard line doesn't change just because the picture is stretched.
+// False (the default, used for edit-mini-map) keeps the plain,
+// unwarped field — the actual reference an editor drags against.
+function renderMiniMap(it, targetId, zoomedPitView){
   const miniMap = document.getElementById(targetId || 'view-mini-map');
-  const cx = (it.xPct/100)*W, cy = (it.yPct/100)*H;
-  const zoom = 260; // crop window size in field units — a close-up with just enough surrounding context
-  let vbX = cx - zoom/2, vbY = cy - zoom/2;
-  vbX = Math.max(-20, Math.min(vbX, W - zoom + 20));
-  vbY = Math.max(-20, Math.min(vbY, H - zoom + 20));
-  miniMap.setAttribute('viewBox', `${vbX} ${vbY} ${zoom} ${zoom}`);
+  // stretching the turf spreads its content out horizontally — widen the
+  // crop's x-extent to match (turf-zone items only) so it still covers
+  // roughly the same true-yard range around the item as usual, instead
+  // of shrinking to a sparse sliver once that range is stretched wider
+  const stretched = zoomedPitView && it.yPct < TURF_ZOOM_SPLIT_PCT;
+  const cx = (warpXPctIf(it.xPct, it.yPct, zoomedPitView)/100)*W, cy = (it.yPct/100)*H;
+  const zoomY = 260; // crop window size in field units — a close-up with just enough surrounding context
+  const zoomX = stretched ? zoomY*TURF_ZOOM_STRETCH : zoomY;
+  // the turf's own drawn content reaches much further left/right once
+  // stretched, so the usual +/-20 clamp (sized for the unstretched
+  // field) needs stretching right along with it, or it'd needlessly
+  // shove an off-center item's crop back toward the middle
+  const xLo = stretched ? turfWarpX(-20, TURF_ZOOM_STRETCH) : -20;
+  const xHi = stretched ? turfWarpX(W+20, TURF_ZOOM_STRETCH) - zoomX : W - zoomX + 20;
+  let vbX = cx - zoomX/2, vbY = cy - zoomY/2;
+  vbX = Math.max(xLo, Math.min(vbX, xHi));
+  vbY = Math.max(-20, Math.min(vbY, H - zoomY + 20));
+  miniMap.setAttribute('viewBox', `${vbX} ${vbY} ${zoomX} ${zoomY}`);
   // crosshair — a dotted line straight through the item's exact X (its
   // yard line) and Y (its front/back row), out to the edges of this
   // crop, so the yard markers/hash rows already drawn in that crop give
   // a volunteer a real frame of reference for where the two lines (and
   // so the item) actually fall, not just a number to take on faith.
-  // Always the real, unwarped field geometry (see unwarpedFieldSVG) —
-  // this shouldn't change just because the main field happens to be
-  // zoomed to the pit box (with its turf stretch) right now.
-  miniMap.innerHTML = unwarpedFieldSVG() + `
-    <line x1="${cx}" y1="${vbY}" x2="${cx}" y2="${vbY+zoom}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="5 5" opacity=".8"/>
-    <line x1="${vbX}" y1="${cy}" x2="${vbX+zoom}" y2="${cy}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="5 5" opacity=".8"/>
+  const fieldSVG = zoomedPitView
+    ? `<g id="turf-group">${turfGroupSVG(TURF_ZOOM_STRETCH)}</g>` + restFieldSVG()
+    : unwarpedFieldSVG();
+  miniMap.innerHTML = fieldSVG + `
+    <line x1="${cx}" y1="${vbY}" x2="${cx}" y2="${vbY+zoomY}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="5 5" opacity=".8"/>
+    <line x1="${vbX}" y1="${cy}" x2="${vbX+zoomX}" y2="${cy}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="5 5" opacity=".8"/>
     <circle cx="${cx}" cy="${cy}" r="10" fill="none" stroke="#ff5a3c" stroke-width="4" opacity=".85">
       <animate attributeName="r" values="9;20;9" dur="1.6s" repeatCount="indefinite"/>
       <animate attributeName="opacity" values=".85;0;.85" dur="1.6s" repeatCount="indefinite"/>
@@ -153,7 +176,7 @@ function renderViewMedia(videoElId, imgElId, url, type){
 function renderInspectorViewOnly(it){
   resetInspViewTabs();
   document.getElementById('view-placement-instructions').textContent = placementInstructions(it.xPct, it.yPct);
-  renderMiniMap(it);
+  renderMiniMap(it, null, true);
   const typeNotes = typeNotesFor(it);
   const teardownEl = document.getElementById('view-teardown');
   if(typeNotes.teardownNotes){

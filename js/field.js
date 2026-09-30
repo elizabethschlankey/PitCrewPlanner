@@ -62,13 +62,20 @@ function isInPitBox(svgX, svgY){
 function turfWarpX(svgX, stretch){
   return W/2 + (svgX - W/2)*stretch;
 }
-// true (stored) xPct -> the xPct actually displayed on screen right
-// now, applying the turf stretch when it's active and this point is on
-// the turf (above the pit box) rather than in/below it
-function warpXPctForZoom(xPct, yPct){
-  if(!pitZoomWarpActive || yPct >= TURF_ZOOM_SPLIT_PCT) return xPct;
+// true (stored) xPct -> the warped xPct, applying the turf stretch when
+// `warped` is true and this point is on the turf (above the pit box)
+// rather than in/below it. Shared by warpXPctForZoom (tied to the live
+// zoom state) and the volunteer-facing mini-map (always warped, see
+// renderMiniMap), so both use the exact same math.
+function warpXPctIf(xPct, yPct, warped){
+  if(!warped || yPct >= TURF_ZOOM_SPLIT_PCT) return xPct;
   const svgX = (xPct/100)*W;
   return (turfWarpX(svgX, TURF_ZOOM_STRETCH)/W)*100;
+}
+// true (stored) xPct -> the xPct actually displayed on the main field
+// right now, i.e. warpXPctIf tied to the live zoom state
+function warpXPctForZoom(xPct, yPct){
+  return warpXPctIf(xPct, yPct, pitZoomWarpActive);
 }
 // inverse of the above — an on-screen xPct (e.g. read from a raw
 // pointer position) -> the true xPct to store

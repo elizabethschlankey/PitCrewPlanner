@@ -86,6 +86,8 @@ document.getElementById('btn-export').addEventListener('click', ()=>{
     if(pitZoomWarpActive){
       const turfGrp = svgClone.querySelector('#turf-group');
       if(turfGrp) turfGrp.innerHTML = turfGroupSVG(1);
+      const sideGrp = svgClone.querySelector('#sideline-group');
+      if(sideGrp) sideGrp.innerHTML = sidelineGroupSVG(1);
     }
     const styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
     styleEl.textContent = ':root{--turf-a:#3f7a3a;--turf-b:#457f41;--line:#f4f4ec;--line-dim:rgba(244,244,236,.35);--track:#8a3b23;--track-line:#c96a3f;--gold:#e0b13c;}';

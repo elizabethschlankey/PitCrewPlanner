@@ -9,7 +9,7 @@ const svg = document.getElementById('field');
 // itself (which would force every already-placed pit item to be
 // rescaled/migrated to fit), PIT_BOX_TRUE_YARDS below drives: a
 // true-to-scale marker drawn ON the turf at the real 40-60 yard lines,
-// a matching inset drawn inside the working pit box (see restFieldSVG),
+// a matching inset drawn inside the working pit box (see pitBoxSVG),
 // and — while "Zoom to Pit Box" is active — an actual horizontal
 // stretch of everything EXCEPT the pit box (see TURF_ZOOM_STRETCH) so
 // that marker lines up edge-to-edge with the pit box below it, and
@@ -32,7 +32,7 @@ const hashY1 = fieldTop + (fieldBottom-fieldTop)*0.34;
 const hashY2 = fieldTop + (fieldBottom-fieldTop)*0.66;
 
 // The true 40-to-60 yard band, in field units — shared by the static
-// markers (restFieldSVG/turfGroupSVG) and the turf stretch below.
+// markers (pitBoxSVG/turfGroupSVG) and the turf stretch below.
 const trueBoxHalfYards = PIT_BOX_TRUE_YARDS/2;
 const trueBoxX1 = fieldLeft + ((50-trueBoxHalfYards)/100)*(fieldRight-fieldLeft);
 const trueBoxX2 = fieldLeft + ((50+trueBoxHalfYards)/100)*(fieldRight-fieldLeft);
@@ -131,7 +131,7 @@ function turfGroupSVG(stretch){
   // sense of scale at a glance without moving/resizing any real item.
   // Once stretched (stretch===TURF_ZOOM_STRETCH), this rect's on-screen
   // width becomes exactly pitW — lining up edge-to-edge with the pit
-  // box drawn in restFieldSVG below.
+  // box drawn in pitBoxSVG below.
   s += `<rect x="${wx(trueBoxX1)}" y="${fieldTop}" width="${ww(trueBoxX2-trueBoxX1)}" height="${fieldBottom-fieldTop}" fill="var(--gold)" opacity=".1"/>`;
   s += `<line x1="${wx(trueBoxX1)}" y1="${fieldTop}" x2="${wx(trueBoxX1)}" y2="${fieldBottom}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="6 4" opacity=".85"/>`;
   s += `<line x1="${wx(trueBoxX2)}" y1="${fieldTop}" x2="${wx(trueBoxX2)}" y2="${fieldBottom}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="6 4" opacity=".85"/>`;
@@ -160,9 +160,10 @@ function turfGroupSVG(stretch){
   return s;
 }
 
-// Everything from the pit box down through the track — always drawn at
-// its normal, unwarped scale regardless of the turf stretch above.
-function restFieldSVG(){
+// The pit box itself — always drawn at its normal, fixed position and
+// size, regardless of the turf/sideline stretch around it. This is the
+// one thing TURF_ZOOM_STRETCH deliberately never touches.
+function pitBoxSVG(){
   let s = '';
   s += `<rect x="${pitX-3}" y="${pitY-3}" width="${pitW+6}" height="${pitH+6}" fill="#0e1116"/>`;
   s += `<rect id="pit-box-rect" x="${pitX}" y="${pitY}" width="${pitW}" height="${pitH}" fill="#f4f1e8" stroke="#0e1116" stroke-width="4"/>`;
@@ -177,37 +178,59 @@ function restFieldSVG(){
   s += `<line x1="${pitInsetX1}" y1="${pitY}" x2="${pitInsetX1}" y2="${pitY+pitH}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="6 4" opacity=".85"/>`;
   s += `<line x1="${pitInsetX2}" y1="${pitY}" x2="${pitInsetX2}" y2="${pitY+pitH}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="6 4" opacity=".85"/>`;
   s += `<text x="${pitX+pitW/2}" y="${pitY-8}" text-anchor="middle" font-family="Oswald" font-size="11" font-weight="700" fill="var(--gold)" opacity=".9" letter-spacing="1">TRUE 20-YD WIDTH</text>`;
-  // the painted blue restraining line most HS fields have between the
-  // team/pit box and the track — speakers' back wheels typically line up
-  // on it, so it's a real placement reference, not just decoration
-  s += `<line x1="0" y1="${pitY+pitH+pitGap}" x2="${W}" y2="${pitY+pitH+pitGap}" stroke="#2f6fed" stroke-width="2"/>`;
-  s += `<rect x="0" y="${trackY}" width="${W}" height="${trackH}" fill="var(--track)"/>`;
-  for(let i=0;i<40;i++){
-    s += `<rect x="${i*(W/40)}" y="${trackY}" width="${(W/40)*0.55}" height="${trackH}" fill="var(--track-line)" opacity=".55"/>`;
-  }
-  s += `<text x="18" y="${trackY+28}" font-family="Oswald" font-size="14" font-weight="600" fill="#fff" opacity=".85">SIDELINE</text>`;
   return s;
 }
 
-// The full field at its normal, unwarped scale — used for the initial
-// render and anywhere (e.g. the inspector's mini-map) that needs the
-// real geometry regardless of whatever the main field's zoom is doing
-// right now.
+// The blue restraining line + track/sideline band beneath the pit box —
+// stretched the same way the turf above is (see turfGroupSVG), so it
+// still reaches all the way to each end of the field once zoomed in
+// instead of stopping short while the turf above keeps going. A
+// vertical cap at each end, lined up with the turf's own end line,
+// closes the strip off top-to-bottom — the real end of the field —
+// instead of just trailing into nothing.
+function sidelineGroupSVG(stretch){
+  const wx = x => turfWarpX(x, stretch);
+  const ww = w => w*stretch;
+  let s = '';
+  s += `<line x1="${wx(0)}" y1="${pitY+pitH+pitGap}" x2="${wx(W)}" y2="${pitY+pitH+pitGap}" stroke="#2f6fed" stroke-width="2"/>`;
+  s += `<rect x="${wx(0)}" y="${trackY}" width="${ww(W)}" height="${trackH}" fill="var(--track)"/>`;
+  for(let i=0;i<40;i++){
+    const x = i*(W/40);
+    s += `<rect x="${wx(x)}" y="${trackY}" width="${ww((W/40)*0.55)}" height="${trackH}" fill="var(--track-line)" opacity=".55"/>`;
+  }
+  s += `<text x="${wx(18)}" y="${trackY+28}" font-family="Oswald" font-size="14" font-weight="600" fill="#fff" opacity=".85">SIDELINE</text>`;
+  [fieldLeft, fieldRight].forEach(x=>{
+    s += `<line x1="${wx(x)}" y1="${fieldBottom}" x2="${wx(x)}" y2="${trackY+trackH}" stroke="var(--line)" stroke-width="2.5" opacity=".8"/>`;
+  });
+  return s;
+}
+
+// The full field at the given horizontal stretch — 1 for the normal,
+// unwarped view; TURF_ZOOM_STRETCH for the pit-box-zoomed one. Shared
+// by the initial render, setTurfZoomWarp below, and anywhere else (the
+// inspector's mini-map, PNG export) that needs one or the other on
+// demand regardless of what the main field's own zoom is doing.
+function warpedFieldSVG(stretch){
+  return `<g id="turf-group">${turfGroupSVG(stretch)}</g>` + pitBoxSVG() + `<g id="sideline-group">${sidelineGroupSVG(stretch)}</g>`;
+}
 function unwarpedFieldSVG(){
-  return `<g id="turf-group">${turfGroupSVG(1)}</g>` + restFieldSVG();
+  return warpedFieldSVG(1);
 }
 
 (function drawField(){
   svg.innerHTML = unwarpedFieldSVG();
 })();
 
-// Turns the turf-only stretch on/off — regenerates just the turf-group
-// portion of the SVG in place (the pit box and everything below it is
-// never touched). Called by zoomToPit()/zoomReset() below.
+// Turns the turf/sideline stretch on/off — regenerates just the
+// turf-group and sideline-group portions of the SVG in place (the pit
+// box itself is never touched). Called by zoomToPit()/zoomReset() below.
 function setTurfZoomWarp(active){
   pitZoomWarpActive = active;
-  const grp = document.getElementById('turf-group');
-  if(grp) grp.innerHTML = turfGroupSVG(active ? TURF_ZOOM_STRETCH : 1);
+  const stretch = active ? TURF_ZOOM_STRETCH : 1;
+  const turfGrp = document.getElementById('turf-group');
+  if(turfGrp) turfGrp.innerHTML = turfGroupSVG(stretch);
+  const sideGrp = document.getElementById('sideline-group');
+  if(sideGrp) sideGrp.innerHTML = sidelineGroupSVG(stretch);
 }
 
 function describePosition(xPct, yPct){

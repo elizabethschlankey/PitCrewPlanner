@@ -144,9 +144,7 @@ function renderMiniMap(it, targetId, zoomedPitView){
   // crop, so the yard markers/hash rows already drawn in that crop give
   // a volunteer a real frame of reference for where the two lines (and
   // so the item) actually fall, not just a number to take on faith.
-  const fieldSVG = zoomedPitView
-    ? `<g id="turf-group">${turfGroupSVG(TURF_ZOOM_STRETCH)}</g>` + restFieldSVG()
-    : unwarpedFieldSVG();
+  const fieldSVG = zoomedPitView ? warpedFieldSVG(TURF_ZOOM_STRETCH) : unwarpedFieldSVG();
   miniMap.innerHTML = fieldSVG + `
     <line x1="${cx}" y1="${vbY}" x2="${cx}" y2="${vbY+zoomY}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="5 5" opacity=".8"/>
     <line x1="${vbX}" y1="${cy}" x2="${vbX+zoomX}" y2="${cy}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="5 5" opacity=".8"/>

@@ -624,6 +624,46 @@ function endPinchPointer(e){
 fieldViewport.addEventListener('pointerup', endPinchPointer, {capture:true});
 fieldViewport.addEventListener('pointercancel', endPinchPointer, {capture:true});
 
+/* ---------------------------------------------------------------
+   DRAG TO PAN — once zoomed in, the turf stretch (TURF_ZOOM_STRETCH)
+   pushes most of the field well outside the crop — dragging on empty
+   field space (not an item, not a button) pans the view so the rest of
+   the field, all the way to either end, stays reachable instead of
+   effectively cut off. Mouse and touch both work; a touch that gains a
+   second finger hands off to pinch-to-zoom instead, the same way an
+   item-drag does — see activeItemInteraction, shared with that.
+---------------------------------------------------------------- */
+fieldViewport.addEventListener('pointerdown', e=>{
+  if(!isZoomed || pinchActive || activeItemInteraction) return;
+  if(e.target.closest('.placed, [data-jump-to], button')) return;
+  const startX = e.clientX, startY = e.clientY;
+  const startTx = curTx, startTy = curTy;
+  let done = false;
+  fieldWrap.classList.add('panning');
+  fieldViewport.classList.add('pan-active');
+  function onMove(ev){
+    if(ev.pointerId!==e.pointerId || done) return;
+    curTx = startTx + (ev.clientX-startX);
+    curTy = startTy + (ev.clientY-startY);
+    applyFieldTransform();
+  }
+  function cleanup(){
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    document.removeEventListener('pointercancel', onCancel);
+    fieldWrap.classList.remove('panning');
+    fieldViewport.classList.remove('pan-active');
+    if(activeItemInteraction && activeItemInteraction.cancel===cancelPan) activeItemInteraction = null;
+  }
+  function onUp(ev){ if(ev.pointerId!==e.pointerId || done) return; done = true; cleanup(); }
+  function onCancel(ev){ if(ev.pointerId!==e.pointerId) return; done = true; cleanup(); }
+  function cancelPan(){ if(done) return; done = true; cleanup(); }
+  activeItemInteraction = {cancel: cancelPan};
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup', onUp);
+  document.addEventListener('pointercancel', onCancel);
+});
+
 // labels on/off — a per-viewer display preference (not shared app state),
 // handy on a crowded mobile screen since the Needs a Hand panel already
 // lists every assignment in full

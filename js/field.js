@@ -2,6 +2,16 @@
    SVG FIELD (identical geometry to the Artifact version)
 ---------------------------------------------------------------- */
 const svg = document.getElementById('field');
+// A real pit box is only about 20 yards wide (the 40 to the 60) — this
+// field draws it much wider (pitW below) so there's actually enough
+// room to drag equipment in and read it, the same reason a subway map
+// isn't drawn to true geographic scale. Rather than resize the box
+// itself (which would force every already-placed pit item to be
+// rescaled/migrated to fit), PIT_BOX_TRUE_YARDS below drives a separate
+// true-to-scale marker drawn ON the turf at the real 40-60 yard lines
+// (see drawField) — an accurate-ratio reference that sits alongside
+// the wider, easier-to-use working box, instead of replacing it.
+const PIT_BOX_TRUE_YARDS = 20; // the 40 to the 60
 const W = 1200, H = 620;
 const fieldTop = 60, fieldBottom = 396, fieldLeft = 30, fieldRight = W-30;
 const pitW = 640, pitH = 92;
@@ -12,6 +22,13 @@ const pitGap = 16;
 const trackY = pitY + pitH + pitGap*2, trackH = 46;
 const hashY1 = fieldTop + (fieldBottom-fieldTop)*0.34;
 const hashY2 = fieldTop + (fieldBottom-fieldTop)*0.66;
+// shared "is this SVG point inside the (working, oversized) pit box"
+// check, with a little slack — describePosition/describePositionShort/
+// placementInstructions below all classify a point the same way, just
+// word the result differently
+function isInPitBox(svgX, svgY){
+  return svgY > pitY - 6 && svgY < pitY+pitH+8 && svgX >= pitX-10 && svgX <= pitX+pitW+10;
+}
 
 (function drawField(){
   let s = '';
@@ -34,6 +51,19 @@ const hashY2 = fieldTop + (fieldBottom-fieldTop)*0.66;
     s += `<line x1="${fieldLeft}" y1="${yy}" x2="${fieldRight}" y2="${yy}" stroke="var(--line-dim)" stroke-width="${idx===0||idx===3?2:1}"/>`;
   });
   s += `<line x1="${fieldLeft + (fieldRight-fieldLeft)/2}" y1="${fieldTop}" x2="${fieldLeft + (fieldRight-fieldLeft)/2}" y2="${fieldBottom}" stroke="var(--gold)" stroke-width="1.4" stroke-dasharray="2 6" opacity=".7"/>`;
+  // TRUE-SCALE pit box footprint — a real box is only ~20 yards wide
+  // (the 40 to the 60); this is just a proportion reference drawn right
+  // on the turf at those actual yard lines, separate from the wider
+  // working pit-box graphic below the field where equipment actually
+  // gets placed (see PIT_BOX_TRUE_YARDS above) — so there's an accurate
+  // sense of scale at a glance without moving/resizing any real item.
+  const trueBoxHalfYards = PIT_BOX_TRUE_YARDS/2;
+  const trueBoxX1 = fieldLeft + ((50-trueBoxHalfYards)/100)*(fieldRight-fieldLeft);
+  const trueBoxX2 = fieldLeft + ((50+trueBoxHalfYards)/100)*(fieldRight-fieldLeft);
+  s += `<rect x="${trueBoxX1}" y="${fieldTop}" width="${trueBoxX2-trueBoxX1}" height="${fieldBottom-fieldTop}" fill="var(--gold)" opacity=".1"/>`;
+  s += `<line x1="${trueBoxX1}" y1="${fieldTop}" x2="${trueBoxX1}" y2="${fieldBottom}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="6 4" opacity=".85"/>`;
+  s += `<line x1="${trueBoxX2}" y1="${fieldTop}" x2="${trueBoxX2}" y2="${fieldBottom}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="6 4" opacity=".85"/>`;
+  s += `<text x="${(trueBoxX1+trueBoxX2)/2}" y="${fieldTop-10}" text-anchor="middle" font-family="Oswald" font-size="11" font-weight="700" fill="var(--gold)" opacity=".9" letter-spacing="1">ACTUAL PIT BOX WIDTH</text>`;
   s += `<rect x="${fieldLeft}" y="${fieldTop}" width="${fieldRight-fieldLeft}" height="${fieldBottom-fieldTop}" fill="none" stroke="var(--line)" stroke-width="2.5"/>`;
   // left half / right half labels — for splitting equipment or crew by wing.
   // Big, centered watermark-style text in the middle of each half.
@@ -72,7 +102,7 @@ const hashY2 = fieldTop + (fieldBottom-fieldTop)*0.66;
 
 function describePosition(xPct, yPct){
   const svgX = (xPct/100)*W, svgY = (yPct/100)*H;
-  if(svgY > pitY - 6 && svgY < pitY+pitH+8 && svgX>=pitX-10 && svgX<=pitX+pitW+10) return 'Pit Box';
+  if(isInPitBox(svgX, svgY)) return 'Pit Box';
   if(svgY >= trackY-6) return 'Sideline / Staging';
   if(svgY < fieldTop-10) return 'Behind Back End Line';
   if(svgY > fieldBottom+10) return 'Behind Front End Line';
@@ -99,7 +129,7 @@ function describePosition(xPct, yPct){
 const ROW_ABBR = {'Front Sideline':'Fr SL','Front Hash':'Fr Hash','Back Hash':'Bk Hash','Back Sideline':'Bk SL'};
 function describePositionShort(xPct, yPct){
   const svgX = (xPct/100)*W, svgY = (yPct/100)*H;
-  if(svgY > pitY - 6 && svgY < pitY+pitH+8 && svgX>=pitX-10 && svgX<=pitX+pitW+10) return 'Pit Box';
+  if(isInPitBox(svgX, svgY)) return 'Pit Box';
   if(svgY >= trackY-6) return 'Sideline';
   if(svgY < fieldTop-10) return 'Beh. Back Line';
   if(svgY > fieldBottom+10) return 'Beh. Front Line';
@@ -121,7 +151,7 @@ function describePositionShort(xPct, yPct){
 // (see renderMiniMap in inspector.js), which mark the same spot visually.
 function placementInstructions(xPct, yPct){
   const svgX = (xPct/100)*W, svgY = (yPct/100)*H;
-  if(svgY > pitY - 6 && svgY < pitY+pitH+8 && svgX>=pitX-10 && svgX<=pitX+pitW+10) return 'Inside the Pit Box.';
+  if(isInPitBox(svgX, svgY)) return 'Inside the Pit Box.';
   if(svgY >= trackY-6) return 'On the sideline / staging area.';
   if(svgY < fieldTop-10) return 'Behind the back end line.';
   if(svgY > fieldBottom+10) return 'Behind the front end line.';

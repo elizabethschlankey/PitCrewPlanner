@@ -79,6 +79,14 @@ document.getElementById('btn-export').addEventListener('click', ()=>{
     // access to the page's CSS, so those variables silently fail — bake
     // the real colors into a cloned copy before serializing it out.
     const svgClone = svg.cloneNode(true);
+    // the export is always the full, true-scale field (see the rect
+    // comment above) — if the turf's currently stretched for "Zoom to
+    // Pit Box" (see pitZoomWarpActive), undo that in the clone only, so
+    // the live view isn't affected
+    if(pitZoomWarpActive){
+      const turfGrp = svgClone.querySelector('#turf-group');
+      if(turfGrp) turfGrp.innerHTML = turfGroupSVG(1);
+    }
     const styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
     styleEl.textContent = ':root{--turf-a:#3f7a3a;--turf-b:#457f41;--line:#f4f4ec;--line-dim:rgba(244,244,236,.35);--track:#8a3b23;--track-line:#c96a3f;--gold:#e0b13c;}';
     svgClone.insertBefore(styleEl, svgClone.firstChild);

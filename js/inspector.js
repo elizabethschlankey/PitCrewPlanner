@@ -116,8 +116,11 @@ function renderMiniMap(it, targetId){
   // yard line) and Y (its front/back row), out to the edges of this
   // crop, so the yard markers/hash rows already drawn in that crop give
   // a volunteer a real frame of reference for where the two lines (and
-  // so the item) actually fall, not just a number to take on faith
-  miniMap.innerHTML = svg.innerHTML + `
+  // so the item) actually fall, not just a number to take on faith.
+  // Always the real, unwarped field geometry (see unwarpedFieldSVG) —
+  // this shouldn't change just because the main field happens to be
+  // zoomed to the pit box (with its turf stretch) right now.
+  miniMap.innerHTML = unwarpedFieldSVG() + `
     <line x1="${cx}" y1="${vbY}" x2="${cx}" y2="${vbY+zoom}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="5 5" opacity=".8"/>
     <line x1="${vbX}" y1="${cy}" x2="${vbX+zoom}" y2="${cy}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="5 5" opacity=".8"/>
     <circle cx="${cx}" cy="${cy}" r="10" fill="none" stroke="#ff5a3c" stroke-width="4" opacity=".85">

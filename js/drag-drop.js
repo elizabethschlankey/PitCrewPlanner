@@ -68,9 +68,13 @@ function startPaletteDrag(typeId, label, clientX, clientY){
     if(e.clientX>=rect.left && e.clientX<=rect.right && e.clientY>=rect.top && e.clientY<=rect.bottom){
       const xPct = ((e.clientX-rect.left)/rect.width)*100;
       const yPct = ((e.clientY-rect.top)/rect.height)*100;
+      // xPct/yPct above are the on-screen (possibly turf-stretched, see
+      // warpXPctForZoom) position — convert back to the true position
+      // before saving it
+      const trueXPct = unwarpXPctForZoom(xPct, yPct);
       const ctx = currentItemsCtx();
       db(sb.from(ctx.table).insert({
-        [ctx.fk]: ctx.ownerId, type_id: typeId, label, x_pct: xPct, y_pct: yPct
+        [ctx.fk]: ctx.ownerId, type_id: typeId, label, x_pct: trueXPct, y_pct: yPct
       }), 'add item');
     }
   }
@@ -187,7 +191,11 @@ dropLayer.addEventListener('pointerdown', e=>{
     done = true;
     cleanup();
     if(editable && moved){
-      db(sb.from(currentItemsCtx().table).update({x_pct:lastX, y_pct:lastY}).eq('id', itemUid), 'move item');
+      // lastX/lastY are the on-screen (possibly turf-stretched, see
+      // warpXPctForZoom) position the chip was dropped at — convert
+      // back to the true position before saving it
+      const trueXPct = unwarpXPctForZoom(lastX, lastY);
+      db(sb.from(currentItemsCtx().table).update({x_pct:trueXPct, y_pct:lastY}).eq('id', itemUid), 'move item');
     }else if(!isTouch && !moved){
       openInspector(itemUid); // mouse/pen click — instant, no hold needed
     }

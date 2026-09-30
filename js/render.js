@@ -164,7 +164,7 @@ function renderField(){
     const el = document.createElement('div');
     el.className = 'placed' + (it.needsHelp ? ' needs-help' : '');
     if(it.needsHelp) el.dataset.category = categoryForType(it.typeId);
-    el.style.left = it.xPct+'%';
+    el.style.left = warpXPctForZoom(it.xPct, it.yPct)+'%';
     el.style.top = it.yPct+'%';
     el.style.transform = 'translate(-50%,-50%) scale(var(--chip-scale))';
     el.dataset.uid = it.uid;

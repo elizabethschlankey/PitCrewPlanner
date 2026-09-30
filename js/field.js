@@ -7,10 +7,14 @@ const svg = document.getElementById('field');
 // room to drag equipment in and read it, the same reason a subway map
 // isn't drawn to true geographic scale. Rather than resize the box
 // itself (which would force every already-placed pit item to be
-// rescaled/migrated to fit), PIT_BOX_TRUE_YARDS below drives a separate
-// true-to-scale marker drawn ON the turf at the real 40-60 yard lines
-// (see drawField) — an accurate-ratio reference that sits alongside
-// the wider, easier-to-use working box, instead of replacing it.
+// rescaled/migrated to fit), PIT_BOX_TRUE_YARDS below drives: a
+// true-to-scale marker drawn ON the turf at the real 40-60 yard lines,
+// a matching inset drawn inside the working pit box (see restFieldSVG),
+// and — while "Zoom to Pit Box" is active — an actual horizontal
+// stretch of just the turf (see TURF_ZOOM_STRETCH) so that marker lines
+// up edge-to-edge with the pit box below it. None of this ever touches
+// the pit box's own size, anything placed inside it, or any stored
+// item position.
 const PIT_BOX_TRUE_YARDS = 20; // the 40 to the 60
 const W = 1200, H = 620;
 const fieldTop = 60, fieldBottom = 396, fieldLeft = 30, fieldRight = W-30;
@@ -22,76 +26,139 @@ const pitGap = 16;
 const trackY = pitY + pitH + pitGap*2, trackH = 46;
 const hashY1 = fieldTop + (fieldBottom-fieldTop)*0.34;
 const hashY2 = fieldTop + (fieldBottom-fieldTop)*0.66;
+
+// The true 40-to-60 yard band, in field units — shared by the static
+// markers (restFieldSVG/turfGroupSVG) and the turf stretch below.
+const trueBoxHalfYards = PIT_BOX_TRUE_YARDS/2;
+const trueBoxX1 = fieldLeft + ((50-trueBoxHalfYards)/100)*(fieldRight-fieldLeft);
+const trueBoxX2 = fieldLeft + ((50+trueBoxHalfYards)/100)*(fieldRight-fieldLeft);
+const TRUE_BAND_WIDTH_UNITS = trueBoxX2 - trueBoxX1;
+
+// Turf-only horizontal stretch, switched on for the duration of "Zoom
+// to Pit Box" (see setTurfZoomWarp, zoomToPit/zoomReset below) — scaled
+// so the true band above is exactly pitW wide once stretched, matching
+// the pit box below it pixel-for-pixel. Only x-coordinates above
+// TURF_ZOOM_SPLIT_Y (the turf) are ever affected; the pit box and
+// everything at or below it always render at their normal, unwarped
+// scale, and the normal (non-zoomed) view never changes at all.
+const TURF_ZOOM_STRETCH = pitW / TRUE_BAND_WIDTH_UNITS;
+const TURF_ZOOM_SPLIT_Y = pitY - 3; // top edge of the pit box's background rect, see restFieldSVG
+const TURF_ZOOM_SPLIT_PCT = (TURF_ZOOM_SPLIT_Y/H)*100;
+let pitZoomWarpActive = false; // true only between zoomToPit() and zoomReset()
+
 // shared "is this SVG point inside the (working, oversized) pit box"
 // check, with a little slack — describePosition/describePositionShort/
 // placementInstructions below all classify a point the same way, just
-// word the result differently
+// word the result differently. Always uses the TRUE (unwarped)
+// coordinates — item classification never changes just because the
+// view happens to be zoomed in right now.
 function isInPitBox(svgX, svgY){
   return svgY > pitY - 6 && svgY < pitY+pitH+8 && svgX >= pitX-10 && svgX <= pitX+pitW+10;
 }
 
-(function drawField(){
+// stretches an svg x-coordinate horizontally around the field's
+// midline (which is also the pit box's own midline, so both stay
+// centered on each other at any stretch factor)
+function turfWarpX(svgX, stretch){
+  return W/2 + (svgX - W/2)*stretch;
+}
+// true (stored) xPct -> the xPct actually displayed on screen right
+// now, applying the turf stretch when it's active and this point is on
+// the turf (above the pit box) rather than in/below it
+function warpXPctForZoom(xPct, yPct){
+  if(!pitZoomWarpActive || yPct >= TURF_ZOOM_SPLIT_PCT) return xPct;
+  const svgX = (xPct/100)*W;
+  return (turfWarpX(svgX, TURF_ZOOM_STRETCH)/W)*100;
+}
+// inverse of the above — an on-screen xPct (e.g. read from a raw
+// pointer position) -> the true xPct to store
+function unwarpXPctForZoom(xPct, yPct){
+  if(!pitZoomWarpActive || yPct >= TURF_ZOOM_SPLIT_PCT) return xPct;
+  const svgX = (xPct/100)*W;
+  const trueSvgX = W/2 + (svgX - W/2)/TURF_ZOOM_STRETCH;
+  return (trueSvgX/W)*100;
+}
+
+// Everything from the turf checkerboard through the center-field logo —
+// i.e. everything ABOVE the pit box. Parameterized by a horizontal
+// stretch factor: 1 for the normal view, TURF_ZOOM_STRETCH while zoomed
+// to the pit box (see setTurfZoomWarp) — regenerated in place on that
+// toggle, rather than baked in once, so the normal view is never
+// affected by it.
+function turfGroupSVG(stretch){
+  const wx = x => turfWarpX(x, stretch);
+  const ww = w => w*stretch;
   let s = '';
   for(let i=0;i<20;i++){
     const x = fieldLeft + (i*(fieldRight-fieldLeft)/20);
-    s += `<rect x="${x}" y="${fieldTop}" width="${(fieldRight-fieldLeft)/20}" height="${fieldBottom-fieldTop}" fill="${i%2===0?'var(--turf-a)':'var(--turf-b)'}"/>`;
+    s += `<rect x="${wx(x)}" y="${fieldTop}" width="${ww((fieldRight-fieldLeft)/20)}" height="${fieldBottom-fieldTop}" fill="${i%2===0?'var(--turf-a)':'var(--turf-b)'}"/>`;
   }
   const yards = 100;
   for(let y=0;y<=yards;y+=5){
     const x = fieldLeft + (y/yards)*(fieldRight-fieldLeft);
     const major = (y%10===0);
-    s += `<line x1="${x}" y1="${fieldTop}" x2="${x}" y2="${fieldBottom}" stroke="${major?'var(--line)':'var(--line-dim)'}" stroke-width="${major?1.6:1}"/>`;
+    s += `<line x1="${wx(x)}" y1="${fieldTop}" x2="${wx(x)}" y2="${fieldBottom}" stroke="${major?'var(--line)':'var(--line-dim)'}" stroke-width="${major?1.6:1}"/>`;
     if(major){
       const label = y<=50 ? y : 100-y;
-      s += `<text x="${x}" y="${fieldTop+26}" text-anchor="middle" font-family="Oswald" font-size="16" font-weight="600" fill="var(--line)" stroke="#204a1d" stroke-width="3" paint-order="stroke">${label===0?'0':label}</text>`;
-      s += `<text x="${x}" y="${fieldBottom-12}" text-anchor="middle" font-family="Oswald" font-size="16" font-weight="600" fill="var(--line)" stroke="#204a1d" stroke-width="3" paint-order="stroke">${label===0?'0':label}</text>`;
+      s += `<text x="${wx(x)}" y="${fieldTop+26}" text-anchor="middle" font-family="Oswald" font-size="16" font-weight="600" fill="var(--line)" stroke="#204a1d" stroke-width="3" paint-order="stroke">${label===0?'0':label}</text>`;
+      s += `<text x="${wx(x)}" y="${fieldBottom-12}" text-anchor="middle" font-family="Oswald" font-size="16" font-weight="600" fill="var(--line)" stroke="#204a1d" stroke-width="3" paint-order="stroke">${label===0?'0':label}</text>`;
     }
   }
   [fieldTop, hashY1, hashY2, fieldBottom].forEach((yy,idx)=>{
-    s += `<line x1="${fieldLeft}" y1="${yy}" x2="${fieldRight}" y2="${yy}" stroke="var(--line-dim)" stroke-width="${idx===0||idx===3?2:1}"/>`;
+    s += `<line x1="${wx(fieldLeft)}" y1="${yy}" x2="${wx(fieldRight)}" y2="${yy}" stroke="var(--line-dim)" stroke-width="${idx===0||idx===3?2:1}"/>`;
   });
-  s += `<line x1="${fieldLeft + (fieldRight-fieldLeft)/2}" y1="${fieldTop}" x2="${fieldLeft + (fieldRight-fieldLeft)/2}" y2="${fieldBottom}" stroke="var(--gold)" stroke-width="1.4" stroke-dasharray="2 6" opacity=".7"/>`;
+  s += `<line x1="${wx(fieldLeft + (fieldRight-fieldLeft)/2)}" y1="${fieldTop}" x2="${wx(fieldLeft + (fieldRight-fieldLeft)/2)}" y2="${fieldBottom}" stroke="var(--gold)" stroke-width="1.4" stroke-dasharray="2 6" opacity=".7"/>`;
   // TRUE-SCALE pit box footprint — a real box is only ~20 yards wide
   // (the 40 to the 60); this is just a proportion reference drawn right
   // on the turf at those actual yard lines, separate from the wider
   // working pit-box graphic below the field where equipment actually
   // gets placed (see PIT_BOX_TRUE_YARDS above) — so there's an accurate
   // sense of scale at a glance without moving/resizing any real item.
-  const trueBoxHalfYards = PIT_BOX_TRUE_YARDS/2;
-  const trueBoxX1 = fieldLeft + ((50-trueBoxHalfYards)/100)*(fieldRight-fieldLeft);
-  const trueBoxX2 = fieldLeft + ((50+trueBoxHalfYards)/100)*(fieldRight-fieldLeft);
-  s += `<rect x="${trueBoxX1}" y="${fieldTop}" width="${trueBoxX2-trueBoxX1}" height="${fieldBottom-fieldTop}" fill="var(--gold)" opacity=".1"/>`;
-  s += `<line x1="${trueBoxX1}" y1="${fieldTop}" x2="${trueBoxX1}" y2="${fieldBottom}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="6 4" opacity=".85"/>`;
-  s += `<line x1="${trueBoxX2}" y1="${fieldTop}" x2="${trueBoxX2}" y2="${fieldBottom}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="6 4" opacity=".85"/>`;
-  s += `<text x="${(trueBoxX1+trueBoxX2)/2}" y="${fieldTop-10}" text-anchor="middle" font-family="Oswald" font-size="11" font-weight="700" fill="var(--gold)" opacity=".9" letter-spacing="1">ACTUAL PIT BOX WIDTH</text>`;
-  s += `<rect x="${fieldLeft}" y="${fieldTop}" width="${fieldRight-fieldLeft}" height="${fieldBottom-fieldTop}" fill="none" stroke="var(--line)" stroke-width="2.5"/>`;
+  // Once stretched (stretch===TURF_ZOOM_STRETCH), this rect's on-screen
+  // width becomes exactly pitW — lining up edge-to-edge with the pit
+  // box drawn in restFieldSVG below.
+  s += `<rect x="${wx(trueBoxX1)}" y="${fieldTop}" width="${ww(trueBoxX2-trueBoxX1)}" height="${fieldBottom-fieldTop}" fill="var(--gold)" opacity=".1"/>`;
+  s += `<line x1="${wx(trueBoxX1)}" y1="${fieldTop}" x2="${wx(trueBoxX1)}" y2="${fieldBottom}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="6 4" opacity=".85"/>`;
+  s += `<line x1="${wx(trueBoxX2)}" y1="${fieldTop}" x2="${wx(trueBoxX2)}" y2="${fieldBottom}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="6 4" opacity=".85"/>`;
+  s += `<text x="${wx((trueBoxX1+trueBoxX2)/2)}" y="${fieldTop-10}" text-anchor="middle" font-family="Oswald" font-size="11" font-weight="700" fill="var(--gold)" opacity=".9" letter-spacing="1">ACTUAL PIT BOX WIDTH</text>`;
+  s += `<rect x="${wx(fieldLeft)}" y="${fieldTop}" width="${ww(fieldRight-fieldLeft)}" height="${fieldBottom-fieldTop}" fill="none" stroke="var(--line)" stroke-width="2.5"/>`;
   // left half / right half labels — for splitting equipment or crew by wing.
   // Big, centered watermark-style text in the middle of each half.
   const sideLabelY = (fieldTop+fieldBottom)/2 + 10;
   const leftHalfX = fieldLeft + (fieldRight-fieldLeft)*0.25;
   const rightHalfX = fieldLeft + (fieldRight-fieldLeft)*0.75;
-  s += `<text x="${leftHalfX}" y="${sideLabelY}" text-anchor="middle" font-family="Oswald" font-size="32" font-weight="700" fill="var(--line)" opacity=".5" letter-spacing="3" stroke="#204a1d" stroke-width="4" paint-order="stroke">SIDE 1 · LEFT</text>`;
-  s += `<text x="${rightHalfX}" y="${sideLabelY}" text-anchor="middle" font-family="Oswald" font-size="32" font-weight="700" fill="var(--line)" opacity=".5" letter-spacing="3" stroke="#204a1d" stroke-width="4" paint-order="stroke">SIDE 2 · RIGHT</text>`;
+  s += `<text x="${wx(leftHalfX)}" y="${sideLabelY}" text-anchor="middle" font-family="Oswald" font-size="32" font-weight="700" fill="var(--line)" opacity=".5" letter-spacing="3" stroke="#204a1d" stroke-width="4" paint-order="stroke">SIDE 1 · LEFT</text>`;
+  s += `<text x="${wx(rightHalfX)}" y="${sideLabelY}" text-anchor="middle" font-family="Oswald" font-size="32" font-weight="700" fill="var(--line)" opacity=".5" letter-spacing="3" stroke="#204a1d" stroke-width="4" paint-order="stroke">SIDE 2 · RIGHT</text>`;
 
   // Visitor (top) / Home (bottom) — same treatment, placed clear of the
   // hash rows and the center logo
   const midX = fieldLeft + (fieldRight-fieldLeft)/2;
   const visitorY = fieldTop + 62;
   const homeY = fieldBottom - 56;
-  s += `<text x="${midX}" y="${visitorY}" text-anchor="middle" font-family="Oswald" font-size="32" font-weight="700" fill="var(--line)" opacity=".5" letter-spacing="3" stroke="#204a1d" stroke-width="4" paint-order="stroke">VISITOR</text>`;
-  s += `<text x="${midX}" y="${homeY}" text-anchor="middle" font-family="Oswald" font-size="32" font-weight="700" fill="var(--line)" opacity=".5" letter-spacing="3" stroke="#204a1d" stroke-width="4" paint-order="stroke">HOME</text>`;
+  s += `<text x="${wx(midX)}" y="${visitorY}" text-anchor="middle" font-family="Oswald" font-size="32" font-weight="700" fill="var(--line)" opacity=".5" letter-spacing="3" stroke="#204a1d" stroke-width="4" paint-order="stroke">VISITOR</text>`;
+  s += `<text x="${wx(midX)}" y="${homeY}" text-anchor="middle" font-family="Oswald" font-size="32" font-weight="700" fill="var(--line)" opacity=".5" letter-spacing="3" stroke="#204a1d" stroke-width="4" paint-order="stroke">HOME</text>`;
+  const cx = fieldLeft + (fieldRight-fieldLeft)/2, cy = (fieldTop+fieldBottom)/2;
+  s += `<g transform="translate(${wx(cx)-70},${cy-70}) scale(1.4)" opacity=".95">
+    <polygon points="20,15 40,15 40,42 60,42 60,15 80,15 80,50 65,50 50,70 35,50 20,50" fill="#2c3f8f" stroke="#0c1230" stroke-width="3"/>
+    <polygon points="46,55 54,55 50,72" fill="#e0b13c"/>
+  </g>`;
+  return s;
+}
+
+// Everything from the pit box down through the track — always drawn at
+// its normal, unwarped scale regardless of the turf stretch above.
+function restFieldSVG(){
+  let s = '';
   s += `<rect x="${pitX-3}" y="${pitY-3}" width="${pitW+6}" height="${pitH+6}" fill="#0e1116"/>`;
   s += `<rect id="pit-box-rect" x="${pitX}" y="${pitY}" width="${pitW}" height="${pitH}" fill="#f4f1e8" stroke="#0e1116" stroke-width="4"/>`;
   s += `<text x="${pitX+pitW/2}" y="${pitY+pitH/2+16}" text-anchor="middle" font-family="Oswald" font-size="48" font-weight="700" fill="#12161c" opacity=".13" letter-spacing="4">PIT BOX</text>`;
   // Same true-scale reference, mirrored inside the (deliberately oversized)
   // working pit box — drawn at the identical unit-width as the turf marker
-  // above, so the two are a direct, apples-to-apples comparison once
-  // zoomed in via "Zoom to Pit Box": this inset shows how much of the
-  // wider working box the real 20-yard footprint would actually take up.
-  const trueWidthUnits = trueBoxX2 - trueBoxX1;
-  const pitInsetX1 = pitX + pitW/2 - trueWidthUnits/2;
-  const pitInsetX2 = pitX + pitW/2 + trueWidthUnits/2;
-  s += `<rect x="${pitInsetX1}" y="${pitY}" width="${trueWidthUnits}" height="${pitH}" fill="var(--gold)" opacity=".08"/>`;
+  // above, so the two are a direct, apples-to-apples comparison even in
+  // the normal (non-zoomed) view.
+  const pitInsetX1 = pitX + pitW/2 - TRUE_BAND_WIDTH_UNITS/2;
+  const pitInsetX2 = pitX + pitW/2 + TRUE_BAND_WIDTH_UNITS/2;
+  s += `<rect x="${pitInsetX1}" y="${pitY}" width="${TRUE_BAND_WIDTH_UNITS}" height="${pitH}" fill="var(--gold)" opacity=".08"/>`;
   s += `<line x1="${pitInsetX1}" y1="${pitY}" x2="${pitInsetX1}" y2="${pitY+pitH}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="6 4" opacity=".85"/>`;
   s += `<line x1="${pitInsetX2}" y1="${pitY}" x2="${pitInsetX2}" y2="${pitY+pitH}" stroke="var(--gold)" stroke-width="1.6" stroke-dasharray="6 4" opacity=".85"/>`;
   s += `<text x="${pitX+pitW/2}" y="${pitY-8}" text-anchor="middle" font-family="Oswald" font-size="11" font-weight="700" fill="var(--gold)" opacity=".9" letter-spacing="1">TRUE 20-YD WIDTH</text>`;
@@ -104,13 +171,29 @@ function isInPitBox(svgX, svgY){
     s += `<rect x="${i*(W/40)}" y="${trackY}" width="${(W/40)*0.55}" height="${trackH}" fill="var(--track-line)" opacity=".55"/>`;
   }
   s += `<text x="18" y="${trackY+28}" font-family="Oswald" font-size="14" font-weight="600" fill="#fff" opacity=".85">SIDELINE</text>`;
-  const cx = fieldLeft + (fieldRight-fieldLeft)/2, cy = (fieldTop+fieldBottom)/2;
-  s += `<g transform="translate(${cx-70},${cy-70}) scale(1.4)" opacity=".95">
-    <polygon points="20,15 40,15 40,42 60,42 60,15 80,15 80,50 65,50 50,70 35,50 20,50" fill="#2c3f8f" stroke="#0c1230" stroke-width="3"/>
-    <polygon points="46,55 54,55 50,72" fill="#e0b13c"/>
-  </g>`;
-  svg.innerHTML = s;
+  return s;
+}
+
+// The full field at its normal, unwarped scale — used for the initial
+// render and anywhere (e.g. the inspector's mini-map) that needs the
+// real geometry regardless of whatever the main field's zoom is doing
+// right now.
+function unwarpedFieldSVG(){
+  return `<g id="turf-group">${turfGroupSVG(1)}</g>` + restFieldSVG();
+}
+
+(function drawField(){
+  svg.innerHTML = unwarpedFieldSVG();
 })();
+
+// Turns the turf-only stretch on/off — regenerates just the turf-group
+// portion of the SVG in place (the pit box and everything below it is
+// never touched). Called by zoomToPit()/zoomReset() below.
+function setTurfZoomWarp(active){
+  pitZoomWarpActive = active;
+  const grp = document.getElementById('turf-group');
+  if(grp) grp.innerHTML = turfGroupSVG(active ? TURF_ZOOM_STRETCH : 1);
+}
 
 function describePosition(xPct, yPct){
   const svgX = (xPct/100)*W, svgY = (yPct/100)*H;
@@ -376,7 +459,7 @@ function updateOffscreenArrows(){
 
   const points = [];
   currentItemsCtx().items.forEach(it=>{
-    const screenX = curTx + (it.xPct/100)*vRect.width*curScale;
+    const screenX = curTx + (warpXPctForZoom(it.xPct, it.yPct)/100)*vRect.width*curScale;
     const screenY = curTy + (it.yPct/100)*vRect.height*curScale;
     if(screenX>=0 && screenX<=vRect.width && screenY>=0 && screenY<=vRect.height) return; // already visible
     const dx = screenX-cx, dy = screenY-cy;
@@ -413,11 +496,12 @@ offscreenArrowsLayer.addEventListener('click', e=>{
   const it = currentItemsCtx().items.find(i=>i.uid===btn.dataset.jumpTo);
   if(!it) return;
   const vRect = fieldViewport.getBoundingClientRect();
-  curTx = vRect.width/2 - (it.xPct/100)*vRect.width*curScale;
+  curTx = vRect.width/2 - (warpXPctForZoom(it.xPct, it.yPct)/100)*vRect.width*curScale;
   curTy = vRect.height/2 - (it.yPct/100)*vRect.height*curScale;
   applyFieldTransform();
 });
 function zoomToPit(){
+  setTurfZoomWarp(true);
   const vRect = fieldViewport.getBoundingClientRect();
   const scaleX = vRect.width / W, scaleY = vRect.height / H;
   const pxX = pitX*scaleX, pxY = pitY*scaleY, pxW = pitW*scaleX, pxH = pitH*scaleY;
@@ -427,10 +511,13 @@ function zoomToPit(){
   curTx = (vRect.width - pxW*zoom)/2 - pxX*zoom;
   curTy = (vRect.height - pxH*zoom)/2 - pxY*zoom;
   applyFieldTransform();
+  renderField(); // re-lay-out items now that on-screen turf positions have shifted (see warpXPctForZoom)
 }
 function zoomReset(){
+  setTurfZoomWarp(false);
   curScale = 1; curTx = 0; curTy = 0;
   applyFieldTransform();
+  renderField();
 }
 btnZoomPit.addEventListener('click', zoomToPit);
 btnZoomReset.addEventListener('click', zoomReset);

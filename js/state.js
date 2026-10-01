@@ -275,9 +275,35 @@ async function loadState(){
   return true;
 }
 
+// Coalesces overlapping calls instead of running a full reload (14
+// parallel Supabase queries, see loadState) for each one. Every local
+// write (db() below) calls reload() itself right after saving — but
+// boot.js also has a realtime subscription on 11 tables that calls
+// reload() independently whenever that same write echoes back, so one
+// action was triggering two full reloads back to back. On a weak
+// connection at an actual event, that doubling (or worse, if a write
+// touches several tables) is real, compounding latency. Now: if a
+// reload is already running when another one is requested, that caller
+// just waits on the one in progress rather than starting a second
+// fetch in parallel; if the request arrives after the fetch itself
+// finished but before rendering settles, one more pass runs to pick up
+// whatever changed, so nobody ever waits on stale data.
+let reloadInFlight = null;
+let reloadQueued = false;
 async function reload(){
-  await loadState();
-  renderAll();
+  if(reloadInFlight){
+    reloadQueued = true;
+    return reloadInFlight;
+  }
+  reloadInFlight = (async ()=>{
+    do{
+      reloadQueued = false;
+      await loadState();
+      renderAll();
+    }while(reloadQueued);
+    reloadInFlight = null;
+  })();
+  return reloadInFlight;
 }
 
 async function db(promise, label){

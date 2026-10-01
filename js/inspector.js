@@ -119,12 +119,11 @@ function closeInspector(){ inspOverlay.style.display = 'none'; inspectorUid = nu
 // yard line doesn't change just because the picture is stretched.
 function renderMiniMap(it, targetId, zoomedPitView){
   const miniMap = document.getElementById(targetId || 'view-mini-map');
-  // stretching spreads content out horizontally everywhere except the
-  // pit box itself — widen the crop's x-extent to match (for anything
-  // outside the box) so it still covers roughly the same true-yard
-  // range around the item as usual, instead of shrinking to a sparse
-  // sliver once that range is stretched wider
-  const stretched = zoomedPitView && !isInPitBox((it.xPct/100)*W, (it.yPct/100)*H);
+  // stretching spreads the open turf out horizontally — widen the
+  // crop's x-extent to match (turf items only) so it still covers
+  // roughly the same true-yard range around the item as usual, instead
+  // of shrinking to a sparse sliver once that range is stretched wider
+  const stretched = zoomedPitView && it.yPct < PIT_ZONE_TOP_PCT;
   const cx = (warpXPctIf(it.xPct, it.yPct, zoomedPitView)/100)*W, cy = (it.yPct/100)*H;
   const zoomY = 260; // crop window size in field units — a close-up with just enough surrounding context
   const zoomX = stretched ? zoomY*TURF_ZOOM_STRETCH : zoomY;

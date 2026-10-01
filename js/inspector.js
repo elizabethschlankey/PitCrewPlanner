@@ -86,7 +86,7 @@ function openInspector(itemUid){
     const curYard = xPctToYard(it.xPct);
     document.getElementById('insp-yard-side').value = curYard.side;
     document.getElementById('insp-yard-num').value = curYard.yard;
-    renderMiniMap(it, 'edit-mini-map');
+    renderMiniMap(it, 'edit-mini-map', true);
     initMediaPreview('setup', typeNotes.setupMediaUrl, typeNotes.setupMediaType);
     initMediaPreview('teardown', typeNotes.teardownMediaUrl, typeNotes.teardownMediaType);
     inspViewBody.style.display = 'none';
@@ -108,16 +108,15 @@ function closeInspector(){ inspOverlay.style.display = 'none'; inspectorUid = nu
 // (same document, so its var(--turf-a) etc. resolve normally) with a
 // different, tighter viewBox instead of the full 0..W 0..H one.
 //
-// zoomedPitView: true for the volunteer-facing mini-map — always shown
-// with the same turf stretch "Zoom to Pit Box" uses (see
-// TURF_ZOOM_STRETCH on the main field), regardless of whatever the main
-// field's own zoom happens to be doing right now, since that stretched
-// view is the accurate-ratio one this app now treats as the "real"
-// picture of how the turf relates to the pit box. The printed yard-line
-// text elsewhere on this tab is unaffected either way — the item's true
+// zoomedPitView: true shows the same turf stretch "Zoom to Pit Box"
+// uses (see TURF_ZOOM_STRETCH on the main field), regardless of
+// whatever the main field's own zoom happens to be doing right now,
+// since that stretched view is the accurate-ratio one this app now
+// treats as the "real" picture of how the turf relates to the pit box
+// — both the volunteer's read-only mini-map and the editor's own (while
+// dragging) use it for that reason. The printed yard-line text
+// elsewhere on this tab is unaffected either way — the item's true
 // yard line doesn't change just because the picture is stretched.
-// False (the default, used for edit-mini-map) keeps the plain,
-// unwarped field — the actual reference an editor drags against.
 function renderMiniMap(it, targetId, zoomedPitView){
   const miniMap = document.getElementById(targetId || 'view-mini-map');
   // stretching spreads content out horizontally everywhere except the
@@ -455,7 +454,7 @@ document.getElementById('insp-yard-apply').addEventListener('click', async ()=>{
   if(!it) return; // item (or the whole event) may be gone by the time this resolves
   document.getElementById('insp-placement-instructions').textContent = placementInstructions(it.xPct, it.yPct);
   document.getElementById('insp-pos').textContent = 'On field: ' + describePosition(it.xPct, it.yPct);
-  renderMiniMap(it, 'edit-mini-map');
+  renderMiniMap(it, 'edit-mini-map', true);
 });
 document.getElementById('insp-save').addEventListener('click', async ()=>{
   const itemUid = inspectorUid;

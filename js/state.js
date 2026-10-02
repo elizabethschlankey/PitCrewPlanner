@@ -4,6 +4,24 @@
 ---------------------------------------------------------------- */
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
 function todayISO(){ return new Date().toISOString().slice(0,10); }
+// minimal HTML-attribute escaping — for user-entered text landing
+// inside an attribute (not just text content, which markup injection
+// is already a known, pre-existing gap for throughout this app — this
+// closes it specifically for the one place it matters most: a clickable
+// href, see safeLinkHref below)
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+// only an absolute http(s) URL is ever rendered as a clickable href —
+// blocks a javascript:/data: URL typed into the itinerary's link field
+// from actually running when someone taps it
+function safeLinkHref(url){
+  if(!url) return '';
+  try{
+    const u = new URL(url);
+    return (u.protocol==='http:' || u.protocol==='https:') ? u.href : '';
+  }catch(e){ return ''; }
+}
 
 // {url, type} for the setup ("What to Do") or teardown ("Wrap It Up")
 // media on an items/template_items row. Falls back to the legacy
@@ -199,7 +217,7 @@ async function loadState(){
     itineraryRes.data.forEach(row=>{
       (itineraryByEvent[row.event_id] ||= []).push({
         uid: row.id, timeValue: row.time_value, label: row.label, notes: row.notes||'', isTentative: !!row.is_tentative,
-        pitCrewNeeded: !!row.pit_crew_needed
+        pitCrewNeeded: !!row.pit_crew_needed, linkUrl: row.link_url||'', isReference: !!row.is_reference
       });
     });
   }
@@ -208,7 +226,7 @@ async function loadState(){
     itineraryTemplateItemsRes.data.forEach(row=>{
       (itineraryByTemplate[row.template_id] ||= []).push({
         uid: row.id, timeValue: row.time_value, label: row.label, notes: row.notes||'', isTentative: !!row.is_tentative,
-        pitCrewNeeded: !!row.pit_crew_needed
+        pitCrewNeeded: !!row.pit_crew_needed, linkUrl: row.link_url||'', isReference: !!row.is_reference
       });
     });
   }

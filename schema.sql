@@ -581,3 +581,18 @@ alter table event_volunteer_status add column if not exists session text not nul
 -- ---------------------------------------------------------------
 alter table templates           add column if not exists active boolean not null default true;
 alter table itinerary_templates add column if not exists active boolean not null default true;
+
+-- ---------------------------------------------------------------
+-- link_url / is_reference — lets an itinerary item be a pinned
+-- reference entry (Directions to the venue, a parking map, ...)
+-- instead of a scheduled moment: is_reference true pins it above the
+-- time-based schedule with no time needed, and link_url (optional)
+-- renders as a tappable link (only an absolute http/https URL is ever
+-- rendered as one — see safeLinkHref in js/state.js). Defaults leave
+-- every existing item exactly as it was (a normal scheduled entry,
+-- no link). Idempotent — safe to re-run.
+-- ---------------------------------------------------------------
+alter table itinerary_items          add column if not exists link_url text not null default '';
+alter table itinerary_items          add column if not exists is_reference boolean not null default false;
+alter table itinerary_template_items add column if not exists link_url text not null default '';
+alter table itinerary_template_items add column if not exists is_reference boolean not null default false;

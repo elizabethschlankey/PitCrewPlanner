@@ -159,7 +159,8 @@ async function copyItineraryToEvent(srcItems, eventId){
   for(const it of srcItems){
     const {error} = await sb.from('itinerary_items').insert({
       event_id: eventId, time_value: it.timeValue, label: it.label,
-      notes: it.notes || '', is_tentative: !!it.isTentative, pit_crew_needed: !!it.pitCrewNeeded
+      notes: it.notes || '', is_tentative: !!it.isTentative, pit_crew_needed: !!it.pitCrewNeeded,
+      link_url: it.linkUrl || '', is_reference: !!it.isReference
     });
     if(error){ failed++; console.error(error); }
   }
@@ -174,7 +175,8 @@ async function copyItineraryToTemplate(srcItems, templateId){
   for(const it of srcItems){
     const {error} = await sb.from('itinerary_template_items').insert({
       template_id: templateId, time_value: it.timeValue, label: it.label,
-      notes: it.notes || '', is_tentative: !!it.isTentative, pit_crew_needed: !!it.pitCrewNeeded
+      notes: it.notes || '', is_tentative: !!it.isTentative, pit_crew_needed: !!it.pitCrewNeeded,
+      link_url: it.linkUrl || '', is_reference: !!it.isReference
     });
     if(error){ failed++; console.error(error); }
   }
@@ -603,6 +605,7 @@ function renderItineraryTemplates(){
         <div class="count">${t.items.length} item${t.items.length===1?'':'s'}</div>
       </div>
       <button class="small primary" data-edit-itinerary-template="${t.id}" type="button">Edit Items</button>
+      <button class="small ghost" data-dup-itinerary-template="${t.id}" type="button">Duplicate</button>
       <button class="small ghost" data-rename-itinerary-template="${t.id}" type="button">Rename</button>
       ${t.active
         ? `<button class="small ghost" data-archive-itinerary-template="${t.id}" type="button">Archive</button>`
@@ -616,6 +619,8 @@ document.getElementById('itinerary-template-list').addEventListener('click', e=>
     if(typeof openItineraryTemplateEditor==='function') openItineraryTemplateEditor(editBtn.dataset.editItineraryTemplate);
     return;
   }
+  const dupBtn = e.target.closest('[data-dup-itinerary-template]');
+  if(dupBtn){ openItineraryTemplateForm('duplicate', dupBtn.dataset.dupItineraryTemplate); return; }
   const renameBtn = e.target.closest('[data-rename-itinerary-template]');
   if(renameBtn){ openItineraryTemplateForm('rename', renameBtn.dataset.renameItineraryTemplate); return; }
   const archiveBtn = e.target.closest('[data-archive-itinerary-template]');
@@ -652,6 +657,11 @@ function openItineraryTemplateForm(kind, id){
     itineraryTemplateFormLabel.textContent = 'Rename “'+t.name+'”';
     itineraryTemplateFormName.value = t.name;
     itineraryTemplateFormType.value = t.eventType;
+  }else if(kind==='duplicate'){
+    const t = STATE.itineraryTemplates.find(x=>x.id===id) || {name:'',eventType:''};
+    itineraryTemplateFormLabel.textContent = 'Duplicate “'+t.name+'”';
+    itineraryTemplateFormName.value = t.name + ' (Copy)';
+    itineraryTemplateFormType.value = t.eventType;
   }else{
     itineraryTemplateFormLabel.textContent = 'New Itinerary Template';
     itineraryTemplateFormName.value = '';
@@ -674,6 +684,14 @@ itineraryTemplateFormCreateBtn.addEventListener('click', async ()=>{
   try{
     if(itineraryTemplateFormMode==='rename'){
       await db(sb.from('itinerary_templates').update({name, event_type: eventType}).eq('id', itineraryTemplateFormTargetId), 'rename itinerary template');
+    }else if(itineraryTemplateFormMode==='duplicate'){
+      const src = STATE.itineraryTemplates.find(t=>t.id===itineraryTemplateFormTargetId);
+      const srcItems = clone(src ? src.items : []);
+      const {data:newTmpl, error} = await sb.from('itinerary_templates').insert({name, event_type: eventType}).select().single();
+      if(error){ statusEl.textContent = 'Error: '+error.message; return; }
+      const failed = await copyItineraryToTemplate(srcItems, newTmpl.id);
+      await reload();
+      statusEl.textContent = copyResultMessage('Itinerary template', srcItems.length, failed);
     }else{
       const {error} = await sb.from('itinerary_templates').insert({name, event_type: eventType});
       if(error){ statusEl.textContent = 'Error: '+error.message; return; }

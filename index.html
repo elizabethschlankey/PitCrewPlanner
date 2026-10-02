@@ -1,6 +1,6 @@
 <!-- GENERATED FILE. Do not edit directly -- edit index.template.html and partials/*.html, then run `node build.js`. -->
 <!doctype html>
-<html lang="en" data-app-version="2026-10-02b">
+<html lang="en" data-app-version="2026-10-02c">
 <head>
 <meta charset="UTF-8">
 <title>P.I.T - Field Crew Planner</title>
@@ -22,7 +22,7 @@
      400/500/600/700 throughout (body text through badge labels), so
      it keeps its full range. -->
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=2026-10-02b">
+<link rel="stylesheet" href="css/styles.css?v=2026-10-02c">
 </head>
 <body>
 <div class="app">
@@ -470,6 +470,10 @@
             <label style="display:flex;align-items:center;gap:6px;font-size:12px;">
               <input type="checkbox" id="itinerary-pitcrew-input"> 💪 Pit Crew needed here
             </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;">
+              <input type="checkbox" id="itinerary-reference-input"> 📍 Reference item (e.g. Directions, Parking Map) — pins to the top, no time needed
+            </label>
+            <input id="itinerary-link-input" type="url" placeholder="Link (optional) — e.g. a Google Maps URL" maxlength="500">
             <div style="display:flex;gap:6px;">
               <button id="itinerary-add-btn" type="button" style="flex:1;" disabled>Add Item</button>
               <button id="itinerary-cancel-edit-btn" class="ghost" type="button" style="display:none;">Cancel</button>
@@ -816,19 +820,19 @@
      anymore. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
 <script src="config.js"></script>
-<script src="js/supabase-client.js?v=2026-10-02b"></script>
-<script src="js/catalog.js?v=2026-10-02b"></script>
-<script src="js/state.js?v=2026-10-02b"></script>
-<script src="js/field.js?v=2026-10-02b"></script>
-<script src="js/render.js?v=2026-10-02b"></script>
-<script src="js/admin.js?v=2026-10-02b"></script>
-<script src="js/setup-wizard.js?v=2026-10-02b"></script>
-<script src="js/itinerary.js?v=2026-10-02b"></script>
-<script src="js/badges.js?v=2026-10-02b"></script>
-<script src="js/drag-drop.js?v=2026-10-02b"></script>
-<script src="js/inspector.js?v=2026-10-02b"></script>
-<script src="js/toolbar.js?v=2026-10-02b"></script>
-<script src="js/boot.js?v=2026-10-02b"></script>
-<script src="js/update-check.js?v=2026-10-02b"></script>
+<script src="js/supabase-client.js?v=2026-10-02c"></script>
+<script src="js/catalog.js?v=2026-10-02c"></script>
+<script src="js/state.js?v=2026-10-02c"></script>
+<script src="js/field.js?v=2026-10-02c"></script>
+<script src="js/render.js?v=2026-10-02c"></script>
+<script src="js/admin.js?v=2026-10-02c"></script>
+<script src="js/setup-wizard.js?v=2026-10-02c"></script>
+<script src="js/itinerary.js?v=2026-10-02c"></script>
+<script src="js/badges.js?v=2026-10-02c"></script>
+<script src="js/drag-drop.js?v=2026-10-02c"></script>
+<script src="js/inspector.js?v=2026-10-02c"></script>
+<script src="js/toolbar.js?v=2026-10-02c"></script>
+<script src="js/boot.js?v=2026-10-02c"></script>
+<script src="js/update-check.js?v=2026-10-02c"></script>
 </body>
 </html>

@@ -179,6 +179,28 @@ function renderItinerary(){
     list.innerHTML = `<div class="roster-empty">No itinerary yet${isTemplate ? ' in this template' : ' for this event'}.</div>`;
     return;
   }
+  // Reference items (Directions, a parking map, ...) aren't part of the
+  // time-based schedule at all — no "past/current/now" styling applies
+  // to them, so they're pulled out and pinned above it instead of
+  // sorting in wherever their (usually absent) time would land them.
+  const referenceItems = items.filter(it=>it.isReference);
+  const scheduleItems = items.filter(it=>!it.isReference);
+  const referenceRows = referenceItems.map(it=>{
+    const href = safeLinkHref(it.linkUrl);
+    return `
+    <div class="itinerary-row itinerary-reference">
+      <div class="itinerary-ref-icon" title="Reference item">📍</div>
+      <div class="itinerary-body">
+        <div class="itinerary-label">${it.label}</div>
+        ${it.notes ? `<div class="itinerary-notes">${it.notes}</div>` : ''}
+        ${href ? `<a class="itinerary-link" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">Open Link ↗</a>` : ''}
+      </div>
+      <div class="itinerary-actions" data-badges-only>
+        <button type="button" data-edit-itinerary="${it.uid}" title="Edit">✎</button>
+        <button type="button" class="itinerary-remove-btn" data-remove-itinerary="${it.uid}" title="Remove">×</button>
+      </div>
+    </div>`;
+  });
   // Live "NOW" line — only for a real event happening TODAY (a
   // template has no date, and comparing clock time against an event
   // days away would be meaningless, so past/current/upcoming styling
@@ -192,9 +214,9 @@ function renderItinerary(){
   const nowStr = showNow ? nowTimeString() : null;
   let currentIdx = -1;
   if(showNow){
-    items.forEach((it,i)=>{ if(it.timeValue && it.timeValue<=nowStr) currentIdx = i; });
+    scheduleItems.forEach((it,i)=>{ if(it.timeValue && it.timeValue<=nowStr) currentIdx = i; });
   }
-  const rows = items.map((it,i)=>{
+  const rows = scheduleItems.map((it,i)=>{
     const timeDisplay = formatItineraryTime(it.timeValue);
     const tentative = !!(timeDisplay && it.isTentative);
     const timeText = tentative ? `~${timeDisplay}` : (timeDisplay || 'TBD');
@@ -220,7 +242,7 @@ function renderItinerary(){
   if(showNow){
     rows.splice(currentIdx+1, 0, `<div class="itinerary-now-line"><span>Now — ${formatItineraryTime(nowStr)}</span></div>`);
   }
-  list.innerHTML = rows.join('');
+  list.innerHTML = referenceRows.join('') + rows.join('');
 }
 
 /* --- add / edit form (mirrors startEditVolunteer/cancelEditVolunteer
@@ -231,6 +253,8 @@ const itineraryLabelInput = document.getElementById('itinerary-label-input');
 const itineraryNotesInput = document.getElementById('itinerary-notes-input');
 const itineraryTentativeInput = document.getElementById('itinerary-tentative-input');
 const itineraryPitCrewInput = document.getElementById('itinerary-pitcrew-input');
+const itineraryReferenceInput = document.getElementById('itinerary-reference-input');
+const itineraryLinkInput = document.getElementById('itinerary-link-input');
 const itineraryAddBtn = document.getElementById('itinerary-add-btn');
 const itineraryCancelEditBtn = document.getElementById('itinerary-cancel-edit-btn');
 const itineraryFormLabel = document.getElementById('itinerary-form-label');
@@ -242,7 +266,8 @@ function itineraryFormSnapshot(){
   const timeValue = itineraryTimeInput.value ? itineraryTimeInput.value+':00' : null;
   return {
     timeValue, label: itineraryLabelInput.value.trim(), notes: itineraryNotesInput.value.trim(),
-    isTentative: timeValue ? itineraryTentativeInput.checked : false, pitCrewNeeded: itineraryPitCrewInput.checked
+    isTentative: timeValue ? itineraryTentativeInput.checked : false, pitCrewNeeded: itineraryPitCrewInput.checked,
+    isReference: itineraryReferenceInput.checked, linkUrl: itineraryLinkInput.value.trim()
   };
 }
 // the item's values as of when Edit was clicked — compared against the
@@ -258,16 +283,17 @@ function updateItineraryAddBtnState(){
   if(editingItineraryId && editingItineraryOriginal){
     const dirty = snap.timeValue!==editingItineraryOriginal.timeValue || snap.label!==editingItineraryOriginal.label
       || snap.notes!==editingItineraryOriginal.notes || snap.isTentative!==editingItineraryOriginal.isTentative
-      || snap.pitCrewNeeded!==editingItineraryOriginal.pitCrewNeeded;
+      || snap.pitCrewNeeded!==editingItineraryOriginal.pitCrewNeeded || snap.isReference!==editingItineraryOriginal.isReference
+      || snap.linkUrl!==editingItineraryOriginal.linkUrl;
     itineraryAddBtn.disabled = !dirty;
   }else{
     itineraryAddBtn.disabled = false;
   }
 }
-[itineraryTimeInput, itineraryLabelInput, itineraryNotesInput].forEach(el=>{
+[itineraryTimeInput, itineraryLabelInput, itineraryNotesInput, itineraryLinkInput].forEach(el=>{
   el.addEventListener('input', updateItineraryAddBtnState);
 });
-[itineraryTentativeInput, itineraryPitCrewInput].forEach(el=>{
+[itineraryTentativeInput, itineraryPitCrewInput, itineraryReferenceInput].forEach(el=>{
   el.addEventListener('change', updateItineraryAddBtnState);
 });
 
@@ -280,6 +306,8 @@ function startEditItineraryItem(id){
   itineraryNotesInput.value = it.notes || '';
   itineraryTentativeInput.checked = !!it.isTentative;
   itineraryPitCrewInput.checked = !!it.pitCrewNeeded;
+  itineraryReferenceInput.checked = !!it.isReference;
+  itineraryLinkInput.value = it.linkUrl || '';
   itineraryFormLabel.textContent = 'Edit Item';
   itineraryAddBtn.textContent = 'Save Changes';
   itineraryCancelEditBtn.style.display = 'inline-block';
@@ -295,6 +323,8 @@ function cancelEditItineraryItem(){
   itineraryNotesInput.value = '';
   itineraryTentativeInput.checked = false;
   itineraryPitCrewInput.checked = false;
+  itineraryReferenceInput.checked = false;
+  itineraryLinkInput.value = '';
   itineraryFormLabel.textContent = 'Add an Item';
   itineraryAddBtn.textContent = 'Add Item';
   itineraryCancelEditBtn.style.display = 'none';
@@ -306,15 +336,15 @@ itineraryAddBtn.addEventListener('click', async ()=>{
   // button's already disabled unless there's a label AND (for an edit)
   // something actually changed — this just guards a stray click event
   if(itineraryAddBtn.disabled) return;
-  const {timeValue, label, notes, isTentative, pitCrewNeeded} = itineraryFormSnapshot();
+  const {timeValue, label, notes, isTentative, pitCrewNeeded, isReference, linkUrl} = itineraryFormSnapshot();
   if(!label) return;
   const ctx = currentItineraryCtx();
   if(editingItineraryId){
-    const ok = await db(sb.from(ctx.table).update({time_value: timeValue, label, notes, is_tentative: isTentative, pit_crew_needed: pitCrewNeeded}).eq('id', editingItineraryId), 'update itinerary item');
+    const ok = await db(sb.from(ctx.table).update({time_value: timeValue, label, notes, is_tentative: isTentative, pit_crew_needed: pitCrewNeeded, is_reference: isReference, link_url: linkUrl}).eq('id', editingItineraryId), 'update itinerary item');
     if(ok) cancelEditItineraryItem();
   }else{
     if(!ctx.ownerId) return;
-    const ok = await db(sb.from(ctx.table).insert({[ctx.fk]: ctx.ownerId, time_value: timeValue, label, notes, is_tentative: isTentative, pit_crew_needed: pitCrewNeeded}), 'add itinerary item');
+    const ok = await db(sb.from(ctx.table).insert({[ctx.fk]: ctx.ownerId, time_value: timeValue, label, notes, is_tentative: isTentative, pit_crew_needed: pitCrewNeeded, is_reference: isReference, link_url: linkUrl}), 'add itinerary item');
     if(ok) cancelEditItineraryItem();
   }
 });

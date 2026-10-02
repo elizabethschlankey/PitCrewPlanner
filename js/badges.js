@@ -45,6 +45,20 @@ async function toggleBadgeActiveForEvent(badgeId){
   }
 }
 
+// Competitions don't usually need badge check-in/out (no sideline duty
+// to track) — marks every badge inactive for the given event in one
+// shot, the same per-event "not on hand" state toggleBadgeActiveForEvent
+// sets one at a time. Called when an event is created or retyped as a
+// contest (see admin.js). A plain write, not routed through db() —
+// every caller already does its own reload right after (or just did
+// one via its own db() call), so this doesn't need to trigger a second.
+async function markAllBadgesInactiveForEvent(eventId){
+  if(!STATE.badges.length) return;
+  const rows = STATE.badges.map(b=>({event_id: eventId, badge_id: b.id}));
+  const {error} = await sb.from('event_inactive_badges').upsert(rows, {onConflict:'event_id,badge_id', ignoreDuplicates:true});
+  if(error) console.error('auto-inactivate badges for contest', error);
+}
+
 function badgeRowHTML(b, active){
   const st = badgeStatus(b.id);
   const unknown = st.out && !st.event.volunteer_id;

@@ -217,7 +217,14 @@ eventFormCreateBtn.addEventListener('click', async ()=>{
   eventFormCreateBtn.disabled = true;
   try{
     if(eventFormMode==='rename'){
+      // badges aren't usually needed at a competition (no sideline duty
+      // to check them in/out for) — only auto-inactivate them all on the
+      // actual switch TO contest, not on every resave of an event that
+      // was already one, so a director's own manual re-activation of a
+      // few badges for a specific contest isn't quietly overwritten
+      const previousType = currentEvent().eventType;
       await db(sb.from('events').update({name, date, event_type: eventType}).eq('id', currentEvent().id), 'rename event');
+      if(eventType==='contest' && previousType!=='contest') await markAllBadgesInactiveForEvent(currentEvent().id);
     }else if(eventFormMode==='duplicate'){
       const srcItems = clone(currentEvent().items);
       const {data:newEvt, error} = await sb.from('events').insert({name, date, event_type: eventType, template_id: currentEvent().templateId || null}).select().single();
@@ -227,6 +234,7 @@ eventFormCreateBtn.addEventListener('click', async ()=>{
       // (Signed Up/Backup) is per-event too and has no rows yet for this
       // new event, so everyone naturally starts as Potential automatically.
       const failed = await copyItemsToEvent(srcItems, newEvt.id);
+      if(eventType==='contest') await markAllBadgesInactiveForEvent(newEvt.id);
       viewingEventId = newEvt.id;
       await reload();
       statusEl.textContent = copyResultMessage('Event', srcItems.length, failed);
@@ -245,6 +253,7 @@ eventFormCreateBtn.addEventListener('click', async ()=>{
         const itmpl = STATE.itineraryTemplates.find(t=>t.id===itineraryTemplateId);
         if(itmpl && itmpl.items.length) await copyItineraryToEvent(clone(itmpl.items), newEvt.id);
       }
+      if(eventType==='contest') await markAllBadgesInactiveForEvent(newEvt.id);
       viewingEventId = newEvt.id;
       await reload();
       statusEl.textContent = copyResultMessage('Event', total, failed);

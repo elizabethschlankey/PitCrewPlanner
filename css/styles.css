@@ -57,6 +57,11 @@
   button:disabled{opacity:.4;cursor:not-allowed;transform:none;}
   button.primary{background:var(--navy-2);border-color:var(--navy-2);}
   button.primary:hover{background:#3750ac;}
+  /* "you've got something unsaved — tap this" — gold instead of the
+     generic navy .primary so it doesn't blend in as just another main
+     button; toggled purely by JS (see updateItineraryAddBtnState) */
+  button.btn-dirty{background:var(--gold);border-color:var(--gold);color:#12161c;}
+  button.btn-dirty:hover{background:#eac769;}
   button.danger{background:transparent;border-color:var(--danger);color:#ff8a80;}
   button.danger:hover{background:rgba(193,68,58,.15);}
   button.ghost{background:transparent;}

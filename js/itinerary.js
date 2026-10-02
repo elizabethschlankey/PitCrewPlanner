@@ -298,19 +298,26 @@ let editingItineraryOriginal = null;
 // Add Item stays disabled until there's a label to save at all; Save
 // Changes stays disabled until something in the form actually differs
 // from what's already saved, so there's never a save with nothing new
-// to write.
+// to write. Whenever it's enabled, it also gets a gold "you have
+// something unsaved" highlight (see .btn-dirty in styles.css) — a
+// plain enabled/disabled toggle alone was easy to miss, especially on
+// the Edit path where it's easy to tweak a field and wander off
+// without noticing Save Changes needs a tap.
 function updateItineraryAddBtnState(){
   const snap = itineraryFormSnapshot();
-  if(!snap.label){ itineraryAddBtn.disabled = true; return; }
-  if(editingItineraryId && editingItineraryOriginal){
-    const dirty = snap.timeValue!==editingItineraryOriginal.timeValue || snap.label!==editingItineraryOriginal.label
+  let enabled;
+  if(!snap.label){
+    enabled = false;
+  }else if(editingItineraryId && editingItineraryOriginal){
+    enabled = snap.timeValue!==editingItineraryOriginal.timeValue || snap.label!==editingItineraryOriginal.label
       || snap.notes!==editingItineraryOriginal.notes || snap.isTentative!==editingItineraryOriginal.isTentative
       || snap.pitCrewNeeded!==editingItineraryOriginal.pitCrewNeeded || snap.isReference!==editingItineraryOriginal.isReference
       || snap.linkUrl!==editingItineraryOriginal.linkUrl;
-    itineraryAddBtn.disabled = !dirty;
   }else{
-    itineraryAddBtn.disabled = false;
+    enabled = true;
   }
+  itineraryAddBtn.disabled = !enabled;
+  itineraryAddBtn.classList.toggle('btn-dirty', enabled);
 }
 [itineraryTimeInput, itineraryLabelInput, itineraryNotesInput, itineraryLinkInput].forEach(el=>{
   el.addEventListener('input', updateItineraryAddBtnState);

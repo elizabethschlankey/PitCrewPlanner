@@ -772,7 +772,13 @@ document.getElementById('roster-list').addEventListener('click', e=>{
    every game"), and this event has a needs-a-hand item of that same
    type with room and nobody assigned yet, put them straight on it and
    re-anchor them there, so the streak keeps carrying forward with no
-   manual re-dragging every single game. Silently does nothing if
+   manual re-dragging every single game. When there's more than one
+   item of that type (three podiums, say), the specific one they get
+   put back on is whichever sits closest — same field position, same
+   side, same rough yard line — to the one they were actually anchored
+   to last time, not just "the first matching item in this event" (see
+   autoAssignDesignatedPosition), so "Left Podium" doesn't silently
+   become "Right Podium" in a new event. Silently does nothing if
    there's no anchor history for them, no matching item, or no open
    slot — this only ever ADDS an assignment, never bumps anyone else.
 ---------------------------------------------------------------- */
@@ -786,7 +792,7 @@ function findDesignatedPosition(volunteerId){
     const eventDate = evt.date || '';
     evt.items.forEach(it=>{
       if((it.anchoredIds||[]).includes(volunteerId) && (!best || eventDate>=best.eventDate)){
-        best = {typeId: it.typeId, label: it.label, eventDate};
+        best = {typeId: it.typeId, label: it.label, xPct: it.xPct, yPct: it.yPct, eventDate};
       }
     });
   });
@@ -810,9 +816,25 @@ async function autoAssignDesignatedPosition(volunteerId, eventId, reservedCounts
     return (it.assignedIds||[]).length + reserved < (it.helpersNeeded||1);
   });
   if(!candidates.length) return null;
-  // several of the same type (e.g. three marimbas) — prefer the one
-  // whose label matches their historical spot over just "the first one"
-  const target = candidates.find(it=>it.label===designated.label) || candidates[0];
+  // several of the same type can also share the exact same label (e.g.
+  // three podiums all just called "Large Podium") — label alone can't
+  // tell them apart, so among same-label candidates (or all of them, if
+  // none share the label) pick whichever sits closest to where they
+  // were actually anchored last time. Without this, "find the first one
+  // labeled the same" just grabs whichever instance happens to come
+  // first in this event's own item order — which has nothing to do with
+  // left/right side or yard line, so someone anchored to the LEFT
+  // podium could silently land on the RIGHT one in a new event.
+  const sameLabel = candidates.filter(it=>it.label===designated.label);
+  const pool = sameLabel.length ? sameLabel : candidates;
+  let target = pool[0];
+  if(designated.xPct!=null && designated.yPct!=null){
+    let bestDist = Infinity;
+    pool.forEach(it=>{
+      const d = Math.hypot(it.xPct-designated.xPct, it.yPct-designated.yPct);
+      if(d<bestDist){ bestDist = d; target = it; }
+    });
+  }
   const {error} = await sb.from('item_assignments').insert({item_id: target.uid, volunteer_id: volunteerId, anchored: true});
   if(error){ console.error(error); return null; }
   if(reservedCounts) reservedCounts.set(target.uid, (reservedCounts.get(target.uid)||0)+1);

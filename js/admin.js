@@ -74,8 +74,10 @@ function openEventForm(kind){
   eventFormTemplate.style.display = kind==='new' ? '' : 'none';
   if(eventFormItineraryTemplate) eventFormItineraryTemplate.style.display = kind==='new' ? '' : 'none';
   if(kind==='new'){
+    // archived templates are kept to reference/restore, not to start a
+    // fresh event from — see renderTemplates
     eventFormTemplate.innerHTML = '<option value="">Start Blank</option>' +
-      STATE.templates.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+      STATE.templates.filter(t=>t.active).map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
   }
   if(kind==='duplicate'){
     eventFormLabel.textContent = 'Duplicate “'+currentEvent().name+'”';
@@ -189,7 +191,7 @@ function eventTypeLabel(t){
 // every template, tagged so it's still clear which type each is for.
 function itineraryTemplateOptionsFor(eventType){
   return STATE.itineraryTemplates
-    .filter(t=>!eventType || !t.eventType || t.eventType===eventType)
+    .filter(t=>t.active && (!eventType || !t.eventType || t.eventType===eventType))
     .map(t=>`<option value="${t.id}">${t.name}${t.eventType ? ` (${eventTypeLabel(t.eventType)})` : ''}</option>`)
     .join('');
 }
@@ -275,9 +277,13 @@ eventFormCreateBtn.addEventListener('click', async ()=>{
 const switchTemplateForm = document.getElementById('switch-template-form');
 const switchTemplateSelect = document.getElementById('switch-template-select');
 document.getElementById('btn-switch-template').addEventListener('click', ()=>{
+  // archived templates are left out of this picker too — except
+  // whichever one the event is already on, so it still shows up as
+  // selected instead of silently falling back to "No Template"
+  const curId = currentEvent().templateId;
   switchTemplateSelect.innerHTML = '<option value="">No Template</option>' +
-    STATE.templates.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
-  switchTemplateSelect.value = currentEvent().templateId || '';
+    STATE.templates.filter(t=>t.active || t.id===curId).map(t=>`<option value="${t.id}">${t.name}${t.active ? '' : ' (Archived)'}</option>`).join('');
+  switchTemplateSelect.value = curId || '';
   switchTemplateForm.classList.add('open');
 });
 document.getElementById('switch-template-cancel').addEventListener('click', ()=>switchTemplateForm.classList.remove('open'));
@@ -437,16 +443,24 @@ function renderTemplates(){
     list.innerHTML = `<div class="roster-empty">No templates yet. Create one below to reuse as a starting layout for new events.</div>`;
     return;
   }
-  list.innerHTML = STATE.templates.map(t=>`
-    <div class="template-row">
+  // active templates first, archived ones after — archiving keeps a
+  // template around to edit/duplicate/reference later (see Archive
+  // below) without it cluttering the "start a new event"/"switch
+  // template" pickers (see eventFormTemplate/switchTemplateSelect)
+  const sorted = STATE.templates.slice().sort((a,b)=> (a.active===b.active) ? 0 : (a.active ? -1 : 1));
+  list.innerHTML = sorted.map(t=>`
+    <div class="template-row${t.active ? '' : ' template-row-archived'}">
       <div class="info">
-        <div class="name">${t.name}</div>
+        <div class="name">${t.name}${t.active ? '' : ' <span class="pill archived">Archived</span>'}</div>
         ${t.description ? `<div class="desc">${t.description}</div>` : ''}
         <div class="count">${t.items.length} item${t.items.length===1?'':'s'} placed</div>
       </div>
       <button class="small primary" data-edit-template="${t.id}" type="button">Edit Layout</button>
       <button class="small ghost" data-dup-template="${t.id}" type="button">Duplicate</button>
       <button class="small ghost" data-rename-template="${t.id}" type="button">Rename</button>
+      ${t.active
+        ? `<button class="small ghost" data-archive-template="${t.id}" type="button">Archive</button>`
+        : `<button class="small ghost" data-restore-template="${t.id}" type="button">Restore</button>`}
       <button class="small danger" data-del-template="${t.id}" type="button">Delete</button>
     </div>`).join('');
 }
@@ -462,6 +476,16 @@ document.getElementById('template-list').addEventListener('click', e=>{
   if(dupBtn){ openTemplateForm('duplicate', dupBtn.dataset.dupTemplate); return; }
   const renameBtn = e.target.closest('[data-rename-template]');
   if(renameBtn){ openTemplateForm('rename', renameBtn.dataset.renameTemplate); return; }
+  const archiveBtn = e.target.closest('[data-archive-template]');
+  if(archiveBtn){
+    db(sb.from('templates').update({active:false}).eq('id', archiveBtn.dataset.archiveTemplate), 'archive template');
+    return;
+  }
+  const restoreBtn = e.target.closest('[data-restore-template]');
+  if(restoreBtn){
+    db(sb.from('templates').update({active:true}).eq('id', restoreBtn.dataset.restoreTemplate), 'restore template');
+    return;
+  }
   const delBtn = e.target.closest('[data-del-template]');
   if(delBtn){
     const id = delBtn.dataset.delTemplate;
@@ -570,14 +594,19 @@ function renderItineraryTemplates(){
     list.innerHTML = `<div class="roster-empty">No itinerary templates yet. Create one below to reuse as a starting schedule for matching events.</div>`;
     return;
   }
-  list.innerHTML = STATE.itineraryTemplates.map(t=>`
-    <div class="template-row">
+  // active first, archived after — see renderTemplates for why
+  const sorted = STATE.itineraryTemplates.slice().sort((a,b)=> (a.active===b.active) ? 0 : (a.active ? -1 : 1));
+  list.innerHTML = sorted.map(t=>`
+    <div class="template-row${t.active ? '' : ' template-row-archived'}">
       <div class="info">
-        <div class="name">${t.name} <span class="pill template">${eventTypeLabel(t.eventType)}</span></div>
+        <div class="name">${t.name} <span class="pill template">${eventTypeLabel(t.eventType)}</span>${t.active ? '' : ' <span class="pill archived">Archived</span>'}</div>
         <div class="count">${t.items.length} item${t.items.length===1?'':'s'}</div>
       </div>
       <button class="small primary" data-edit-itinerary-template="${t.id}" type="button">Edit Items</button>
       <button class="small ghost" data-rename-itinerary-template="${t.id}" type="button">Rename</button>
+      ${t.active
+        ? `<button class="small ghost" data-archive-itinerary-template="${t.id}" type="button">Archive</button>`
+        : `<button class="small ghost" data-restore-itinerary-template="${t.id}" type="button">Restore</button>`}
       <button class="small danger" data-del-itinerary-template="${t.id}" type="button">Delete</button>
     </div>`).join('');
 }
@@ -589,6 +618,16 @@ document.getElementById('itinerary-template-list').addEventListener('click', e=>
   }
   const renameBtn = e.target.closest('[data-rename-itinerary-template]');
   if(renameBtn){ openItineraryTemplateForm('rename', renameBtn.dataset.renameItineraryTemplate); return; }
+  const archiveBtn = e.target.closest('[data-archive-itinerary-template]');
+  if(archiveBtn){
+    db(sb.from('itinerary_templates').update({active:false}).eq('id', archiveBtn.dataset.archiveItineraryTemplate), 'archive itinerary template');
+    return;
+  }
+  const restoreBtn = e.target.closest('[data-restore-itinerary-template]');
+  if(restoreBtn){
+    db(sb.from('itinerary_templates').update({active:true}).eq('id', restoreBtn.dataset.restoreItineraryTemplate), 'restore itinerary template');
+    return;
+  }
   const delBtn = e.target.closest('[data-del-itinerary-template]');
   if(delBtn){
     const id = delBtn.dataset.delItineraryTemplate;

@@ -255,8 +255,8 @@ async function loadState(){
     eventVolunteerStatus: volStatusRes.data,
     eventInactiveBadges: inactiveBadgesRes.error ? [] : inactiveBadgesRes.data,
     itemTypeNotes: typeNotesRes.error ? {} : Object.fromEntries(typeNotesRes.data.map(r=>[r.type_id, r])),
-    templates: templatesRes.data.map(t=>({id:t.id, name:t.name, description:t.description||'', items: itemsByTemplate[t.id]||[]})),
-    itineraryTemplates: itineraryTemplatesRes.error ? [] : itineraryTemplatesRes.data.map(t=>({id:t.id, name:t.name, eventType: t.event_type||'', items: itineraryByTemplate[t.id]||[]}))
+    templates: templatesRes.data.map(t=>({id:t.id, name:t.name, description:t.description||'', active: t.active!==false, items: itemsByTemplate[t.id]||[]})),
+    itineraryTemplates: itineraryTemplatesRes.error ? [] : itineraryTemplatesRes.data.map(t=>({id:t.id, name:t.name, eventType: t.event_type||'', active: t.active!==false, items: itineraryByTemplate[t.id]||[]}))
   };
   // Every fresh app open lands on whichever event is ACTUALLY live
   // right now, even if hydrateFromCache's instant first paint already

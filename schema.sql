@@ -569,3 +569,15 @@ alter table item_type_notes add column if not exists category text not null defa
 -- prelims/finals split to tag. Idempotent — safe to re-run.
 -- ---------------------------------------------------------------
 alter table event_volunteer_status add column if not exists session text not null default 'both' check (session in ('both', 'prelims', 'finals'));
+
+-- ---------------------------------------------------------------
+-- active — lets a field-layout or itinerary template be archived
+-- instead of deleted: it drops out of the "start a new event"/"switch
+-- template"/"apply an itinerary template" pickers, but stays in its
+-- Admin > Templates list (dimmed, tagged Archived) so it can still be
+-- opened, duplicated, restored, or deleted later. true (the default)
+-- means every existing template keeps showing up exactly as before.
+-- Idempotent — safe to re-run.
+-- ---------------------------------------------------------------
+alter table templates           add column if not exists active boolean not null default true;
+alter table itinerary_templates add column if not exists active boolean not null default true;

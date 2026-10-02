@@ -141,6 +141,19 @@ function nowTimeString(){
   const d = new Date();
   return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
 }
+function timeToMinutes(hhmmss){
+  const [h,m] = hhmmss.split(':');
+  return parseInt(h,10)*60 + parseInt(m,10);
+}
+// how long an item stays highlighted "current" after its own start
+// time, if nothing else starts sooner — without this, an item with a
+// big gap before the next one (buses depart 8:30 AM, nothing else
+// until a 1:30 PM load-out) would stay glowing "Now" for hours after
+// it's clearly over, just because it's still the last thing that
+// started. No per-item duration to fill in; everything just stops
+// reading as "current" (falling back to "past") once this much time
+// has gone by since it started, unless the next item begins first.
+const ITINERARY_CURRENT_MAX_MINUTES = 60;
 
 /* --- render ------------------------------------------------------ */
 function renderItinerary(){
@@ -204,25 +217,34 @@ function renderItinerary(){
   // Live "NOW" line — only for a real event happening TODAY (a
   // template has no date, and comparing clock time against an event
   // days away would be meaningless, so past/current/upcoming styling
-  // and the line itself just don't appear in either case). currentIdx
-  // is the LAST item at or before the current time — i.e. "what's
-  // happening right now" — everything before it is past, everything
-  // after is still upcoming. Untimed items never advance it (there's
-  // no time to compare), so they always render as upcoming regardless
-  // of where they sort.
+  // and the line itself just don't appear in either case). Untimed
+  // items never advance currentIdx (there's no time to compare), so
+  // they always render as upcoming regardless of where they sort.
   const showNow = !isTemplate && evt.date && evt.date===todayISO();
   const nowStr = showNow ? nowTimeString() : null;
+  // currentIdx: the last item whose time has started — drives both the
+  // "Now" divider's position and which earlier items read as past.
+  // highlightIdx: which item actually gets the green "current" glow —
+  // the same item, UNLESS its start was more than
+  // ITINERARY_CURRENT_MAX_MINUTES ago (a big gap before whatever's
+  // next), in which case nothing gets highlighted and that item falls
+  // back to reading as past instead, same as any other finished item.
   let currentIdx = -1;
+  let highlightIdx = -1;
   if(showNow){
     scheduleItems.forEach((it,i)=>{ if(it.timeValue && it.timeValue<=nowStr) currentIdx = i; });
+    highlightIdx = currentIdx;
+    if(highlightIdx>=0 && timeToMinutes(nowStr)-timeToMinutes(scheduleItems[highlightIdx].timeValue) > ITINERARY_CURRENT_MAX_MINUTES){
+      highlightIdx = -1;
+    }
   }
   const rows = scheduleItems.map((it,i)=>{
     const timeDisplay = formatItineraryTime(it.timeValue);
     const tentative = !!(timeDisplay && it.isTentative);
     const timeText = tentative ? `~${timeDisplay}` : (timeDisplay || 'TBD');
-    const state = !showNow ? '' : i<currentIdx ? ' itinerary-past' : i===currentIdx ? ' itinerary-current' : '';
+    const state = !showNow ? '' : i===highlightIdx ? ' itinerary-current' : i<=currentIdx ? ' itinerary-past' : '';
     const pitCrewClass = it.pitCrewNeeded ? ' itinerary-pitcrew' : '';
-    const nowBadge = showNow && i===currentIdx ? ' <span class="itinerary-now-badge">Now</span>' : '';
+    const nowBadge = showNow && i===highlightIdx ? ' <span class="itinerary-now-badge">Now</span>' : '';
     const pitCrewBadge = it.pitCrewNeeded ? ' <span class="itinerary-pitcrew-badge" title="Pit Crew needed here">💪 Pit Crew Needed</span>' : '';
     return `
     <div class="itinerary-row${state}${pitCrewClass}">

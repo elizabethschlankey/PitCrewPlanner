@@ -1,6 +1,31 @@
 /* ---------------------------------------------------------------
    BADGE CHECK-IN / CHECK-OUT
 ---------------------------------------------------------------- */
+// natural/numeric sort for badge labels — "Sideline Pass 2" before
+// "Sideline Pass 10", not the plain lexicographic order a normal
+// string sort gives (which puts "10" right after "1", ahead of "2").
+// Splits each label into alternating digit/non-digit runs and compares
+// digit runs as numbers, everything else as plain text.
+function naturalCompare(a, b){
+  const re = /(\d+)|(\D+)/g;
+  const aParts = a.match(re) || [];
+  const bParts = b.match(re) || [];
+  const len = Math.max(aParts.length, bParts.length);
+  for(let i=0;i<len;i++){
+    const ap = aParts[i], bp = bParts[i];
+    if(ap===undefined) return -1;
+    if(bp===undefined) return 1;
+    if(/^\d+$/.test(ap) && /^\d+$/.test(bp)){
+      const diff = parseInt(ap,10) - parseInt(bp,10);
+      if(diff) return diff;
+    }else{
+      const cmp = ap.localeCompare(bp);
+      if(cmp) return cmp;
+    }
+  }
+  return 0;
+}
+
 // a badge's current status = its most recent event; no events, or the
 // most recent one being a check-in, means it's available
 function badgeStatus(badgeId){
@@ -86,6 +111,13 @@ function renderBadges(){
     checkInAllBtn.style.display = outCount ? 'inline-block' : 'none';
     document.getElementById('badge-checkin-all-count').textContent = outCount;
   }
+  const eventId = currentEvent().id;
+  const activeCountEl = document.getElementById('badge-active-count');
+  if(activeCountEl){
+    activeCountEl.textContent = STATE.badges.length
+      ? `${STATE.badges.filter(b=>isBadgeActiveForEvent(b.id, eventId)).length} of ${STATE.badges.length} active for this event`
+      : '';
+  }
   if(!STATE.badges.length){
     list.innerHTML = `<div class="roster-empty">No badges yet. Add one below.</div>`;
     return;
@@ -93,9 +125,12 @@ function renderBadges(){
   // fixed order (not grouped active-first/inactive-last) so flipping a
   // switch dims that row in place instead of relocating it to a
   // different group — regrouping on every toggle was reflowing the
-  // whole list and made the screen feel like it jumped
-  const eventId = currentEvent().id;
-  list.innerHTML = STATE.badges.map(b=>badgeRowHTML(b, isBadgeActiveForEvent(b.id, eventId))).join('');
+  // whole list and made the screen feel like it jumped. Sorting by
+  // label (naturalCompare, so "Badge 2" lands before "Badge 10") is
+  // fine alongside that — a badge's label doesn't change when its
+  // switch is flipped, so this ordering stays put too.
+  const sorted = STATE.badges.slice().sort((a,b)=>naturalCompare(a.label, b.label));
+  list.innerHTML = sorted.map(b=>badgeRowHTML(b, isBadgeActiveForEvent(b.id, eventId))).join('');
 }
 
 document.getElementById('badge-add-btn').addEventListener('click', async ()=>{

@@ -1,6 +1,6 @@
 <!-- GENERATED FILE. Do not edit directly -- edit index.template.html and partials/*.html, then run `node build.js`. -->
 <!doctype html>
-<html lang="en" data-app-version="2026-10-02f">
+<html lang="en" data-app-version="2026-10-08a">
 <head>
 <meta charset="UTF-8">
 <title>P.I.T - Field Crew Planner</title>
@@ -22,7 +22,7 @@
      400/500/600/700 throughout (body text through badge labels), so
      it keeps its full range. -->
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=2026-10-02f">
+<link rel="stylesheet" href="css/styles.css?v=2026-10-08a">
 </head>
 <body>
 <div class="app">
@@ -191,6 +191,7 @@
         </div>
         <div class="tab-panel" id="tab-badges" style="display:none;" data-event-only>
           <p class="hint">Check a badge out to a volunteer with a photo of the badge and the person — check it back in the same way, so you always know who had it last. The switch on each badge marks whether it's on hand for this event.</p>
+          <div class="hint" id="badge-active-count" style="margin-top:-6px;"></div>
           <button id="badge-checkin-all-btn" class="small primary" type="button" style="display:none;margin-bottom:8px;">Check In All Badges (<span id="badge-checkin-all-count">0</span>)</button>
           <div id="badge-list"></div>
           <h2 style="margin-top:14px;">New Badge</h2>
@@ -820,19 +821,19 @@
      anymore. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
 <script src="config.js"></script>
-<script src="js/supabase-client.js?v=2026-10-02f"></script>
-<script src="js/catalog.js?v=2026-10-02f"></script>
-<script src="js/state.js?v=2026-10-02f"></script>
-<script src="js/field.js?v=2026-10-02f"></script>
-<script src="js/render.js?v=2026-10-02f"></script>
-<script src="js/admin.js?v=2026-10-02f"></script>
-<script src="js/setup-wizard.js?v=2026-10-02f"></script>
-<script src="js/itinerary.js?v=2026-10-02f"></script>
-<script src="js/badges.js?v=2026-10-02f"></script>
-<script src="js/drag-drop.js?v=2026-10-02f"></script>
-<script src="js/inspector.js?v=2026-10-02f"></script>
-<script src="js/toolbar.js?v=2026-10-02f"></script>
-<script src="js/boot.js?v=2026-10-02f"></script>
-<script src="js/update-check.js?v=2026-10-02f"></script>
+<script src="js/supabase-client.js?v=2026-10-08a"></script>
+<script src="js/catalog.js?v=2026-10-08a"></script>
+<script src="js/state.js?v=2026-10-08a"></script>
+<script src="js/field.js?v=2026-10-08a"></script>
+<script src="js/render.js?v=2026-10-08a"></script>
+<script src="js/admin.js?v=2026-10-08a"></script>
+<script src="js/setup-wizard.js?v=2026-10-08a"></script>
+<script src="js/itinerary.js?v=2026-10-08a"></script>
+<script src="js/badges.js?v=2026-10-08a"></script>
+<script src="js/drag-drop.js?v=2026-10-08a"></script>
+<script src="js/inspector.js?v=2026-10-08a"></script>
+<script src="js/toolbar.js?v=2026-10-08a"></script>
+<script src="js/boot.js?v=2026-10-08a"></script>
+<script src="js/update-check.js?v=2026-10-08a"></script>
 </body>
 </html>

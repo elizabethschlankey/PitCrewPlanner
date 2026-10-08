@@ -101,6 +101,66 @@ function volunteerSessionFor(volunteerId){
   return row && row.session ? row.session : 'both';
 }
 
+/* ---------------------------------------------------------------
+   PRELIMS / FINALS VIEW TOGGLE — a per-viewer "which session am I
+   looking at right now" preference (not shared app state, like Hide
+   Labels), only meaningful for a Competition. Defaults to whichever
+   session is actually happening right now (see autoDetectSessionView),
+   but a manual pick sticks until a DIFFERENT event is viewed — stored
+   as {eventId, session} rather than resetting it from every place
+   viewingEventId can change, so switching back to the same event later
+   still remembers the choice, and switching to a different one falls
+   back to auto-detecting fresh for it.
+---------------------------------------------------------------- */
+let manualSessionView = null;
+// "final" anywhere in an itinerary item's label marks where Finals
+// starts for the day (e.g. "Finals Performance") — the EARLIEST such
+// item, if several mention it — EXCLUDING any that also mention
+// "prelim", since a real schedule's early, still-Prelims items often
+// reference Finals in passing ("Prelims Drum Major Retreat - Finals
+// Announcements") well before Finals actually starts; it's the first
+// Finals-only-worded item ("Finals begin", "Finals Warm-up", ...) that
+// actually marks the boundary. Verified against two real competition
+// itineraries — both have exactly this "mentions both early, Finals-
+// only later" shape. Before that time (or if there's no such item, or
+// the event isn't today) defaults to Prelims.
+function autoDetectSessionView(){
+  const evt = currentEvent();
+  if(!evt || evt.eventType!=='contest') return 'prelims';
+  if(!evt.date || evt.date!==todayISO()) return 'prelims';
+  const finalsTimes = (evt.itinerary||[])
+    .filter(it=>!it.isReference && it.timeValue && /final/i.test(it.label) && !/prelim/i.test(it.label))
+    .map(it=>it.timeValue)
+    .sort();
+  if(!finalsTimes.length) return 'prelims';
+  return nowTimeString()>=finalsTimes[0] ? 'finals' : 'prelims';
+}
+function currentSessionView(){
+  const evt = currentEvent();
+  if(manualSessionView && evt && manualSessionView.eventId===evt.id) return manualSessionView.session;
+  return autoDetectSessionView();
+}
+function setSessionView(session){
+  const evt = currentEvent();
+  if(!evt) return;
+  manualSessionView = {eventId: evt.id, session};
+  renderAll();
+}
+// an item's assignedIds, filtered to whoever's actually relevant for
+// the currently toggled session — a 'both'-session volunteer always
+// shows; a Prelims-only or Finals-only one only shows while that
+// session is the one being viewed. Only applies to a Competition —
+// every other event type shows everyone assigned, same as always.
+function visibleAssignedIds(it){
+  const ids = (it.assignedIds||[]).filter(id=>volunteerName(id));
+  if(currentEvent().eventType!=='contest') return ids;
+  const view = currentSessionView();
+  return ids.filter(id=>{
+    const s = volunteerSessionFor(id);
+    return s==='both' || s===view;
+  });
+}
+
 function rosterRowHTML(v, statusKey){
   // only meaningful once someone's actually committed to helping, and
   // only for a Competition — Home/Away games have no Prelims/Finals
@@ -174,7 +234,9 @@ function renderField(){
     // carrying it. Once someone's assigned, their name becomes the whole
     // label (equipment identity is still one tap away); otherwise show
     // the (abbreviated) equipment name, plus "Needs N" if unassigned.
-    const names = it.needsHelp ? (it.assignedIds||[]).map(volunteerName).filter(Boolean) : [];
+    // visibleAssignedIds (not the raw list) so a Competition's chip
+    // reflects whoever's actually on duty for the toggled session.
+    const names = it.needsHelp ? visibleAssignedIds(it).map(volunteerName) : [];
     let labelHTML;
     if(names.length){
       labelHTML = `<div class="tag name-tag">${names.join(', ')}</div>`;
@@ -192,7 +254,7 @@ function renderField(){
     // their check-out photo right on the chip — visible in both modes
     let badgeThumbHTML = '';
     if(it.needsHelp && it.assignedIds && it.assignedIds.length){
-      const vb = it.assignedIds.map(volunteerBadge).find(Boolean);
+      const vb = visibleAssignedIds(it).map(volunteerBadge).find(Boolean);
       if(vb && vb.event.photo_url){
         badgeThumbHTML = `<img class="chip-badge-thumb" src="${vb.event.photo_url}" title="${vb.badge.label}">`;
       }
@@ -226,12 +288,30 @@ function volunteerBadge(volunteerId){
 // name to jump straight to whatever they're tagged to help carry,
 // instead of scanning the whole Needs a Hand list by eye
 let assignSearchQuery = '';
+// shows/hides the Prelims/Finals toggle itself (Competition events
+// only) and reflects which one's currently active
+function renderSessionViewToggle(){
+  const wrap = document.getElementById('assign-session-toggle');
+  if(!wrap) return;
+  const isContest = currentEvent().eventType==='contest';
+  wrap.style.display = isContest ? '' : 'none';
+  if(!isContest) return;
+  const view = currentSessionView();
+  wrap.querySelectorAll('[data-session-view]').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.sessionView===view);
+  });
+}
+document.getElementById('assign-session-toggle').addEventListener('click', e=>{
+  const btn = e.target.closest('[data-session-view]');
+  if(btn) setSessionView(btn.dataset.sessionView);
+});
 function renderAssignments(){
+  renderSessionViewToggle();
   const allItems = currentEvent().items.filter(it=>it.needsHelp);
   const totalHelpersNeeded = allItems.reduce((sum,it)=> sum + (it.helpersNeeded||1), 0);
   document.getElementById('assign-count').textContent = totalHelpersNeeded;
   const q = assignSearchQuery.trim().toLowerCase();
-  const items = q ? allItems.filter(it => (it.assignedIds||[]).some(id => (volunteerName(id)||'').toLowerCase().includes(q))) : allItems;
+  const items = q ? allItems.filter(it => visibleAssignedIds(it).some(id => (volunteerName(id)||'').toLowerCase().includes(q))) : allItems;
   const list = document.getElementById('assign-list');
   if(!items.length){
     list.innerHTML = q
@@ -241,7 +321,7 @@ function renderAssignments(){
   }
   const timingLabel = v => (TIMING_OPTIONS.find(t=>t.v===v)||{}).label || '';
   list.innerHTML = items.map(it=>{
-    const ids = (it.assignedIds||[]).filter(id=>volunteerName(id));
+    const ids = visibleAssignedIds(it);
     const need = it.helpersNeeded||1;
     const filled = ids.length >= need;
     const whoHTML = ids.length ? ids.map(id=>{

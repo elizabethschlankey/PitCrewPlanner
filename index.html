@@ -1,6 +1,6 @@
 <!-- GENERATED FILE. Do not edit directly -- edit index.template.html and partials/*.html, then run `node build.js`. -->
 <!doctype html>
-<html lang="en" data-app-version="2026-10-08b">
+<html lang="en" data-app-version="2026-10-08c">
 <head>
 <meta charset="UTF-8">
 <title>P.I.T - Field Crew Planner</title>
@@ -22,7 +22,7 @@
      400/500/600/700 throughout (body text through badge labels), so
      it keeps its full range. -->
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=2026-10-08b">
+<link rel="stylesheet" href="css/styles.css?v=2026-10-08c">
 </head>
 <body>
 <div class="app">
@@ -257,6 +257,10 @@
       <div class="assign-panel-body" id="assign-panel-body">
         <p class="hint">Items tagged below need extra people to carry them into place. Click an item on the field (in Edit Mode) to tag it.
           <span data-edit-only>Pin 📌 a reliable helper as an anchor so Clear Volunteers leaves them assigned.</span></p>
+        <div class="tab-row" id="assign-session-toggle" style="display:none;" title="Switch which session's assignments are shown on the field and below — defaults to whichever is happening right now, based on the itinerary">
+          <button type="button" class="tab-btn" data-session-view="prelims">Prelims</button>
+          <button type="button" class="tab-btn" data-session-view="finals">Finals</button>
+        </div>
         <div id="assign-list"></div>
       </div>
     </aside>
@@ -826,19 +830,19 @@
      anymore. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
 <script src="config.js"></script>
-<script src="js/supabase-client.js?v=2026-10-08b"></script>
-<script src="js/catalog.js?v=2026-10-08b"></script>
-<script src="js/state.js?v=2026-10-08b"></script>
-<script src="js/field.js?v=2026-10-08b"></script>
-<script src="js/render.js?v=2026-10-08b"></script>
-<script src="js/admin.js?v=2026-10-08b"></script>
-<script src="js/setup-wizard.js?v=2026-10-08b"></script>
-<script src="js/itinerary.js?v=2026-10-08b"></script>
-<script src="js/badges.js?v=2026-10-08b"></script>
-<script src="js/drag-drop.js?v=2026-10-08b"></script>
-<script src="js/inspector.js?v=2026-10-08b"></script>
-<script src="js/toolbar.js?v=2026-10-08b"></script>
-<script src="js/boot.js?v=2026-10-08b"></script>
-<script src="js/update-check.js?v=2026-10-08b"></script>
+<script src="js/supabase-client.js?v=2026-10-08c"></script>
+<script src="js/catalog.js?v=2026-10-08c"></script>
+<script src="js/state.js?v=2026-10-08c"></script>
+<script src="js/field.js?v=2026-10-08c"></script>
+<script src="js/render.js?v=2026-10-08c"></script>
+<script src="js/admin.js?v=2026-10-08c"></script>
+<script src="js/setup-wizard.js?v=2026-10-08c"></script>
+<script src="js/itinerary.js?v=2026-10-08c"></script>
+<script src="js/badges.js?v=2026-10-08c"></script>
+<script src="js/drag-drop.js?v=2026-10-08c"></script>
+<script src="js/inspector.js?v=2026-10-08c"></script>
+<script src="js/toolbar.js?v=2026-10-08c"></script>
+<script src="js/boot.js?v=2026-10-08c"></script>
+<script src="js/update-check.js?v=2026-10-08c"></script>
 </body>
 </html>

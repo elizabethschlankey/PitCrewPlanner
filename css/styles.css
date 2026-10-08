@@ -258,6 +258,11 @@
   .roster-row .desc{font-size:10.5px;color:var(--text-lo);margin-top:2px;line-height:1.35;}
   .roster-row .status-select{flex:none;background:var(--ink);border:1px solid var(--panel-edge);color:#eceef2;font-size:10px;font-family:'Inter',sans-serif;border-radius:5px;padding:5px 3px;max-width:82px;}
   .roster-row .session-select{flex:none;background:var(--ink);border:1px solid rgba(224,177,60,.4);color:var(--gold);font-size:10px;font-family:'Inter',sans-serif;border-radius:5px;padding:5px 3px;max-width:72px;}
+  /* same gold the session feature uses elsewhere (session-select above),
+     instead of the generic navy .tab-btn.active, so it reads as "which
+     session" rather than just another section tab */
+  #assign-session-toggle.tab-row{margin-bottom:10px;}
+  #assign-session-toggle .tab-btn.active{background:var(--gold);color:#12161c;}
   .roster-section{display:flex;flex-direction:column;gap:6px;margin-bottom:18px;}
   .roster-section-title{display:flex;align-items:center;gap:8px;font-family:'Oswald',sans-serif;font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:0;}
   .roster-section-title .count{background:var(--panel-edge);color:var(--text-lo);font-size:10px;font-weight:800;min-width:18px;height:18px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;}

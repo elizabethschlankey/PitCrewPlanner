@@ -898,7 +898,23 @@ function renderImportEventSelect(){
   // event dropdown in the header uses
   if(prev && STATE.events.find(e=>e.id===prev)) sel.value = prev;
   else sel.value = STATE.activeEventId || viewingEventId || (STATE.events[0]||{}).id || '';
+  updateImportSessionUI();
 }
+// the Finals paste box (and the "Prelims" label on the main one) only
+// make sense for a Competition — Home/Away events have no prelims/
+// finals split to import separately, same reasoning as the session
+// picker on Crew Roster itself
+function updateImportSessionUI(){
+  const sel = document.getElementById('import-event-select');
+  const label = document.getElementById('import-prelims-label');
+  const group = document.getElementById('import-finals-group');
+  if(!sel || !label || !group) return;
+  const evt = STATE.events.find(e=>e.id===sel.value);
+  const isContest = !!evt && evt.eventType==='contest';
+  label.style.display = isContest ? '' : 'none';
+  group.style.display = isContest ? '' : 'none';
+}
+document.getElementById('import-event-select').addEventListener('change', updateImportSessionUI);
 
 // Collapses any run of whitespace — including non-breaking spaces
 // (U+00A0), which web pages commonly use for table/cell spacing and
@@ -959,17 +975,38 @@ document.getElementById('import-names-btn').addEventListener('click', async ()=>
   const eventId = document.getElementById('import-event-select').value;
   const resultEl = document.getElementById('import-names-result');
   if(!eventId){ resultEl.textContent = 'Pick an event first.'; return; }
-  const names = parseSignupNames(document.getElementById('import-names-input').value);
+  const prelimsNames = parseSignupNames(document.getElementById('import-names-input').value);
+  const finalsInput = document.getElementById('import-finals-input');
+  const finalsNames = finalsInput ? parseSignupNames(finalsInput.value) : [];
+  // the Finals box only changes anything once it actually HAS names in
+  // it — pasting into just the main box behaves exactly like it always
+  // has (nobody's session is touched here, so it stays at the 'both'
+  // default), same as for a non-Competition event where there's no
+  // Finals box to use in the first place
+  const usingSessions = finalsNames.length>0;
+  const prelimsKeys = new Set(prelimsNames.map(nameMatchKey));
+  const finalsKeys = new Set(finalsNames.map(nameMatchKey));
+  // one deduped list across both boxes, keeping the first spelling seen
+  // for anyone who appears in both
+  const seenKeys = new Set();
+  const names = [];
+  [...prelimsNames, ...finalsNames].forEach(name=>{
+    const key = nameMatchKey(name);
+    if(seenKeys.has(key)) return;
+    seenKeys.add(key);
+    names.push(name);
+  });
   if(!names.length){ resultEl.textContent = 'Paste at least one name first.'; return; }
 
   statusEl.textContent = 'Importing…';
   resultEl.textContent = '';
   const existingByKey = new Map(STATE.roster.map(v=>[nameMatchKey(v.name), v]));
-  const matchedIds = [];
+  const idByKey = new Map();
   const toInsert = [];
   names.forEach(name=>{
-    const existing = existingByKey.get(nameMatchKey(name));
-    if(existing) matchedIds.push(existing.id);
+    const key = nameMatchKey(name);
+    const existing = existingByKey.get(key);
+    if(existing) idByKey.set(key, existing.id);
     else toInsert.push(name);
   });
 
@@ -980,13 +1017,20 @@ document.getElementById('import-names-btn').addEventListener('click', async ()=>
       resultEl.textContent = 'Import failed while adding new volunteers — nothing was marked Signed Up.';
       return;
     }
-    newRows.forEach(r=>matchedIds.push(r.id));
+    newRows.forEach(r=>idByKey.set(nameMatchKey(r.name), r.id));
   }
 
-  const {error: statusErr} = await sb.from('event_volunteer_status').upsert(
-    matchedIds.map(id=>({event_id:eventId, volunteer_id:id, status:'signed_up'})),
-    {onConflict: 'event_id,volunteer_id'}
-  );
+  // session, only when the Finals box was actually used: in both lists
+  // -> 'both', Finals only -> 'finals', otherwise (Prelims only)
+  // -> 'prelims'. Omitting the field entirely (when not usingSessions)
+  // leaves whatever session a returning volunteer already had alone,
+  // instead of quietly resetting it back to 'both' on every re-import.
+  const statusRows = [...idByKey.entries()].map(([key, id])=>{
+    const row = {event_id: eventId, volunteer_id: id, status: 'signed_up'};
+    if(usingSessions) row.session = (prelimsKeys.has(key) && finalsKeys.has(key)) ? 'both' : finalsKeys.has(key) ? 'finals' : 'prelims';
+    return row;
+  });
+  const {error: statusErr} = await sb.from('event_volunteer_status').upsert(statusRows, {onConflict: 'event_id,volunteer_id'});
   if(statusErr){
     statusEl.textContent = 'Error: '+statusErr.message;
     resultEl.textContent = 'Volunteers were saved to the roster, but marking them Signed Up failed — try again.';
@@ -999,6 +1043,7 @@ document.getElementById('import-names-btn').addEventListener('click', async ()=>
   // marked Signed Up. reservedCounts tracks slots THIS loop has
   // already filled so two people in the same paste can't both land on
   // the same one-person item before either write actually lands.
+  const matchedIds = [...idByKey.values()];
   const reservedCounts = new Map();
   let autoAssignedCount = 0;
   for(const id of matchedIds){
@@ -1010,8 +1055,10 @@ document.getElementById('import-names-btn').addEventListener('click', async ()=>
   const evtName = (STATE.events.find(e=>e.id===eventId) || {}).name || 'the event';
   const addedCount = toInsert.length;
   resultEl.textContent = `Imported ${names.length}: ${addedCount} new, ${names.length-addedCount} already on the roster — all marked Signed Up for "${evtName}"`
+    + (usingSessions ? ' (Prelims/Finals/Both set from which list each name was on)' : '')
     + (autoAssignedCount ? `, ${autoAssignedCount} auto-assigned to their usual spot.` : '.');
   document.getElementById('import-names-input').value = '';
+  if(finalsInput) finalsInput.value = '';
   statusEl.textContent = 'All changes saved';
 });
 

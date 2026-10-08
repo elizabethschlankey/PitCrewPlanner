@@ -11,7 +11,12 @@
               or Excel-column paste. Anyone not already on your roster gets added automatically, and everyone pasted
               is marked Signed Up for the event below.</p>
             <select id="import-event-select"></select>
+            <label class="hint" id="import-prelims-label" style="margin:0;display:none;">Prelims</label>
             <textarea id="import-names-input" rows="5" placeholder="Jordan Smith&#10;Alex Rivera&#10;Taylor Chen&#10;..."></textarea>
+            <div id="import-finals-group" style="display:none;">
+              <label class="hint" style="margin:0;">Finals (optional — only paste this if different names signed up for Finals; leave it blank and everyone above stays marked for both, same as always)</label>
+              <textarea id="import-finals-input" rows="5" placeholder="Jordan Smith&#10;Alex Rivera&#10;Taylor Chen&#10;..."></textarea>
+            </div>
             <button id="import-names-btn">Import &amp; Mark Signed Up</button>
             <div class="inline-error" id="import-names-result"></div>
           </div>

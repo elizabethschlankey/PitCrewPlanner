@@ -1,6 +1,6 @@
 <!-- GENERATED FILE. Do not edit directly -- edit index.template.html and partials/*.html, then run `node build.js`. -->
 <!doctype html>
-<html lang="en" data-app-version="2026-10-08a">
+<html lang="en" data-app-version="2026-10-08b">
 <head>
 <meta charset="UTF-8">
 <title>P.I.T - Field Crew Planner</title>
@@ -22,7 +22,7 @@
      400/500/600/700 throughout (body text through badge labels), so
      it keeps its full range. -->
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=2026-10-08a">
+<link rel="stylesheet" href="css/styles.css?v=2026-10-08b">
 </head>
 <body>
 <div class="app">
@@ -334,7 +334,12 @@
               or Excel-column paste. Anyone not already on your roster gets added automatically, and everyone pasted
               is marked Signed Up for the event below.</p>
             <select id="import-event-select"></select>
+            <label class="hint" id="import-prelims-label" style="margin:0;display:none;">Prelims</label>
             <textarea id="import-names-input" rows="5" placeholder="Jordan Smith&#10;Alex Rivera&#10;Taylor Chen&#10;..."></textarea>
+            <div id="import-finals-group" style="display:none;">
+              <label class="hint" style="margin:0;">Finals (optional — only paste this if different names signed up for Finals; leave it blank and everyone above stays marked for both, same as always)</label>
+              <textarea id="import-finals-input" rows="5" placeholder="Jordan Smith&#10;Alex Rivera&#10;Taylor Chen&#10;..."></textarea>
+            </div>
             <button id="import-names-btn">Import &amp; Mark Signed Up</button>
             <div class="inline-error" id="import-names-result"></div>
           </div>
@@ -821,19 +826,19 @@
      anymore. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
 <script src="config.js"></script>
-<script src="js/supabase-client.js?v=2026-10-08a"></script>
-<script src="js/catalog.js?v=2026-10-08a"></script>
-<script src="js/state.js?v=2026-10-08a"></script>
-<script src="js/field.js?v=2026-10-08a"></script>
-<script src="js/render.js?v=2026-10-08a"></script>
-<script src="js/admin.js?v=2026-10-08a"></script>
-<script src="js/setup-wizard.js?v=2026-10-08a"></script>
-<script src="js/itinerary.js?v=2026-10-08a"></script>
-<script src="js/badges.js?v=2026-10-08a"></script>
-<script src="js/drag-drop.js?v=2026-10-08a"></script>
-<script src="js/inspector.js?v=2026-10-08a"></script>
-<script src="js/toolbar.js?v=2026-10-08a"></script>
-<script src="js/boot.js?v=2026-10-08a"></script>
-<script src="js/update-check.js?v=2026-10-08a"></script>
+<script src="js/supabase-client.js?v=2026-10-08b"></script>
+<script src="js/catalog.js?v=2026-10-08b"></script>
+<script src="js/state.js?v=2026-10-08b"></script>
+<script src="js/field.js?v=2026-10-08b"></script>
+<script src="js/render.js?v=2026-10-08b"></script>
+<script src="js/admin.js?v=2026-10-08b"></script>
+<script src="js/setup-wizard.js?v=2026-10-08b"></script>
+<script src="js/itinerary.js?v=2026-10-08b"></script>
+<script src="js/badges.js?v=2026-10-08b"></script>
+<script src="js/drag-drop.js?v=2026-10-08b"></script>
+<script src="js/inspector.js?v=2026-10-08b"></script>
+<script src="js/toolbar.js?v=2026-10-08b"></script>
+<script src="js/boot.js?v=2026-10-08b"></script>
+<script src="js/update-check.js?v=2026-10-08b"></script>
 </body>
 </html>
